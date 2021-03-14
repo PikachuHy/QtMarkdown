@@ -5,6 +5,6 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Qt5 COMPONENTS Core)
 add_library(QtMarkdownParser Document.cpp Document.h Token.cpp Token.h Parser.cpp Parser.h Visitor.cpp Visitor.h)
 target_link_libraries(QtMarkdownParser PUBLIC Qt::Core)
-
+target_include_directories(QtMarkdownParser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(QtMarkdown main.cpp)
 target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
