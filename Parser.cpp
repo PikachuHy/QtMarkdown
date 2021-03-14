@@ -272,6 +272,9 @@ Node *parseParagraph(int &lineIndex, StringList& lines) {
                 auto image = parseImage(tokens, i);
                 ret->appendChild(image);
                 prev = i;
+            } else {
+                // parse fail. forward
+                i++;
             }
         }
         else if (isLeftBracket(token)) {
@@ -281,6 +284,9 @@ Node *parseParagraph(int &lineIndex, StringList& lines) {
                 auto link = parseLink(tokens, i);
                 ret->appendChild(link);
                 prev = i;
+            } else {
+                // parse fail. forward
+                i++;
             }
         }
         else if (isBackquote(token)) {
@@ -290,6 +296,9 @@ Node *parseParagraph(int &lineIndex, StringList& lines) {
                 auto inlineCode = parseInlineCode(tokens, i);
                 ret->appendChild(inlineCode);
                 prev = i;
+            } else {
+                // parse fail. forward
+                i++;
             }
         }
         else if (isStar(token)) {
@@ -313,6 +322,9 @@ Node *parseParagraph(int &lineIndex, StringList& lines) {
                 auto node = parseItalicAndBold(tokens, i);
                 ret->appendChild(node);
                 prev = i;
+            } else {
+                // parse fail. forward
+                i++;
             }
         }
         else {
