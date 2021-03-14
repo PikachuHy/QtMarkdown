@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.6)
+project(QtMarkdownParser)
+
+set(CMAKE_CXX_STANDARD 20)
+find_package(Qt5 COMPONENTS Core)
+add_library(QtMarkdownParser Document.cpp Document.h Token.cpp Token.h Parser.cpp Parser.h Visitor.cpp Visitor.h)
+target_link_libraries(QtMarkdownParser PUBLIC Qt::Core)
+
+add_executable(QtMarkdown main.cpp)
+target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
