@@ -63,9 +63,10 @@ struct DefaultHtmlVisitor: MultipleVisitor<Header,
         m_html += "\n";
     }
     void visit(CodeBlock *node) override {
-        m_html += "<pre>";
-        node->code()->accept(this);
-        m_html += "</pre>\n";
+        m_html += "<pre><code>\n";
+        auto code = node->code()->str();
+        m_html += code.toHtmlEscaped();
+        m_html += "</code></pre>\n";
     }
     void visit(InlineCode *node) override {
         m_html += "<code>";
