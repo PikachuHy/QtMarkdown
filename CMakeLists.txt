@@ -11,3 +11,7 @@ target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core)
 target_include_directories(QtMarkdownParser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(QtMarkdown main.cpp)
 target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
+
+find_package(Qt5 COMPONENTS Widgets)
+add_executable(QtMarkdownEditor Editor.cpp)
+target_link_libraries(QtMarkdownEditor PRIVATE Qt::Widgets QtMarkdownParser)
