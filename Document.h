@@ -168,6 +168,7 @@ class Document {
 public:
     explicit Document(String str);
     String toHtml();
+    void accept(VisitorNode* visitor);
 private:
     NodePtrList m_nodes;
 };

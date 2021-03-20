@@ -86,4 +86,4 @@ class Test{
 
 ## 图片
 
-![shiyanlou logo](https://static.shiyanlou.com/img/logo_03.png)
+![shiyanlou logo](/Users/pikachu/Downloads/1.jpg)

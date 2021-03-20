@@ -156,3 +156,9 @@ String Document::toHtml() {
     delete visitor;
     return ret;
 }
+
+void Document::accept(VisitorNode* visitor) {
+    for(auto it: m_nodes) {
+        it->accept(visitor);
+    }
+}
