@@ -17,6 +17,13 @@
 #include <QDebug>
 #include <QFontDatabase>
 
+namespace Element {
+    struct Link {
+        QString text;
+        QString url;
+        QList<QRect> rects;
+    };
+}
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
@@ -59,12 +66,13 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             return false;
         }
     }
-    void drawText(const QString& text) {
-        if (text == "\r") return;
+    QList<QRect> drawText(const QString& text) {
+        if (text == "\r") return {};
 //         qDebug() << "draw" << text;
-        if (text.isEmpty()) return;
+        if (text.isEmpty()) return {};
         if (currentLineCanDrawText(text)) {
-            drawTextInCurrentLine(text);
+            auto rect = drawTextInCurrentLine(text);
+            return {rect};
         } else {
             auto ch_w = charWidth(text.at(0));
             if (m_curX + ch_w <= m_maxWidth) {
@@ -80,26 +88,29 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
                         may_ch_count--;
                     }
                 }
-                drawTextInCurrentLine(text.left(may_ch_count));
+                auto rect1 = drawTextInCurrentLine(text.left(may_ch_count));
                 m_curY += m_lastMaxHeight;
-                drawTextInNewLine(text.right(text.size() - may_ch_count));
+                auto rect2 = drawTextInNewLine(text.right(text.size() - may_ch_count));
+                return {rect1,rect2};
             } else {
                 // 如果一个字符都画不了，直接画矩形
                 m_curX = 0;
                 m_curY += m_lastMaxHeight;
-                drawTextInNewLine(text);
+                auto rect = drawTextInNewLine(text);
+                return {rect};
             }
         }
     }
-    void drawTextInCurrentLine(const QString& text) {
+    QRect drawTextInCurrentLine(const QString& text) {
 //        qDebug() << "cur";
         auto rect = textRect(text);
 //        qDebug() << rect << text;
         m_painter.drawText(rect, text);
         m_curX += rect.width();
         m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
+        return rect;
     }
-    void drawTextInNewLine(const QString& text) {
+    QRect drawTextInNewLine(const QString& text) {
 //        qDebug() << "new";
         m_curX = 0;
         auto rect = textRect(text);
@@ -107,6 +118,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_painter.drawText(rect, text);
         m_curY += rect.height();
         m_lastMaxHeight = 0;
+        return rect;
     }
     void moveToNewLine() {
         m_curY += m_lastMaxHeight;
@@ -182,7 +194,12 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         auto font = m_painter.font();
         font.setUnderline(true);
         m_painter.setFont(font);
-        drawText(node->content()->str());
+        auto rects = drawText(node->content()->str());
+        auto link = new Element::Link();
+        link->text = node->content()->str();
+        link->url = node->href()->str();
+        link->rects = rects;
+        m_links.append(link);
         m_painter.restore();
     }
     void visit(CodeBlock *node) override {
@@ -269,6 +286,9 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     int realWidth() const {
         return m_lastMaxWidth;
     }
+    const QList<Element::Link*>& links() {
+        return m_links;
+    }
 private:
     QPainter& m_painter;
     int m_curX;
@@ -276,9 +296,11 @@ private:
     int m_lastMaxHeight;
     int m_lastMaxWidth;
     int m_maxWidth;
+    QList<Element::Link*> m_links;
 };
 Editor::Editor(QWidget *parent) : QWidget(parent), m_firstDraw(true) {
     m_rightMargin = 0;
+    setMouseTracking(true);
 }
 
 void Editor::paintEvent(QPaintEvent *e) {
@@ -303,6 +325,7 @@ void Editor::paintEvent(QPaintEvent *e) {
         qDebug() << "w" << w;
         DefaultEditorVisitor visitor(painter, w, m_rightMargin);
         doc.accept(&visitor);
+        m_links = visitor.links();
         int h = visitor.realHeight();
         if (h < 0) {
             h = 600;
@@ -325,6 +348,20 @@ void Editor::paintEvent(QPaintEvent *e) {
 //        painter.drawImage(QRect(0, 0, _size.width() - m_rightMargin, _size.height()), m_buffer);
         painter.drawImage(0, 0, m_buffer);
     }
+}
+
+void Editor::mouseMoveEvent(QMouseEvent *event) {
+    auto pos = event->pos();
+    for(auto link: m_links) {
+        for(auto rect: link->rects) {
+            if (rect.contains(pos)) {
+                setCursor(QCursor(Qt::PointingHandCursor));
+                return;
+            }
+        }
+    }
+
+    setCursor(QCursor(Qt::ArrowCursor));
 }
 
 int main(int argc, char *argv[]) {
