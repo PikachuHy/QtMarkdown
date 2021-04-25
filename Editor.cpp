@@ -20,6 +20,7 @@
 #include <QFontDatabase>
 #include <QStyle>
 #include <QTimer>
+#include <QtConcurrent>
 
 namespace Element {
     struct Link {
@@ -46,13 +47,18 @@ protected:
 
 public:
     bool eventFilter(QObject *watched, QEvent *event) override;
-
+private:
+    void drawInBackground();
+    void drawAsync();
 private:
     QImage m_buffer;
-    bool m_firstDraw;
+    bool m_needDraw;
     int m_rightMargin;
     QList<Element::Link*> m_links;
     Editor* m_editor;
+    bool m_isDrawing;
+    int m_maxWidth;
+    QSize m_fixedSize;
 };
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
@@ -328,63 +334,36 @@ private:
     int m_maxWidth;
     QList<Element::Link*> m_links;
 };
+
+template<typename T>
+void checkFuture(QFuture<T> future, std::function<void(T)> callback) {
+    if (!future.isFinished()) {
+        QTimer::singleShot(100, [future, callback](){
+            checkFuture(future, callback);
+        });
+    } else {
+        callback(future.result());
+    }
+}
 EditorWidget::EditorWidget(Editor *parent)
     : QWidget(parent)
-    , m_firstDraw(true)
+    , m_needDraw(true)
     , m_editor(parent)
     {
     m_rightMargin = 0;
     setMouseTracking(true);
+    m_buffer = QImage(this->size(), QImage::Format_RGB32);
 }
 
 void EditorWidget::paintEvent(QPaintEvent *e) {
     Q_UNUSED(e);
-    if (m_firstDraw) {
-        QImage tmp(10, 10, QImage::Format_RGB32);
-        QPainter painter(&tmp);
-        painter.setRenderHint(QPainter::Antialiasing);
-        QFile mdFile("../test.md");
-        if (!mdFile.exists()) {
-            qDebug() << "file not exist:" << mdFile.fileName();
-            return;
-        }
-        mdFile.open(QIODevice::ReadOnly);
-        auto mdText = mdFile.readAll();
-        mdFile.close();
-//    qDebug().noquote().nospace() << mdText;
-        Document doc(mdText);
-        int w = 600;
-        if (parentWidget()) {
-            w = parentWidget()->width();
-        }
-        DefaultEditorVisitor visitor(painter, w, m_rightMargin);
-        doc.accept(&visitor);
-        m_links = visitor.links();
-        int h = visitor.realHeight();
-        if (h < 0) {
-            h = 600;
-        }
-        w = qMax(w, visitor.realWidth());
-        // qDebug() << "set size:" << w << h;
-        auto scrollBarWidth = style()->pixelMetric(QStyle::PM_ScrollBarSliderMin);
-        scrollBarWidth = 0;
-        setFixedSize(w - scrollBarWidth, h);
-        {
-            m_buffer = QImage(w - scrollBarWidth + m_rightMargin * 2, h, QImage::Format_RGB32);
-            m_buffer.fill(Qt::white);
-            QPainter p(&m_buffer);
-            p.setRenderHint(QPainter::Antialiasing);
-            DefaultEditorVisitor _visitor(p, w, m_rightMargin);
-            doc.accept(&_visitor);
-        }
-        m_firstDraw = false;
-    } else {
-        QPainter painter(this);
-        auto _size = m_buffer.size();
-//        qDebug() << "image:" << _size;
-//        painter.drawImage(QRect(0, 0, _size.width() - m_rightMargin, _size.height()), m_buffer);
-        painter.drawImage(0, 0, m_buffer);
+//    qDebug() << e;
+    if (m_needDraw) {
+        m_needDraw = false;
+        this->drawInBackground();
     }
+    QPainter painter(this);
+    painter.drawImage(0, 0, m_buffer);
 }
 
 void EditorWidget::mouseMoveEvent(QMouseEvent *event) {
@@ -418,17 +397,74 @@ void EditorWidget::mousePressEvent(QMouseEvent *event) {
 }
 
 void EditorWidget::resizeEvent(QResizeEvent *event) {
-    m_firstDraw = true;
+    qDebug() << __FUNCTION__ ;
+//    m_needDraw = true;
+    this->update();
 }
 
 bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
 //    qDebug() << event->type() << watched << m_editor;
     if (watched == m_editor) {
         if (event->type() == QEvent::Resize) {
-            m_firstDraw = true;
+            QResizeEvent* e = dynamic_cast<QResizeEvent *>(event);
+            qDebug() << e->size();
+            auto scrollBarWidth = this->style()->pixelMetric(QStyle::PM_ScrollBarSliderMin);
+            this->m_maxWidth = qMax(600, e->size().width()) - scrollBarWidth - 1;
+            if (!m_isDrawing) {
+                m_needDraw = true;
+                qDebug() << __FUNCTION__ ;
+                this->update();
+            }
         }
     }
     return QObject::eventFilter(watched, event);
+}
+
+void EditorWidget::drawInBackground() {
+//    m_maxWidth = qMax(600, parentWidget()->width());
+    auto ret = QtConcurrent::run([this](int){
+        this->m_isDrawing = true;
+        this->drawAsync();
+        return 0;
+    }, 0);
+    checkFuture<int>(ret, [this](int) {
+        setFixedSize(m_fixedSize);
+        this->m_isDrawing = false;
+        this->update();
+    });
+}
+
+void EditorWidget::drawAsync() {
+    QImage tmp(this->size(), QImage::Format_RGB32);
+    QPainter painter(&tmp);
+    painter.setRenderHint(QPainter::Antialiasing);
+    QFile mdFile("../test.md");
+    if (!mdFile.exists()) {
+        qDebug() << "file not exist:" << mdFile.fileName();
+        return;
+    }
+    mdFile.open(QIODevice::ReadOnly);
+    auto mdText = mdFile.readAll();
+    mdFile.close();
+//    qDebug().noquote().nospace() << mdText;
+    Document doc(mdText);
+    DefaultEditorVisitor visitor(painter, m_maxWidth, m_rightMargin);
+    doc.accept(&visitor);
+    m_links = visitor.links();
+    int h = visitor.realHeight();
+    if (h < 0) {
+        h = 600;
+    }
+    auto w = qMax(m_maxWidth, visitor.realWidth());
+    // qDebug() << "set size:" << w << h;
+    m_fixedSize = QSize(w, h);
+    auto buffer = QImage(w, h, QImage::Format_RGB32);
+    buffer.fill(Qt::white);
+    QPainter p(&buffer);
+    p.setRenderHint(QPainter::Antialiasing);
+    DefaultEditorVisitor _visitor(p, w, m_rightMargin);
+    doc.accept(&_visitor);
+    m_buffer = buffer;
 }
 
 int main(int argc, char *argv[]) {
@@ -444,8 +480,5 @@ Editor::Editor(QWidget *parent) : QScrollArea(parent) {
     auto w = new EditorWidget(this);
     setWidget(w);
     installEventFilter(w);
-    QTimer::singleShot(1000, [this]() {
-        resize(this->width()+1, this->height()+1);
-    });
 }
 #include "Editor.moc"

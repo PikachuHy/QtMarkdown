@@ -12,9 +12,13 @@ target_include_directories(QtMarkdownParser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR
 add_executable(QtMarkdown main.cpp)
 target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Concurrent REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Widgets
+        Concurrent
         REQUIRED)
 add_executable(QtMarkdownEditor Editor.cpp)
-target_link_libraries(QtMarkdownEditor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets QtMarkdownParser)
+target_link_libraries(QtMarkdownEditor PRIVATE
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::Concurrent
+        QtMarkdownParser)
