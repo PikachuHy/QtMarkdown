@@ -19,6 +19,8 @@ protected:
 
     void mouseMoveEvent(QMouseEvent *event) override;
 
+    void mousePressEvent(QMouseEvent *event) override;
+
 private:
     QImage m_buffer;
     bool m_firstDraw;

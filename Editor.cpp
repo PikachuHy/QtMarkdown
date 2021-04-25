@@ -14,6 +14,8 @@
 #include "QtMarkdownParser"
 #include <QPainter>
 #include <QScrollArea>
+#include <QMessageBox>
+#include <QDesktopServices>
 #include <QDebug>
 #include <QFontDatabase>
 
@@ -362,6 +364,22 @@ void Editor::mouseMoveEvent(QMouseEvent *event) {
     }
 
     setCursor(QCursor(Qt::ArrowCursor));
+}
+
+void Editor::mousePressEvent(QMouseEvent *event) {
+    auto pos = event->pos();
+    for(auto link: m_links) {
+        for(auto rect: link->rects) {
+            if (rect.contains(pos)) {
+                auto ret = QMessageBox::question(this, tr("Open URL"),
+                                         QString("%1").arg(link->url)
+                                         );
+                if (ret == QMessageBox::Yes) {
+                    QDesktopServices::openUrl(QUrl(link->url));
+                }
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
