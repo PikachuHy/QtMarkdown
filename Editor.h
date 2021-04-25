@@ -4,28 +4,12 @@
 
 #ifndef QTMARKDOWNPARSER_EDITOR_H
 #define QTMARKDOWNPARSER_EDITOR_H
-#include <QTextEdit>
-#include <QImage>
-namespace Element {
-    struct Link;
-}
-class Editor: public QWidget {
+#include <QScrollArea>
+class Editor: public QScrollArea {
     Q_OBJECT
 public:
-    explicit Editor(QWidget* parent = nullptr);
-
-protected:
-    void paintEvent(QPaintEvent *e) override;
-
-    void mouseMoveEvent(QMouseEvent *event) override;
-
-    void mousePressEvent(QMouseEvent *event) override;
-
+    explicit Editor(QWidget *parent = nullptr);
 private:
-    QImage m_buffer;
-    bool m_firstDraw;
-    int m_rightMargin;
-    QList<Element::Link*> m_links;
 };
 
 

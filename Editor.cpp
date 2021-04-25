@@ -19,6 +19,7 @@
 #include <QDebug>
 #include <QFontDatabase>
 #include <QStyle>
+#include <QTimer>
 
 namespace Element {
     struct Link {
@@ -27,6 +28,32 @@ namespace Element {
         QList<QRect> rects;
     };
 }
+
+
+class EditorWidget: public QWidget {
+Q_OBJECT
+public:
+    explicit EditorWidget(Editor* parent = nullptr);
+
+protected:
+    void paintEvent(QPaintEvent *e) override;
+
+    void mouseMoveEvent(QMouseEvent *event) override;
+
+    void mousePressEvent(QMouseEvent *event) override;
+
+    void resizeEvent(QResizeEvent *event) override;
+
+public:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+private:
+    QImage m_buffer;
+    bool m_firstDraw;
+    int m_rightMargin;
+    QList<Element::Link*> m_links;
+    Editor* m_editor;
+};
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
@@ -301,15 +328,20 @@ private:
     int m_maxWidth;
     QList<Element::Link*> m_links;
 };
-Editor::Editor(QWidget *parent) : QWidget(parent), m_firstDraw(true) {
+EditorWidget::EditorWidget(Editor *parent)
+    : QWidget(parent)
+    , m_firstDraw(true)
+    , m_editor(parent)
+    {
     m_rightMargin = 0;
     setMouseTracking(true);
 }
 
-void Editor::paintEvent(QPaintEvent *e) {
+void EditorWidget::paintEvent(QPaintEvent *e) {
     Q_UNUSED(e);
-    QPainter painter(this);
     if (m_firstDraw) {
+        QImage tmp(10, 10, QImage::Format_RGB32);
+        QPainter painter(&tmp);
         painter.setRenderHint(QPainter::Antialiasing);
         QFile mdFile("../test.md");
         if (!mdFile.exists()) {
@@ -335,9 +367,10 @@ void Editor::paintEvent(QPaintEvent *e) {
         w = qMax(w, visitor.realWidth());
         // qDebug() << "set size:" << w << h;
         auto scrollBarWidth = style()->pixelMetric(QStyle::PM_ScrollBarSliderMin);
+        scrollBarWidth = 0;
         setFixedSize(w - scrollBarWidth, h);
         {
-            m_buffer = QImage(w + m_rightMargin * 2, h, QImage::Format_RGB32);
+            m_buffer = QImage(w - scrollBarWidth + m_rightMargin * 2, h, QImage::Format_RGB32);
             m_buffer.fill(Qt::white);
             QPainter p(&m_buffer);
             p.setRenderHint(QPainter::Antialiasing);
@@ -346,6 +379,7 @@ void Editor::paintEvent(QPaintEvent *e) {
         }
         m_firstDraw = false;
     } else {
+        QPainter painter(this);
         auto _size = m_buffer.size();
 //        qDebug() << "image:" << _size;
 //        painter.drawImage(QRect(0, 0, _size.width() - m_rightMargin, _size.height()), m_buffer);
@@ -353,7 +387,7 @@ void Editor::paintEvent(QPaintEvent *e) {
     }
 }
 
-void Editor::mouseMoveEvent(QMouseEvent *event) {
+void EditorWidget::mouseMoveEvent(QMouseEvent *event) {
     auto pos = event->pos();
     for(auto link: m_links) {
         for(auto rect: link->rects) {
@@ -367,7 +401,7 @@ void Editor::mouseMoveEvent(QMouseEvent *event) {
     setCursor(QCursor(Qt::ArrowCursor));
 }
 
-void Editor::mousePressEvent(QMouseEvent *event) {
+void EditorWidget::mousePressEvent(QMouseEvent *event) {
     auto pos = event->pos();
     for(auto link: m_links) {
         for(auto rect: link->rects) {
@@ -383,13 +417,35 @@ void Editor::mousePressEvent(QMouseEvent *event) {
     }
 }
 
+void EditorWidget::resizeEvent(QResizeEvent *event) {
+    m_firstDraw = true;
+}
+
+bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
+//    qDebug() << event->type() << watched << m_editor;
+    if (watched == m_editor) {
+        if (event->type() == QEvent::Resize) {
+            m_firstDraw = true;
+        }
+    }
+    return QObject::eventFilter(watched, event);
+}
+
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
-    QScrollArea w;
-    w.setWidgetResizable(true);
-    auto e = new Editor(&w);
-    w.setWidget(e);
+    Editor w;
     w.resize(800, 600);
     w.show();
     return QApplication::exec();
 }
+
+Editor::Editor(QWidget *parent) : QScrollArea(parent) {
+    setWidgetResizable(true);
+    auto w = new EditorWidget(this);
+    setWidget(w);
+    installEventFilter(w);
+    QTimer::singleShot(1000, [this]() {
+        resize(this->width()+1, this->height()+1);
+    });
+}
+#include "Editor.moc"
