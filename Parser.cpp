@@ -408,7 +408,7 @@ TokenList parseLine(String text) {
         ret.emplace_back(Token(text.mid(prev, cur - prev)));
     }
     for(auto it: ret) {
-         qDebug() << it.str();
+         // qDebug() << it.str();
     }
     return ret;
 }
@@ -420,7 +420,7 @@ NodePtrList Parser::parse(String text) {
     auto lines = text.split('\n');
     int i = 0;
     while (i < lines.size()) {
-        qDebug() << "parse" << i << lines[i];
+        // qDebug() << "parse" << i << lines[i];
         auto line = lines[i];
         if (line.isEmpty()) {
             i++;
