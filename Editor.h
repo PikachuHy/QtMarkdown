@@ -6,9 +6,14 @@
 #define QTMARKDOWNPARSER_EDITOR_H
 #include <QTextEdit>
 
-class Editor: public QTextEdit {
+class Editor: public QWidget {
+    Q_OBJECT
 public:
     explicit Editor(QWidget* parent = nullptr);
+
+protected:
+    void paintEvent(QPaintEvent *e) override;
+
 private:
 
 };

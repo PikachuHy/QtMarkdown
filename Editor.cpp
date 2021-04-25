@@ -12,159 +12,200 @@
 #include <QTextBlock>
 #include <QTextTable>
 #include "QtMarkdownParser"
+#include <QPainter>
+#include <QScrollArea>
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
         UnorderedList, OrderedList,
         Hr, QuoteBlock, Table> {
-    explicit DefaultEditorVisitor(Editor* editor):
-        m_editor(editor), m_cursor(editor->textCursor()) {
-
+    explicit DefaultEditorVisitor(QPainter& painter, int w):
+            m_painter(painter), m_maxWidth(w - 16) {
+        qDebug() << "width: " << m_maxWidth;
+        m_curX = 0;
+        m_curY = 0;
+        m_lastMaxHeight = 0;
+        m_lastMaxWidth = m_maxWidth;
+    }
+    QRect textRect(const QString& text) {
+        QFontMetrics metrics = m_painter.fontMetrics();
+        QRect textBoundingRect = metrics.boundingRect(QRect(m_curX, m_curY, m_maxWidth, 0), Qt::TextWordWrap, text);
+        return textBoundingRect;
+    }
+    int textWidth(const QString& text) {
+        QFontMetrics metrics = m_painter.fontMetrics();
+        int w = metrics.horizontalAdvance(text);
+        return w;
+    }
+    int charWidth(const QChar& ch) {
+        QFontMetrics metrics = m_painter.fontMetrics();
+        int w = metrics.horizontalAdvance(ch);
+        return w;
+    }
+    bool currentLineCanDrawText(const QString& text) {
+        auto needWidth = textWidth(text);
+        // qDebug() << "need" << needWidth << text;
+        if (m_curX + needWidth < m_maxWidth) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    void drawText(const QString& text) {
+        if (text == "\r") return;
+//         qDebug() << "draw" << text;
+        if (text.isEmpty()) return;
+        if (currentLineCanDrawText(text)) {
+            drawTextInCurrentLine(text);
+        } else {
+            auto ch_w = charWidth(text.at(0));
+            if (m_curX + ch_w <= m_maxWidth) {
+                // 计算这一行可以画多少个字符
+                int left_w = m_maxWidth - m_curX;
+                int may_ch_count = left_w / ch_w - 1;
+                if (currentLineCanDrawText(text.left(may_ch_count + 1))) {
+                    while (currentLineCanDrawText(text.left(may_ch_count + 1))) {
+                        may_ch_count++;
+                    }
+                } else {
+                    while (!currentLineCanDrawText(text.left(may_ch_count))) {
+                        may_ch_count--;
+                    }
+                }
+                drawTextInCurrentLine(text.left(may_ch_count));
+                m_curY += m_lastMaxHeight;
+                drawTextInNewLine(text.right(text.size() - may_ch_count));
+            } else {
+                // 如果一个字符都画不了，直接画矩形
+                m_curX = 0;
+                m_curY += m_lastMaxHeight;
+                drawTextInNewLine(text);
+            }
+        }
+    }
+    void drawTextInCurrentLine(const QString& text) {
+//        qDebug() << "cur";
+        auto rect = textRect(text);
+//        qDebug() << rect << text;
+        m_painter.drawText(rect, text);
+        m_curX += rect.width();
+        m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
+    }
+    void drawTextInNewLine(const QString& text) {
+//        qDebug() << "new";
+        m_curX = 0;
+        auto rect = textRect(text);
+//        qDebug() << rect << text;
+        m_painter.drawText(rect, text);
+        m_curY += rect.height();
+        m_lastMaxHeight = 0;
+    }
+    void moveToNewLine() {
+        m_curY += m_lastMaxHeight;
+        m_curX = 0;
+        m_lastMaxHeight = 0;
     }
     void visit(Header *node) override {
-        QTextBlockFormat format;
-        auto font = m_editor->font();
-        font.setPixelSize(16);
-        m_cursor.insertBlock(format);
-        auto hn = "h" + String::number(node->level());
-        m_cursor.insertText(hn);
+        moveToNewLine();
+        QString hn = "h" + String::number(node->level());
+        drawText(hn);
+        m_curX += 10;
         for(auto it: node->children()) {
             it->accept(this);
         }
-        m_cursor.insertBlock();
     }
     void visit(Text *node) override {
-        m_html += node->str();
-        m_cursor.insertText(node->str());
+        drawText(node->str());
     }
     void visit(ItalicText *node) override {
-        QTextCharFormat format;
-        auto font = m_editor->font();
-        font.setPixelSize(16);
-        format.setFont(font);
-        font.setItalic(true);
-        m_cursor.insertText(node->str());
+        drawText(node->str());
     }
     void visit(BoldText *node) override {
-        QTextCharFormat format;
-        auto font = m_editor->font();
-        font.setPixelSize(16);
-        format.setFont(font);
-        font.setBold(true);
-        m_cursor.insertText(node->str());
+        drawText(node->str());
     }
     void visit(ItalicBoldText *node) override {
-        QTextCharFormat format;
-        auto font = m_editor->font();
-        font.setPixelSize(16);
-        format.setFont(font);
-        font.setBold(true);
-        font.setItalic(true);
-        m_cursor.insertText(node->str());
+        drawText(node->str());
     }
     void visit(Image *node) override {
-        QTextImageFormat imageFormat;
-        imageFormat.setName(node->src()->str());
-        imageFormat.setWidth(600);
-        m_cursor.insertImage(imageFormat);
+        moveToNewLine();
+        QString imgPath = node->src()->str();
+        QFile file(imgPath);
+        if (file.exists()) {
+            QImage image(imgPath);
+            int imageMaxWidth = qMin(1080, m_maxWidth);
+            if (image.width() > imageMaxWidth) {
+                image = image.scaledToWidth(imageMaxWidth);
+            }
+            QRect rect(QPoint(m_curX, m_curY), image.size());
+//            qDebug() << "image rect" << rect;
+            m_painter.drawImage(rect, image);
+            m_lastMaxHeight = rect.height();
+        } else {
+            qWarning() << "image not exist." << imgPath;
+        }
     }
     void visit(Link *node) override {
-        m_html += R"(<a href=")";
-        if (node->href()) {
-            node->href()->accept(this);
-        } else {
-            qDebug() << "link href is null";
-        }
-        m_html += R"(">)";
-        if(node->content()) {
-            node->content()->accept(this);
-        } else {
-            qDebug() << "link content is null";
-        }
-        m_html += R"(</a>)";
-        m_html += "\n";
     }
     void visit(CodeBlock *node) override {
-        auto mainFrame = m_cursor.currentFrame();
-        QTextFrameFormat blockFormat;
-        blockFormat.setBorder(1);
-        blockFormat.setBackground(QBrush(QColor("#f7f7f7")));
-        blockFormat.setPadding(16);
-        m_cursor.insertFrame(blockFormat);
-        m_cursor.insertText(node->code()->str());
-        m_cursor = mainFrame->lastCursorPosition();
-
+        moveToNewLine();
+        drawText(node->code()->str());
     }
     void visit(InlineCode *node) override {
-        QTextCharFormat format;
-        format.setBackground(QBrush(QColor("#f7f7f7")));
-        m_cursor.insertText(node->code()->str(), format);
     }
     void visit(Paragraph *node) override {
-        m_cursor.insertBlock();
+        moveToNewLine();
         for(auto it: node->children()) {
             it->accept(this);
         }
     }
     void visit(UnorderedList *node) override {
-        for(auto it: node->children()) {
-            QTextListFormat listFormat;
-            listFormat.setStyle(QTextListFormat::ListDisc);
-            m_cursor.insertList(listFormat);
-            it->accept(this);
+        for (const auto &item : node->children()) {
+            moveToNewLine();
+            drawText("● ");
+            item->accept(this);
         }
+
     }
     void visit(OrderedList *node) override {
-        QTextListFormat listFormat;
-        listFormat.setStyle(QTextListFormat::ListDecimal);
-        m_cursor.insertList(listFormat);
-        for(auto it: node->children()) {
-            m_cursor.insertBlock();
-            it->accept(this);
+        int i = 0;
+        for (const auto &item : node->children()) {
+            i++;
+            moveToNewLine();
+            QString numStr = QString("%1. ").arg(i);
+            drawText(numStr);
+            item->accept(this);
         }
     }
     void visit(Hr *node) override {
-        m_html += "<hr/>\n";
     }
     void visit(QuoteBlock *node) override {
-        m_html += "<blockquote>\n";
-        for(auto it: node->children()) {
-            it->accept(this);
-            m_html += "\n";
-        }
-        m_html += "</blockquote>\n";
     }
     void visit(Table *node) override {
-        m_html += "<table>\n";
-        m_html += "<thead><tr>";
-        for(const auto &content: node->header()) {
-            m_html += "<th>";
-            m_html += content;
-            m_html += "</th>";
-        }
-        m_html += "</tr></thead>\n";
-        m_html += "<tbody>\n";
-        for(const auto & row: node->content()) {
-            m_html += "<tr>";
-            for(const auto & content: row) {
-                m_html += "<th>";
-                m_html += content;
-                m_html += "</th>";
-            }
-            m_html += "</tr>";
-        }
-        m_html += "</tbody>";
-        m_html += "</table>\n";
     }
-    String html() { return m_html; }
+    int realHeight() const {
+        return m_curY + m_lastMaxHeight;
+    }
+    int realWidth() const {
+        return m_lastMaxWidth;
+    }
 private:
-    String m_html;
-    Editor* m_editor;
-    QTextCursor m_cursor;
+    QPainter& m_painter;
+    int m_curX;
+    int m_curY;
+    int m_lastMaxHeight;
+    int m_lastMaxWidth;
+    int m_maxWidth;
 };
-Editor::Editor(QWidget *parent) : QTextEdit(parent) {
+Editor::Editor(QWidget *parent) : QWidget(parent) {
+//    Q_ASSERT(parent!=nullptr);
+}
 
+void Editor::paintEvent(QPaintEvent *e) {
+    Q_UNUSED(e);
+//    qDebug() << "painter";
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
     QFile mdFile("../test.md");
     if (!mdFile.exists()) {
         qDebug() << "file not exist:" << mdFile.fileName();
@@ -173,60 +214,30 @@ Editor::Editor(QWidget *parent) : QTextEdit(parent) {
     mdFile.open(QIODevice::ReadOnly);
     auto mdText = mdFile.readAll();
     mdFile.close();
-    qDebug().noquote().nospace() << mdText;
+//    qDebug().noquote().nospace() << mdText;
     Document doc(mdText);
-    DefaultEditorVisitor visitor(this);
+    int w = 600;
+    if (parentWidget()) {
+        w = parentWidget()->width();
+    }
+    DefaultEditorVisitor visitor(painter, w);
     doc.accept(&visitor);
-    QTextCharFormat backgroundFormat;
-    backgroundFormat.setBackground(QColor("lightGray"));
-    QTextCursor cursor(textCursor());
-    cursor.insertText(tr("Character formats"),
-                      backgroundFormat);
-
-    cursor.insertBlock();
-
-    cursor.insertText(tr("Text can be displayed in a variety of "
-                         "different character formats. "), backgroundFormat);
-    cursor.insertText(tr("We can emphasize text by "));
-    cursor.insertText(tr("making it italic"), backgroundFormat);
-    QTextTableFormat tableFormat;
-    tableFormat.setBackground(QColor("#e0e0e0"));
-    tableFormat.setBorder(0.5);
-    QVector<QTextLength> constraints;
-    constraints << QTextLength(QTextLength::PercentageLength, 16);
-    constraints << QTextLength(QTextLength::PercentageLength, 28);
-    constraints << QTextLength(QTextLength::PercentageLength, 28);
-    constraints << QTextLength(QTextLength::PercentageLength, 28);
-    tableFormat.setColumnWidthConstraints(constraints);
-    QTextTable *table = cursor.insertTable(3, 4, tableFormat);
-    int rows = 3;
-    int columns = 4;
-    QTextCharFormat charFormat;
-    for (int column = 1; column < columns; ++column) {
-        auto cell = table->cellAt(0, column);
-        auto cellCursor = cell.firstCursorPosition();
-        cellCursor.insertText(tr("Team %1").arg(column), charFormat);
+    int h = visitor.realHeight();
+    if (h < 0) {
+        h = 600;
     }
-
-    for (int row = 1; row < rows; ++row) {
-        auto cell = table->cellAt(row, 0);
-        auto cellCursor = cell.firstCursorPosition();
-        cellCursor.insertText(tr("%1").arg(row), charFormat);
-
-        for (auto column = 1; column < columns; ++column) {
-            if ((row-1) % 3 == column-1) {
-                cell = table->cellAt(row, column);
-                QTextCursor cellCursor = cell.firstCursorPosition();
-                cellCursor.insertText(tr("On duty"), charFormat);
-            }
-        }
-    }
-    resize(800, 500);
+    w = qMax(w, visitor.realWidth());
+//    qDebug() << "set size:" << w << h;
+    setFixedSize(w, h);
 }
 
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
-    Editor w;
+    QScrollArea w;
+    w.setWidgetResizable(true);
+    auto e = new Editor(&w);
+    w.setWidget(e);
+    w.resize(600, 400);
     w.show();
     return QApplication::exec();
 }
