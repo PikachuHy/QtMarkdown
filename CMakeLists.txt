@@ -17,8 +17,10 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Widgets
         Concurrent
         REQUIRED)
-add_executable(QtMarkdownEditor Editor.cpp)
-target_link_libraries(QtMarkdownEditor PRIVATE
+add_library(QtMarkdownEditor Editor.cpp)
+target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Concurrent
         QtMarkdownParser)
+add_executable(QtMarkdownEditorMain EditorMain.cpp)
+target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)

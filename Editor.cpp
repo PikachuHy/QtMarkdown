@@ -21,6 +21,7 @@
 #include <QStyle>
 #include <QTimer>
 #include <QtConcurrent>
+#include <array>
 
 namespace Element {
     struct Link {
@@ -47,6 +48,7 @@ protected:
 
 public:
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void loadFile(const QString& path);
 private:
     void drawInBackground();
     void drawAsync();
@@ -59,6 +61,7 @@ private:
     bool m_isDrawing;
     int m_maxWidth;
     QSize m_fixedSize;
+    QString m_filePath;
 };
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
@@ -420,6 +423,11 @@ bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
     return QObject::eventFilter(watched, event);
 }
 
+void EditorWidget::loadFile(const QString &path)
+{
+    m_filePath = path;
+}
+
 void EditorWidget::drawInBackground() {
 //    m_maxWidth = qMax(600, parentWidget()->width());
     auto ret = QtConcurrent::run([this](int){
@@ -438,7 +446,7 @@ void EditorWidget::drawAsync() {
     QImage tmp(this->size(), QImage::Format_RGB32);
     QPainter painter(&tmp);
     painter.setRenderHint(QPainter::Antialiasing);
-    QFile mdFile("../test.md");
+    QFile mdFile(m_filePath);
     if (!mdFile.exists()) {
         qDebug() << "file not exist:" << mdFile.fileName();
         return;
@@ -467,18 +475,16 @@ void EditorWidget::drawAsync() {
     m_buffer = buffer;
 }
 
-int main(int argc, char *argv[]) {
-    QApplication a(argc, argv);
-    Editor w;
-    w.resize(800, 600);
-    w.show();
-    return QApplication::exec();
-}
 
 Editor::Editor(QWidget *parent) : QScrollArea(parent) {
     setWidgetResizable(true);
-    auto w = new EditorWidget(this);
-    setWidget(w);
-    installEventFilter(w);
+    m_editorWidget = new EditorWidget(this);
+    setWidget(m_editorWidget);
+    installEventFilter(m_editorWidget);
 }
+
+void Editor::loadFile(const QString &path) {
+    m_editorWidget->loadFile(path);
+}
+
 #include "Editor.moc"

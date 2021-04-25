@@ -5,11 +5,14 @@
 #ifndef QTMARKDOWNPARSER_EDITOR_H
 #define QTMARKDOWNPARSER_EDITOR_H
 #include <QScrollArea>
+class EditorWidget;
 class Editor: public QScrollArea {
     Q_OBJECT
 public:
     explicit Editor(QWidget *parent = nullptr);
+    void loadFile(const QString& path);
 private:
+    EditorWidget *m_editorWidget;
 };
 
 
