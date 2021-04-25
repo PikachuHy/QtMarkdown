@@ -20,13 +20,13 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         Image, Link, CodeBlock, InlineCode, Paragraph,
         UnorderedList, OrderedList,
         Hr, QuoteBlock, Table> {
-    explicit DefaultEditorVisitor(QPainter& painter, int w):
-            m_painter(painter), m_maxWidth(w - 16) {
+    explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin):
+            m_painter(painter), m_maxWidth(w - rightMargin) {
         qDebug() << "width: " << m_maxWidth;
         m_curX = 0;
         m_curY = 0;
         m_lastMaxHeight = 0;
-        m_lastMaxWidth = m_maxWidth;
+        m_lastMaxWidth = w;
     }
     QRect textRect(const QString& text) {
         QFontMetrics metrics = m_painter.fontMetrics();
@@ -197,38 +197,54 @@ private:
     int m_lastMaxWidth;
     int m_maxWidth;
 };
-Editor::Editor(QWidget *parent) : QWidget(parent) {
-//    Q_ASSERT(parent!=nullptr);
+Editor::Editor(QWidget *parent) : QWidget(parent), m_firstDraw(true) {
+    m_rightMargin = 0;
 }
 
 void Editor::paintEvent(QPaintEvent *e) {
     Q_UNUSED(e);
-//    qDebug() << "painter";
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
-    QFile mdFile("../test.md");
-    if (!mdFile.exists()) {
-        qDebug() << "file not exist:" << mdFile.fileName();
-        return;
-    }
-    mdFile.open(QIODevice::ReadOnly);
-    auto mdText = mdFile.readAll();
-    mdFile.close();
+    if (m_firstDraw) {
+        painter.setRenderHint(QPainter::Antialiasing);
+        QFile mdFile("../test.md");
+        if (!mdFile.exists()) {
+            qDebug() << "file not exist:" << mdFile.fileName();
+            return;
+        }
+        mdFile.open(QIODevice::ReadOnly);
+        auto mdText = mdFile.readAll();
+        mdFile.close();
 //    qDebug().noquote().nospace() << mdText;
-    Document doc(mdText);
-    int w = 600;
-    if (parentWidget()) {
-        w = parentWidget()->width();
+        Document doc(mdText);
+        int w = 600;
+        if (parentWidget()) {
+            w = parentWidget()->width();
+        }
+        qDebug() << "w" << w;
+        DefaultEditorVisitor visitor(painter, w, m_rightMargin);
+        doc.accept(&visitor);
+        int h = visitor.realHeight();
+        if (h < 0) {
+            h = 600;
+        }
+        w = qMax(w, visitor.realWidth());
+        qDebug() << "set size:" << w << h;
+        setFixedSize(w, h + 20);
+        {
+            m_buffer = QImage(w + m_rightMargin * 2, h, QImage::Format_RGB32);
+            m_buffer.fill(Qt::white);
+            QPainter p(&m_buffer);
+            p.setRenderHint(QPainter::Antialiasing);
+            DefaultEditorVisitor _visitor(p, w, m_rightMargin);
+            doc.accept(&_visitor);
+        }
+        m_firstDraw = false;
+    } else {
+        auto _size = m_buffer.size();
+//        qDebug() << "image:" << _size;
+//        painter.drawImage(QRect(0, 0, _size.width() - m_rightMargin, _size.height()), m_buffer);
+        painter.drawImage(0, 0, m_buffer);
     }
-    DefaultEditorVisitor visitor(painter, w);
-    doc.accept(&visitor);
-    int h = visitor.realHeight();
-    if (h < 0) {
-        h = 600;
-    }
-    w = qMax(w, visitor.realWidth());
-//    qDebug() << "set size:" << w << h;
-    setFixedSize(w, h);
 }
 
 int main(int argc, char *argv[]) {

@@ -5,7 +5,7 @@
 #ifndef QTMARKDOWNPARSER_EDITOR_H
 #define QTMARKDOWNPARSER_EDITOR_H
 #include <QTextEdit>
-
+#include <QImage>
 class Editor: public QWidget {
     Q_OBJECT
 public:
@@ -15,7 +15,9 @@ protected:
     void paintEvent(QPaintEvent *e) override;
 
 private:
-
+    QImage m_buffer;
+    bool m_firstDraw;
+    int m_rightMargin;
 };
 
 
