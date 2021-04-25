@@ -18,6 +18,7 @@
 #include <QDesktopServices>
 #include <QDebug>
 #include <QFontDatabase>
+#include <QStyle>
 
 namespace Element {
     struct Link {
@@ -34,7 +35,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         Hr, QuoteBlock, Table> {
     explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin):
             m_painter(painter), m_maxWidth(w - rightMargin) {
-        qDebug() << "width: " << m_maxWidth;
+//        qDebug() << "width: " << m_maxWidth;
         m_curX = 0;
         m_curY = 0;
         m_lastMaxHeight = 0;
@@ -276,7 +277,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
         int endY = m_curY;
         const QRect rect = QRect(2, startY, 5, endY - startY);
-        qDebug() << rect;
+        // qDebug() << rect;
         // #eee
         m_painter.fillRect(rect, QBrush(QColor(238, 238, 238)));
     }
@@ -324,7 +325,6 @@ void Editor::paintEvent(QPaintEvent *e) {
         if (parentWidget()) {
             w = parentWidget()->width();
         }
-        qDebug() << "w" << w;
         DefaultEditorVisitor visitor(painter, w, m_rightMargin);
         doc.accept(&visitor);
         m_links = visitor.links();
@@ -333,8 +333,9 @@ void Editor::paintEvent(QPaintEvent *e) {
             h = 600;
         }
         w = qMax(w, visitor.realWidth());
-        qDebug() << "set size:" << w << h;
-        setFixedSize(w, h + 20);
+        // qDebug() << "set size:" << w << h;
+        auto scrollBarWidth = style()->pixelMetric(QStyle::PM_ScrollBarSliderMin);
+        setFixedSize(w - scrollBarWidth, h);
         {
             m_buffer = QImage(w + m_rightMargin * 2, h, QImage::Format_RGB32);
             m_buffer.fill(Qt::white);
