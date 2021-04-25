@@ -14,6 +14,9 @@
 #include "QtMarkdownParser"
 #include <QPainter>
 #include <QScrollArea>
+#include <QDebug>
+#include <QFontDatabase>
+
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
@@ -27,6 +30,10 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_curY = 0;
         m_lastMaxHeight = 0;
         m_lastMaxWidth = w;
+        QFont font;
+        font.setFamily("Microsoft YaHei UI");
+        font.setPixelSize(16);
+        m_painter.setFont(font);
     }
     QRect textRect(const QString& text) {
         QFontMetrics metrics = m_painter.fontMetrics();
@@ -107,25 +114,49 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_lastMaxHeight = 0;
     }
     void visit(Header *node) override {
+        std::array<int, 6> fontSize = {
+            36, 28,24, 20, 16, 14
+        };
+        m_painter.save();
+        auto font = QFont();
+        font.setPixelSize(fontSize[node->level() - 1]);
+        m_painter.setFont(font);
         moveToNewLine();
-        QString hn = "h" + String::number(node->level());
-        drawText(hn);
+//        QString hn = "h" + String::number(node->level());
+//        drawText(hn);
         m_curX += 10;
         for(auto it: node->children()) {
             it->accept(this);
         }
+        m_painter.restore();
     }
     void visit(Text *node) override {
         drawText(node->str());
     }
     void visit(ItalicText *node) override {
+        m_painter.save();
+        QFont font = m_painter.font();
+        font.setItalic(true);
+        m_painter.setFont(font);
         drawText(node->str());
+        m_painter.restore();
     }
     void visit(BoldText *node) override {
+        m_painter.save();
+        QFont font = m_painter.font();
+        font.setBold(true);
+        m_painter.setFont(font);
         drawText(node->str());
+        m_painter.restore();
     }
     void visit(ItalicBoldText *node) override {
+        m_painter.save();
+        QFont font = m_painter.font();
+        font.setItalic(true);
+        font.setBold(true);
+        m_painter.setFont(font);
         drawText(node->str());
+        m_painter.restore();
     }
     void visit(Image *node) override {
         moveToNewLine();
@@ -146,18 +177,55 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
     }
     void visit(Link *node) override {
+        m_painter.save();
+        m_painter.setPen(Qt::blue);
+        auto font = m_painter.font();
+        font.setUnderline(true);
+        m_painter.setFont(font);
+        drawText(node->content()->str());
+        m_painter.restore();
     }
     void visit(CodeBlock *node) override {
         moveToNewLine();
-        drawText(node->code()->str());
+        m_curY += 10;
+        m_painter.save();
+        // #f9f9f9
+//        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
+        QFont font;
+        font.setPixelSize(16);
+        font.setFamily("Cascadia Code");
+        m_painter.setFont(font);
+        auto rect = textRect(node->code()->str());
+        m_painter.fillRect(QRect(m_curX, m_curY, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
+        m_painter.drawText(rect, node->code()->str());
+        m_painter.restore();
+        m_curY += rect.height();
+        m_curY += 10;
     }
     void visit(InlineCode *node) override {
+        m_painter.save();
+        // #f9f9f9
+//        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
+        QFont font;
+        font.setPixelSize(16);
+        font.setFamily("Cascadia Code");
+        m_painter.setFont(font);
+        auto rect = textRect(node->code()->str());
+        m_painter.fillRect(rect, QBrush(QColor(249, 249, 249)));
+        m_painter.drawText(rect, node->code()->str());
+        m_curX += rect.width();
+        m_painter.restore();
     }
     void visit(Paragraph *node) override {
+        m_painter.save();
+        QFont font;
+        font.setPixelSize(14);
+        m_painter.setFont(font);
         moveToNewLine();
         for(auto it: node->children()) {
             it->accept(this);
         }
+        m_painter.restore();
     }
     void visit(UnorderedList *node) override {
         for (const auto &item : node->children()) {
@@ -180,6 +248,18 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     void visit(Hr *node) override {
     }
     void visit(QuoteBlock *node) override {
+        moveToNewLine();
+        int startY = m_curY;
+        for(auto child: node->children()) {
+            m_curX += 10;
+            child->accept(this);
+            moveToNewLine();
+        }
+        int endY = m_curY;
+        const QRect rect = QRect(2, startY, 5, endY - startY);
+        qDebug() << rect;
+        // #eee
+        m_painter.fillRect(rect, QBrush(QColor(238, 238, 238)));
     }
     void visit(Table *node) override {
     }
@@ -253,7 +333,7 @@ int main(int argc, char *argv[]) {
     w.setWidgetResizable(true);
     auto e = new Editor(&w);
     w.setWidget(e);
-    w.resize(600, 400);
+    w.resize(800, 600);
     w.show();
     return QApplication::exec();
 }
