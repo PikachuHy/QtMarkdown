@@ -280,6 +280,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         moveToNewLine();
         for(auto it: node->children()) {
             it->accept(this);
+            m_curY += 5;
         }
         m_painter.restore();
     }
