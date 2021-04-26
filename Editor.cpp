@@ -69,8 +69,8 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         Image, Link, CodeBlock, InlineCode, Paragraph,
         UnorderedList, OrderedList,
         Hr, QuoteBlock, Table> {
-    explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin):
-            m_painter(painter), m_maxWidth(w - rightMargin) {
+    explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin, const QString& filePath):
+            m_painter(painter), m_maxWidth(w - rightMargin), m_filePath(filePath) {
 //        qDebug() << "width: " << m_maxWidth;
         m_curX = 0;
         m_curY = 0;
@@ -212,6 +212,12 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     void visit(Image *node) override {
         moveToNewLine();
         QString imgPath = node->src()->str();
+        QDir dir(imgPath);
+        if (dir.isRelative()) {
+            QDir basePath(m_filePath);
+            basePath.cdUp();
+            imgPath = QString("%1/%2").arg(basePath.absolutePath(), imgPath);
+        }
         QFile file(imgPath);
         if (file.exists()) {
             QImage image(imgPath);
@@ -337,6 +343,7 @@ private:
     int m_lastMaxWidth;
     int m_maxWidth;
     QList<Element::Link*> m_links;
+    const QString& m_filePath;
 };
 
 template<typename T>
@@ -457,7 +464,7 @@ void EditorWidget::drawAsync() {
     mdFile.close();
 //    qDebug().noquote().nospace() << mdText;
     Document doc(mdText);
-    DefaultEditorVisitor visitor(painter, m_maxWidth, m_rightMargin);
+    DefaultEditorVisitor visitor(painter, m_maxWidth, m_rightMargin, m_filePath);
     doc.accept(&visitor);
     m_links = visitor.links();
     int h = visitor.realHeight();
@@ -471,7 +478,7 @@ void EditorWidget::drawAsync() {
     buffer.fill(Qt::white);
     QPainter p(&buffer);
     p.setRenderHint(QPainter::Antialiasing);
-    DefaultEditorVisitor _visitor(p, w, m_rightMargin);
+    DefaultEditorVisitor _visitor(p, w, m_rightMargin, m_filePath);
     doc.accept(&_visitor);
     m_buffer = buffer;
 }
