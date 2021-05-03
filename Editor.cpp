@@ -164,6 +164,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_painter.save();
         auto font = QFont();
         font.setPixelSize(fontSize[node->level() - 1]);
+        font.setBold(true);
         m_painter.setFont(font);
         moveToNewLine();
 //        QString hn = "h" + String::number(node->level());
