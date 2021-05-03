@@ -49,6 +49,7 @@ protected:
 public:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void loadFile(const QString& path);
+    void reload();
 private:
     void drawInBackground();
     void drawAsync();
@@ -437,6 +438,13 @@ bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
 void EditorWidget::loadFile(const QString &path)
 {
     m_filePath = path;
+    m_needDraw = true;
+}
+
+void EditorWidget::reload()
+{
+    m_needDraw = true;
+    update();
 }
 
 void EditorWidget::drawInBackground() {
@@ -496,6 +504,11 @@ Editor::Editor(QWidget *parent) : QScrollArea(parent) {
 
 void Editor::loadFile(const QString &path) {
     m_editorWidget->loadFile(path);
+}
+
+void Editor::reload()
+{
+    m_editorWidget->reload();
 }
 
 #include "Editor.moc"

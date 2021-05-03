@@ -11,6 +11,7 @@ class Editor: public QScrollArea {
 public:
     explicit Editor(QWidget *parent = nullptr);
     void loadFile(const QString& path);
+    void reload();
 private:
     EditorWidget *m_editorWidget;
 };
