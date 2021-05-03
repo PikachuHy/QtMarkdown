@@ -77,7 +77,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_lastMaxHeight = 0;
         m_lastMaxWidth = w;
         QFont font;
-        font.setFamily("Microsoft YaHei UI");
+        font.setFamily("微软雅黑");
         font.setPixelSize(16);
         m_painter.setFont(font);
     }
