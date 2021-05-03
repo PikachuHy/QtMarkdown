@@ -275,9 +275,6 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     }
     void visit(Paragraph *node) override {
         m_painter.save();
-        QFont font;
-        font.setPixelSize(14);
-        m_painter.setFont(font);
         moveToNewLine();
         for(auto it: node->children()) {
             it->accept(this);
