@@ -288,7 +288,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         for (const auto &item : node->children()) {
             moveToNewLine();
             m_curX += 32;
-            drawText("● ");
+            drawText("●  ");
             item->accept(this);
         }
         m_curY += 10;
@@ -299,7 +299,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             i++;
             moveToNewLine();
             m_curX += 32;
-            QString numStr = QString("%1. ").arg(i);
+            QString numStr = QString("%1.  ").arg(i);
             drawText(numStr);
             item->accept(this);
         }
