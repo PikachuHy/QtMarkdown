@@ -106,40 +106,42 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             return false;
         }
     }
-    QList<QRect> drawText(const QString& text) {
+    int countOfThisLineCanDraw(const QString& text) {
+        // 计算这一行可以画多少个字符
+        auto ch_w = charWidth(text.at(0));
+        int left_w = m_maxWidth - m_curX;
+        int may_ch_count = left_w / ch_w - 1;
+        if (currentLineCanDrawText(text.left(may_ch_count + 1))) {
+            while (currentLineCanDrawText(text.left(may_ch_count + 1))) {
+                may_ch_count++;
+            }
+        } else {
+            while (!currentLineCanDrawText(text.left(may_ch_count))) {
+                may_ch_count--;
+            }
+        }
+        return may_ch_count;
+    }
+    QList<QRect> drawText(QString text) {
         if (text == "\r") return {};
 //         qDebug() << "draw" << text;
         if (text.isEmpty()) return {};
-        if (currentLineCanDrawText(text)) {
-            auto rect = drawTextInCurrentLine(text);
-            return {rect};
-        } else {
-            auto ch_w = charWidth(text.at(0));
-            if (m_curX + ch_w <= m_maxWidth) {
-                // 计算这一行可以画多少个字符
-                int left_w = m_maxWidth - m_curX;
-                int may_ch_count = left_w / ch_w - 1;
-                if (currentLineCanDrawText(text.left(may_ch_count + 1))) {
-                    while (currentLineCanDrawText(text.left(may_ch_count + 1))) {
-                        may_ch_count++;
-                    }
-                } else {
-                    while (!currentLineCanDrawText(text.left(may_ch_count))) {
-                        may_ch_count--;
-                    }
-                }
-                auto rect1 = drawTextInCurrentLine(text.left(may_ch_count));
-                m_curY += m_lastMaxHeight;
-                auto rect2 = drawTextInNewLine(text.right(text.size() - may_ch_count));
-                return {rect1,rect2};
-            } else {
-                // 如果一个字符都画不了，直接画矩形
-                m_curX = 0;
-                m_curY += m_lastMaxHeight;
-                auto rect = drawTextInNewLine(text);
-                return {rect};
-            }
+        QList<QRect> rects;
+        while (!currentLineCanDrawText(text)) {
+            // qDebug() << text;
+            auto count = countOfThisLineCanDraw(text);
+            auto rect = drawTextInCurrentLine(text.left(count));
+            rects.append(rect);
+            text = text.right(text.size() - count);
+            m_curX = 0;
+            m_curY += rect.height();
+            m_curY += 5;
         }
+        if (!text.isEmpty()) {
+            auto rect = drawTextInCurrentLine(text);
+            rects.append(rect);
+        }
+        return rects;
     }
     QRect drawTextInCurrentLine(const QString& text) {
 //        qDebug() << "cur";
@@ -148,16 +150,6 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_painter.drawText(rect, text);
         m_curX += rect.width();
         m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
-        return rect;
-    }
-    QRect drawTextInNewLine(const QString& text) {
-//        qDebug() << "new";
-        m_curX = 0;
-        auto rect = textRect(text);
-//        qDebug() << rect << text;
-        m_painter.drawText(rect, text);
-        m_curY += rect.height();
-        m_lastMaxHeight = 0;
         return rect;
     }
     void moveToNewLine() {
