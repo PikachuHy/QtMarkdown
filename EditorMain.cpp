@@ -5,6 +5,7 @@
 #include <QApplication>
 #include "Editor.h"
 int main(int argc, char *argv[]) {
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
     QApplication a(argc, argv);
     Editor w;
     w.resize(800, 600);
