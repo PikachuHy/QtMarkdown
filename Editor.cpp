@@ -173,6 +173,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         for(auto it: node->children()) {
             it->accept(this);
         }
+        m_curY += 10;
         m_painter.restore();
     }
     void visit(Text *node) override {
