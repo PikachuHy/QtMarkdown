@@ -293,20 +293,23 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     void visit(UnorderedList *node) override {
         for (const auto &item : node->children()) {
             moveToNewLine();
+            m_curX += 32;
             drawText("● ");
             item->accept(this);
         }
-
+        m_curY += 10;
     }
     void visit(OrderedList *node) override {
         int i = 0;
         for (const auto &item : node->children()) {
             i++;
             moveToNewLine();
+            m_curX += 32;
             QString numStr = QString("%1. ").arg(i);
             drawText(numStr);
             item->accept(this);
         }
+        m_curY += 10;
     }
     void visit(Hr *node) override {
     }
