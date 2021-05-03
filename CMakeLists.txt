@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.6)
 project(QtMarkdownParser)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 20)
+if(MSVC)
+    add_compile_options("/utf-8")
+endif()
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Core
