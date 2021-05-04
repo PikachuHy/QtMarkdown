@@ -16,6 +16,7 @@ enum class NodeType {
     image,
     link,
     code_block, inline_code,
+    latex_block, inline_latex,
     ul,
     ol,
     hr,
@@ -140,6 +141,13 @@ private:
     Text* m_name;
     Text* m_code;
 };
+class LatexBlock: public Visitable<LatexBlock> {
+public:
+    explicit LatexBlock(Text* code): m_code(code) { m_type = NodeType::latex_block; }
+    Text* code() { return m_code; }
+private:
+    Text* m_code;
+};
 class Hr: public Visitable<Hr> {
 public:
     Hr() { m_type = NodeType::hr; }
@@ -147,6 +155,13 @@ public:
 class InlineCode: public Visitable<InlineCode> {
 public:
     InlineCode(Text* code): m_code(code) { m_type = NodeType::inline_code; }
+    Text* code() { return m_code; }
+private:
+    Text* m_code;
+};
+class InlineLatex: public Visitable<InlineLatex> {
+public:
+    explicit InlineLatex(Text* code): m_code(code) { m_type = NodeType::inline_latex; }
     Text* code() { return m_code; }
 private:
     Text* m_code;

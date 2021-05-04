@@ -258,6 +258,22 @@ Node* parseTable(int& startIndex, const StringList &lines) {
     startIndex = i;
     return new Table(tab);
 }
+Node* parseLatexBlock(int& startIndex, const StringList &lines) {
+    int i = startIndex + 1;
+    while (i < lines.size()) {
+        if (lines[i].startsWith("$$")) {
+            break;
+        }
+        i++;
+    }
+    if (i == startIndex + 1 || i == lines.size()) return nullptr;
+    String latexCode;
+    for(int j=startIndex+1;j<i;j++) {
+        latexCode += lines[j] + '\n';
+    }
+    startIndex = i + 1;
+    return new LatexBlock(new Text(latexCode));
+}
 Node *parseParagraph(int &lineIndex, StringList& lines) {
     auto ret = new Paragraph();
     auto tokens = parseLine(lines[lineIndex]);
@@ -463,6 +479,15 @@ NodePtrList Parser::parse(String text) {
         }
         else if (line.startsWith("|")) {
             auto node = parseTable(i, lines);
+            if (node == nullptr) {
+                auto paragraph = parseParagraph(i, lines);
+                ret.emplace_back(paragraph);
+            } else {
+                ret.emplace_back(node);
+            }
+        }
+        else if (line.startsWith("$$")) {
+            auto node = parseLatexBlock(i, lines);
             if (node == nullptr) {
                 auto paragraph = parseParagraph(i, lines);
                 ret.emplace_back(paragraph);
