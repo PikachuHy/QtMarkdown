@@ -440,7 +440,8 @@ EditorWidget::EditorWidget(Editor *parent)
     {
     m_rightMargin = 0;
     setMouseTracking(true);
-    m_buffer = QImage(this->size(), QImage::Format_RGB32);
+    m_buffer = QImage(QSize(800, 600), QImage::Format_RGB32);
+    m_buffer.fill(Qt::white);
 }
 
 void EditorWidget::paintEvent(QPaintEvent *e) {
@@ -555,6 +556,7 @@ void EditorWidget::drawAsync() {
     if (h < 0) {
         h = 600;
     }
+    h = std::max(h, this->height());
     auto w = qMax(m_maxWidth, visitor.realWidth());
     // qDebug() << "set size:" << w << h;
     m_fixedSize = QSize(w, h);
