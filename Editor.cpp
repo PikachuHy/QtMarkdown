@@ -22,6 +22,8 @@
 #include <QTimer>
 #include <QtConcurrent>
 #include <array>
+#include <QProcess>
+#include <QTemporaryFile>
 
 namespace Element {
     struct Link {
@@ -69,6 +71,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
         UnorderedList, OrderedList,
+        LatexBlock, InlineLatex,
         Hr, QuoteBlock, Table> {
     explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin, const QString& filePath):
             m_painter(painter), m_maxWidth(w - rightMargin), m_filePath(filePath) {
@@ -272,6 +275,41 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_painter.drawText(rect, node->code()->str());
         m_curX += rect.width();
         m_painter.restore();
+    }
+    void visit(LatexBlock *node) override {
+//        qDebug() << node->code()->str();
+        moveToNewLine();
+        m_curY += 10;
+        QTemporaryFile tmpFile;
+        if (tmpFile.open()) {
+            tmpFile.write(node->code()->str().toUtf8());
+            tmpFile.close();
+            QStringList args;
+            QString imgFilename = tmpFile.fileName() + ".png";
+            args << tmpFile.fileName() << imgFilename;
+            QProcess p;
+            p.start("latex2png.exe", args);
+            auto ok = p.waitForFinished();
+            if (!ok) {
+                qDebug() << "LaTex.exe run fail";
+                return;
+            }
+            if (!QFile(imgFilename).exists()) {
+                qDebug() << "file not exist." << imgFilename;
+                return;
+            }
+            QPixmap image(imgFilename);
+            auto x = (m_maxWidth - image.size().width())/2;
+            const QRect rect = QRect(QPoint(x, m_curY), image.size());
+//            m_painter.drawRect(rect);
+            m_painter.drawPixmap(rect, image);
+            m_curY += image.height();
+            m_curY += 10;
+        } else {
+            qDebug() << "tmp file open fail." << tmpFile.fileName();
+        }
+    }
+    void visit(InlineLatex *node) override {
     }
     void visit(Paragraph *node) override {
         m_painter.save();
