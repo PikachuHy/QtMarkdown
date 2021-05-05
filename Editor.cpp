@@ -310,6 +310,35 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
     }
     void visit(InlineLatex *node) override {
+        qDebug() << node->code()->str();
+
+        QTemporaryFile tmpFile;
+        if (tmpFile.open()) {
+            tmpFile.write(node->code()->str().toUtf8());
+            tmpFile.close();
+            QStringList args;
+            QString imgFilename = tmpFile.fileName() + ".png";
+            args << tmpFile.fileName() << imgFilename;
+            QProcess p;
+            p.start("latex2png.exe", args);
+            auto ok = p.waitForFinished();
+            if (!ok) {
+                qDebug() << "LaTex.exe run fail";
+                return;
+            }
+            if (!QFile(imgFilename).exists()) {
+                qDebug() << "file not exist." << imgFilename;
+                return;
+            }
+            QPixmap image(imgFilename);
+            m_curX += 5;
+            const QRect rect = QRect(QPoint(m_curX, m_curY), image.size());
+//            m_painter.drawRect(rect);
+            m_curX += image.width();
+            m_curX += 5;
+            m_lastMaxHeight = qMax(m_lastMaxHeight, image.height());
+            m_painter.drawPixmap(rect, image);
+        }
     }
     void visit(Paragraph *node) override {
         m_painter.save();
