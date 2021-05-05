@@ -486,7 +486,7 @@ void EditorWidget::mousePressEvent(QMouseEvent *event) {
 }
 
 void EditorWidget::resizeEvent(QResizeEvent *event) {
-    qDebug() << __FUNCTION__ ;
+//    qDebug() << __FUNCTION__ ;
 //    m_needDraw = true;
     this->update();
 }
@@ -496,12 +496,12 @@ bool EditorWidget::eventFilter(QObject *watched, QEvent *event) {
     if (watched == m_editor) {
         if (event->type() == QEvent::Resize) {
             QResizeEvent* e = dynamic_cast<QResizeEvent *>(event);
-            qDebug() << e->size();
+//            qDebug() << e->size();
             auto scrollBarWidth = this->style()->pixelMetric(QStyle::PM_ScrollBarSliderMin);
             this->m_maxWidth = qMax(600, e->size().width()) - scrollBarWidth - 1;
             if (!m_isDrawing) {
                 m_needDraw = true;
-                qDebug() << __FUNCTION__ ;
+//                qDebug() << __FUNCTION__ ;
                 this->update();
             }
         }
