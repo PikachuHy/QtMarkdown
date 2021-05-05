@@ -69,12 +69,14 @@ bool tryParseLink(TokenList& tokens, int startIndex) {
     return true;
 }
 bool tryParseInlineCode(TokenList& tokens, int startIndex) {
-    int i = startIndex;
-    if (i >= tokens.size() || !isBackquote(tokens[i])) return false;
-    i++;
-    while (i < tokens.size() && !isBackquote(tokens[i])) i++;
-    if (i >= tokens.size() || !isBackquote(tokens[i])) return false;
-    return true;
+    int i = startIndex + 1;
+    while (i < tokens.size()) {
+        if (isDollar(tokens[i])) {
+            return true;
+        }
+        i++;
+    }
+    return false;
 }
 // ```
 // ```
@@ -128,6 +130,16 @@ bool tryParseItalicAndBold(TokenList& tokens, int startIndex) {
     return false;
 }
 
+Node *parseInlineLatex(TokenList& tokens, int &i) {
+    i++;
+    String latex;
+    while (!isDollar(tokens[i])) {
+        latex += tokens[i].str();
+        i++;
+    }
+    i++;
+    return new InlineLatex(new Text(latex));
+}
 Node *parseItalic(TokenList& tokens, int &i) {
     i++;
     auto ret = new ItalicText(tokens[i].str());
@@ -311,6 +323,18 @@ Node *parseParagraph(int &lineIndex, StringList& lines) {
                 if (text) ret->appendChild(text);
                 auto inlineCode = parseInlineCode(tokens, i);
                 ret->appendChild(inlineCode);
+                prev = i;
+            } else {
+                // parse fail. forward
+                i++;
+            }
+        }
+        else if (isDollar(token)) {
+            if (tryParseInlineCode(tokens, i)) {
+                auto text = mergeToText(tokens, prev, i);
+                if (text) ret->appendChild(text);
+                auto node = parseInlineLatex(tokens, i);
+                ret->appendChild(node);
                 prev = i;
             } else {
                 // parse fail. forward

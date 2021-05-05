@@ -70,4 +70,5 @@ QMap<QChar, Token> spMap = {
         {'(', Token(TokenType::left_parenthesis)},
         {')', Token(TokenType::right_parenthesis)},
         {'`', Token(TokenType::backquote)},
+        {'$', Token(TokenType::dollar)},
 };

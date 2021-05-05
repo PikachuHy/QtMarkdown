@@ -22,6 +22,7 @@ enum class TokenType {
     star, // *
     text,
     backquote, // `
+    dollar
 };
 //using String = std::string_view;
 using String = QString;
@@ -56,4 +57,5 @@ inline bool isQuotationEn(Token token) { return token.type() == TokenType::quota
 inline bool isStar(Token token) { return token.type() == TokenType::star; }
 inline bool isText(Token token) { return token.type() == TokenType::text; }
 inline bool isBackquote(Token token) { return token.type() == TokenType::backquote; }
+inline bool isDollar(Token token) { return token.type() == TokenType::dollar; }
 #endif //MD_TOKEN_H
