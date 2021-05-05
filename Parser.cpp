@@ -457,7 +457,7 @@ Parser::Parser() {}
 
 NodePtrList Parser::parse(String text) {
     NodePtrList ret;
-    auto lines = text.split('\n');
+    auto lines = text.split(QRegularExpression("(\r\n|\r|\n)"));
     int i = 0;
     while (i < lines.size()) {
         // qDebug() << "parse" << i << lines[i];
