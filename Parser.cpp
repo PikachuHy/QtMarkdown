@@ -390,6 +390,28 @@ Node *parseCodeBlock(int &i, StringList& lines) {
     i++;
     return new CodeBlock(new Text(name), new Text(str));
 }
+Node* parseCheckboxList(int &i, StringList& lines) {
+    auto ret = new CheckboxList();
+    QString uncheckedPrefix = "- [ ] ";
+    QString checkedPrefix = "- [x] ";
+    while (i < lines.size()) {
+        String line = lines[i];
+        if (line.startsWith(uncheckedPrefix)) {
+            ret->setChecked(false);
+            line = line.right(line.size() - uncheckedPrefix.size());
+            ret->appendChild(new Text(line));
+            i++;
+        } else if (line.startsWith(checkedPrefix)) {
+            ret->setChecked(true);
+            line = line.right(line.size() - checkedPrefix.size());
+            ret->appendChild(new Text(line));
+            i++;
+        } else {
+            break;
+        }
+    }
+    return ret;
+}
 Node* parseUnorderedList(int &i, StringList& lines) {
     auto ret = new UnorderedList();
     while (i < lines.size() && lines[i].startsWith("- ")) {
@@ -484,6 +506,10 @@ NodePtrList Parser::parse(String text) {
                 auto paragraph = parseParagraph(i, lines);
                 ret.emplace_back(paragraph);
             }
+        }
+        else if (line.startsWith("- [ ] ") || line.startsWith("- [x] ")) {
+            auto checkbox = parseCheckboxList(i, lines);
+            ret.emplace_back(checkbox);
         }
         else if (line.startsWith("- ")) {
             auto ul = parseUnorderedList(i, lines);

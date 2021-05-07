@@ -8,7 +8,7 @@
 struct DefaultHtmlVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
-        UnorderedList, OrderedList,
+        CheckboxList, UnorderedList, OrderedList,
         Hr, QuoteBlock, Table> {
     void visit(Header *node) override {
         auto hn = "h" + String::number(node->level());
@@ -81,6 +81,13 @@ struct DefaultHtmlVisitor: MultipleVisitor<Header,
             it->accept(this);
         }
         m_html += "</p>\n";
+    }
+    void visit(CheckboxList *node) override {
+        for(auto it: node->children()) {
+            m_html += "\t<div><input type=\"checkbox\"/>";
+            it->accept(this);
+            m_html += "</div>\n";
+        }
     }
     void visit(UnorderedList *node) override {
         m_html += "<ul>\n";
