@@ -397,14 +397,18 @@ Node* parseCheckboxList(int &i, StringList& lines) {
     while (i < lines.size()) {
         String line = lines[i];
         if (line.startsWith(uncheckedPrefix)) {
-            ret->setChecked(false);
+            auto item = new CheckboxItem();
+            item->setChecked(false);
             line = line.right(line.size() - uncheckedPrefix.size());
-            ret->appendChild(new Text(line));
+            item->appendChild(new Text(line));
+            ret->appendChild(item);
             i++;
         } else if (line.startsWith(checkedPrefix)) {
-            ret->setChecked(true);
+            auto item = new CheckboxItem();
+            item->setChecked(true);
             line = line.right(line.size() - checkedPrefix.size());
-            ret->appendChild(new Text(line));
+            item->appendChild(new Text(line));
+            ret->appendChild(item);
             i++;
         } else {
             break;

@@ -17,7 +17,7 @@ enum class NodeType {
     link,
     code_block, inline_code,
     latex_block, inline_latex,
-    checkbox,
+    checkbox, checkbox_item,
     ul,
     ol,
     hr,
@@ -70,13 +70,17 @@ class Paragraph: public ContainerVisitable<Paragraph> {
 public:
     Paragraph() { m_type = NodeType::paragraph; }
 };
-class CheckboxList: public ContainerVisitable<CheckboxList> {
+class CheckboxItem: public ContainerVisitable<CheckboxItem>  {
 public:
-    CheckboxList() { m_type = NodeType::checkbox; }
+    CheckboxItem() { m_type = NodeType::checkbox_item; }
     bool isChecked() const { return m_checked; }
     void setChecked(bool flag) { m_checked = flag; }
 private:
     bool m_checked;
+};
+class CheckboxList: public ContainerVisitable<CheckboxList> {
+public:
+    CheckboxList() { m_type = NodeType::checkbox; }
 };
 class UnorderedList: public ContainerVisitable<UnorderedList> {
 public:
