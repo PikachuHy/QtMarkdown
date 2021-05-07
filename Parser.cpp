@@ -71,7 +71,7 @@ bool tryParseLink(TokenList& tokens, int startIndex) {
 bool tryParseInlineCode(TokenList& tokens, int startIndex) {
     int i = startIndex + 1;
     while (i < tokens.size()) {
-        if (isDollar(tokens[i])) {
+        if (isBackquote(tokens[i])) {
             return true;
         }
         i++;
