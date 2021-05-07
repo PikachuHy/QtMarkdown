@@ -418,7 +418,6 @@ Node* parseUnorderedList(int &i, StringList& lines) {
         ret->appendChild(new Text(lines[i].mid(2)));
         i++;
     }
-    i++;
     return ret;
 }
 Node* parseOrderedList(int &i, StringList& lines) {
@@ -440,7 +439,6 @@ Node* parseOrderedList(int &i, StringList& lines) {
         // 下一行
         i++;
     }
-    i++;
     return ret;
 }
 Node* parseQuoteBlock(int &i, StringList& lines) {
