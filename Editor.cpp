@@ -70,6 +70,7 @@ private:
 struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
+        CheckboxList, CheckboxItem,
         UnorderedList, OrderedList,
         LatexBlock, InlineLatex,
         Hr, QuoteBlock, Table> {
@@ -146,13 +147,18 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
         return rects;
     }
-    QRect drawTextInCurrentLine(const QString& text) {
+    QRect drawTextInCurrentLine(const QString& text, bool adjustX = true, bool adjustY = true) {
 //        qDebug() << "cur";
         auto rect = textRect(text);
 //        qDebug() << rect << text;
         m_painter.drawText(rect, text);
-        m_curX += rect.width();
-        m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
+        if (adjustX) {
+            m_curX += rect.width();
+        }
+        if (adjustY) {
+            m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
+        }
+//        m_painter.drawRect(rect);
         return rect;
     }
     void moveToNewLine() {
@@ -362,6 +368,44 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             it->accept(this);
         }
         m_curY += 5;
+        m_painter.restore();
+    }
+    void visit(CheckboxList *node) override {
+        for (const auto &item : node->children()) {
+            moveToNewLine();
+            m_curX += 16;
+            item->accept(this);
+            m_curY += 5;
+        }
+        m_curY += 10;
+    }
+    void visit(CheckboxItem *node) override {
+        m_painter.save();
+        auto font = m_painter.font();
+        // 计算高度偏移
+        auto h1 = m_painter.fontMetrics().height();
+        m_painter.save();
+        font.setPixelSize(36);
+        QFontMetrics fm(font);
+        auto h2 = fm.height();
+        m_painter.setFont(font);
+        auto y = m_curY;
+        // 偏移绘制点，使得框框和文字是在同一条线
+        m_curY-= (h2 - h1) / 2;
+        if (node->isChecked()) {
+            auto rect = drawTextInCurrentLine("▣", true, false);
+        } else {
+            drawTextInCurrentLine("▢", true, false);
+        }
+        m_curY = y;
+        m_curX += 5;
+        m_painter.restore();
+        font = m_painter.font();
+        font.setStrikeOut(node->isChecked());
+        m_painter.setFont(font);
+        for (const auto &item : node->children()) {
+            item->accept(this);
+        }
         m_painter.restore();
     }
     void visit(UnorderedList *node) override {
