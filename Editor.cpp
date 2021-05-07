@@ -270,9 +270,10 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         font.setPixelSize(16);
         font.setFamily("Cascadia Code");
         m_painter.setFont(font);
-        auto rect = textRect(node->code()->str());
+        QString code = node->code() ? node->code()->str() : " ";
+        auto rect = textRect(code);
         m_painter.fillRect(rect, QBrush(QColor(249, 249, 249)));
-        m_painter.drawText(rect, node->code()->str());
+        m_painter.drawText(rect, code);
         m_curX += rect.width();
         m_painter.restore();
     }
