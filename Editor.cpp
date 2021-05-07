@@ -253,16 +253,18 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     }
     void visit(CodeBlock *node) override {
         moveToNewLine();
+        auto y = m_curY;
         m_curY += 10;
+        m_curX += 20;
         m_painter.save();
         // #f9f9f9
 //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
         QFont font;
-        font.setPixelSize(16);
+        font.setPixelSize(20);
         font.setFamily("Cascadia Code");
         m_painter.setFont(font);
         auto rect = textRect(node->code()->str());
-        m_painter.fillRect(QRect(m_curX, m_curY, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
+        m_painter.fillRect(QRect(0, y, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
         m_painter.drawText(rect, node->code()->str());
         m_painter.restore();
         m_curY += rect.height();
