@@ -14,8 +14,6 @@ add_library(QtMarkdownParser SHARED Document.cpp Document.h Token.cpp Token.h Pa
 target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core)
 target_include_directories(QtMarkdownParser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-add_executable(QtMarkdown main.cpp)
-target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
 
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Concurrent REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
@@ -28,6 +26,10 @@ target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Concurrent
         QtMarkdownParser)
-add_executable(QtMarkdownEditorMain EditorMain.cpp)
-target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
-add_subdirectory(test)
+if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
+    add_executable(QtMarkdown main.cpp)
+    target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
+    add_executable(QtMarkdownEditorMain EditorMain.cpp)
+    target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
+    add_subdirectory(test)
+endif()
