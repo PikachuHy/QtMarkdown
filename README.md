@@ -1,6 +1,6 @@
-# QtMarkdownParser
+# QtMarkdown
 
-一个简单的基于Qt的Markdown解析器，支持导出HTML。
+一个简单的基于Qt的Markdown解析器和编辑器。
 
 ## 参考资料
 
