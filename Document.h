@@ -4,7 +4,7 @@
 
 #ifndef MD_DOCUMENT_H
 #define MD_DOCUMENT_H
-
+#include "QtMarkdown_global.h"
 #include "Token.h"
 #include "Visitor.h"
 #include <vector>
@@ -25,7 +25,7 @@ enum class NodeType {
     italic, bold, italic_bold,
     table
 };
-class Node {
+class QTMARKDOWNSHARED_EXPORT Node {
 public:
     Node(NodeType type = NodeType::none): m_type(type) {}
     virtual void accept(VisitorNode*) = 0;
@@ -43,7 +43,7 @@ struct Visitable: public Node {
     }
 };
 using NodePtrList = QList<Node*>;
-class Container : public Node {
+class QTMARKDOWNSHARED_EXPORT Container : public Node {
 public:
     Container() { }
     std::vector<Node*>& children() { return m_children; }
@@ -60,18 +60,18 @@ struct ContainerVisitable: public Container {
         }
     }
 };
-class Header: public ContainerVisitable<Header> {
+class QTMARKDOWNSHARED_EXPORT Header: public ContainerVisitable<Header> {
 public:
     explicit Header(int level);
     int level() { return m_level; }
 private:
     int m_level;
 };
-class Paragraph: public ContainerVisitable<Paragraph> {
+class QTMARKDOWNSHARED_EXPORT Paragraph: public ContainerVisitable<Paragraph> {
 public:
     Paragraph() { m_type = NodeType::paragraph; }
 };
-class CheckboxItem: public ContainerVisitable<CheckboxItem>  {
+class QTMARKDOWNSHARED_EXPORT CheckboxItem: public ContainerVisitable<CheckboxItem>  {
 public:
     CheckboxItem() { m_type = NodeType::checkbox_item; }
     bool isChecked() const { return m_checked; }
@@ -79,24 +79,24 @@ public:
 private:
     bool m_checked;
 };
-class CheckboxList: public ContainerVisitable<CheckboxList> {
+class QTMARKDOWNSHARED_EXPORT CheckboxList: public ContainerVisitable<CheckboxList> {
 public:
     CheckboxList() { m_type = NodeType::checkbox; }
 };
-class UnorderedList: public ContainerVisitable<UnorderedList> {
+class QTMARKDOWNSHARED_EXPORT UnorderedList: public ContainerVisitable<UnorderedList> {
 public:
     UnorderedList() { m_type = NodeType::ul; }
 };
 
-class OrderedList: public ContainerVisitable<OrderedList> {
+class QTMARKDOWNSHARED_EXPORT OrderedList: public ContainerVisitable<OrderedList> {
 public:
     OrderedList() { m_type = NodeType::ol; }
 };
-class QuoteBlock: public ContainerVisitable<QuoteBlock> {
+class QTMARKDOWNSHARED_EXPORT QuoteBlock: public ContainerVisitable<QuoteBlock> {
 public:
     QuoteBlock() { m_type = NodeType::quote_block; }
 };
-class Text: public Visitable<Text> {
+class QTMARKDOWNSHARED_EXPORT Text: public Visitable<Text> {
 public:
     Text(String str): m_str(str) { m_type = NodeType::text; }
     String str() { return m_str; }
@@ -104,7 +104,7 @@ public:
 private:
     String m_str;
 };
-class ItalicText: public Visitable<ItalicText> {
+class QTMARKDOWNSHARED_EXPORT ItalicText: public Visitable<ItalicText> {
 public:
     ItalicText(String str): m_str(str) { m_type = NodeType::italic; }
     String str() { return m_str; }
@@ -112,7 +112,7 @@ public:
 private:
     String m_str;
 };
-class BoldText: public Visitable<BoldText> {
+class QTMARKDOWNSHARED_EXPORT BoldText: public Visitable<BoldText> {
 public:
     BoldText(String str): m_str(str) { m_type = NodeType::bold; }
     String str() { return m_str; }
@@ -120,7 +120,7 @@ public:
 private:
     String m_str;
 };
-class ItalicBoldText: public Visitable<ItalicBoldText> {
+class QTMARKDOWNSHARED_EXPORT ItalicBoldText: public Visitable<ItalicBoldText> {
 public:
     ItalicBoldText(String str): m_str(str) { m_type = NodeType::bold; }
     String str() { return m_str; }
@@ -128,7 +128,7 @@ public:
 private:
     String m_str;
 };
-class Image: public Visitable<Image> {
+class QTMARKDOWNSHARED_EXPORT Image: public Visitable<Image> {
 public:
     Image(Text* alt, Text* src): m_alt(alt), m_src(src) { m_type = NodeType::image; }
     Text* alt() { return m_alt; }
@@ -137,7 +137,7 @@ private:
     Text* m_alt;
     Text* m_src;
 };
-class Link: public Visitable<Link> {
+class QTMARKDOWNSHARED_EXPORT Link: public Visitable<Link> {
 public:
     Link(Text* content, Text* href): m_content(content), m_href(href) { m_type = NodeType::link; }
     Text* content() { return m_content; }
@@ -146,7 +146,7 @@ private:
     Text* m_content;
     Text* m_href;
 };
-class CodeBlock: public Visitable<CodeBlock> {
+class QTMARKDOWNSHARED_EXPORT CodeBlock: public Visitable<CodeBlock> {
 public:
     CodeBlock(Text* name, Text* code): m_name(name), m_code(code) { m_type = NodeType::code_block; }
     Text* name() { return m_name; }
@@ -155,32 +155,32 @@ private:
     Text* m_name;
     Text* m_code;
 };
-class LatexBlock: public Visitable<LatexBlock> {
+class QTMARKDOWNSHARED_EXPORT LatexBlock: public Visitable<LatexBlock> {
 public:
     explicit LatexBlock(Text* code): m_code(code) { m_type = NodeType::latex_block; }
     Text* code() { return m_code; }
 private:
     Text* m_code;
 };
-class Hr: public Visitable<Hr> {
+class QTMARKDOWNSHARED_EXPORT Hr: public Visitable<Hr> {
 public:
     Hr() { m_type = NodeType::hr; }
 };
-class InlineCode: public Visitable<InlineCode> {
+class QTMARKDOWNSHARED_EXPORT InlineCode: public Visitable<InlineCode> {
 public:
     InlineCode(Text* code): m_code(code) { m_type = NodeType::inline_code; }
     Text* code() { return m_code; }
 private:
     Text* m_code;
 };
-class InlineLatex: public Visitable<InlineLatex> {
+class QTMARKDOWNSHARED_EXPORT InlineLatex: public Visitable<InlineLatex> {
 public:
     explicit InlineLatex(Text* code): m_code(code) { m_type = NodeType::inline_latex; }
     Text* code() { return m_code; }
 private:
     Text* m_code;
 };
-class Table: public Visitable<Table> {
+class QTMARKDOWNSHARED_EXPORT Table: public Visitable<Table> {
 public:
     Table() { m_type = NodeType::table; }
     void appendRow(const StringList& row) {
@@ -193,7 +193,7 @@ private:
     StringList m_header;
     QList<StringList> m_content;
 };
-class Document {
+class QTMARKDOWNSHARED_EXPORT Document {
 public:
     explicit Document(String str);
     String toHtml();

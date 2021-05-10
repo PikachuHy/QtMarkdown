@@ -4,7 +4,7 @@
 
 #ifndef MD_VISITOR_H
 #define MD_VISITOR_H
-
+#include "QtMarkdown_global.h"
 template<typename T>
 struct Visitor
 {

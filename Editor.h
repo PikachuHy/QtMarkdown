@@ -4,9 +4,10 @@
 
 #ifndef QTMARKDOWNPARSER_EDITOR_H
 #define QTMARKDOWNPARSER_EDITOR_H
+#include "QtMarkdown_global.h"
 #include <QScrollArea>
 class EditorWidget;
-class Editor: public QScrollArea {
+class QTMARKDOWNSHARED_EXPORT Editor: public QScrollArea {
     Q_OBJECT
 public:
     explicit Editor(QWidget *parent = nullptr);

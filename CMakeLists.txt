@@ -10,7 +10,8 @@ find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Core
         REQUIRED)
-add_library(QtMarkdownParser Document.cpp Document.h Token.cpp Token.h Parser.cpp Parser.h Visitor.cpp Visitor.h)
+add_library(QtMarkdownParser SHARED Document.cpp Document.h Token.cpp Token.h Parser.cpp Parser.h Visitor.cpp Visitor.h)
+target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core)
 target_include_directories(QtMarkdownParser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(QtMarkdown main.cpp)
@@ -21,7 +22,8 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Widgets
         Concurrent
         REQUIRED)
-add_library(QtMarkdownEditor Editor.cpp)
+add_library(QtMarkdownEditor SHARED Editor.cpp)
+target_compile_definitions(QtMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Concurrent

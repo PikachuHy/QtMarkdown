@@ -4,6 +4,7 @@
 
 #ifndef MD_TOKEN_H
 #define MD_TOKEN_H
+#include "QtMarkdown_global.h"
 #include <string_view>
 #include <QString>
 #include <QList>
@@ -27,7 +28,7 @@ enum class TokenType {
 //using String = std::string_view;
 using String = QString;
 using StringList = QStringList;
-class Token {
+class QTMARKDOWNSHARED_EXPORT Token {
 public:
     explicit Token(TokenType type = TokenType::none);
 
