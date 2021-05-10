@@ -6,7 +6,7 @@
 #include <QDebug>
 #include <QFile>
 int main() {
-    QFile mdFile("../test.md");
+    QFile mdFile("test.md");
     if (!mdFile.exists()) {
         qDebug() << "file not exist:" << mdFile.fileName();
         return 0;

@@ -144,9 +144,8 @@ struct DefaultHtmlVisitor: MultipleVisitor<Header,
 private:
     String m_html;
 };
-Header::Header(int level, String content) : m_level(level) {
+Header::Header(int level) : m_level(level) {
     m_type = NodeType::header;
-    m_children.push_back(new Text(content));
 }
 
 Document::Document(String str) {

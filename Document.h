@@ -29,6 +29,7 @@ class Node {
 public:
     Node(NodeType type = NodeType::none): m_type(type) {}
     virtual void accept(VisitorNode*) = 0;
+    NodeType type() { return m_type; }
 protected:
     NodeType m_type;
 };
@@ -61,7 +62,7 @@ struct ContainerVisitable: public Container {
 };
 class Header: public ContainerVisitable<Header> {
 public:
-    explicit Header(int level, String content);
+    explicit Header(int level);
     int level() { return m_level; }
 private:
     int m_level;
