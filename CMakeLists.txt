@@ -28,3 +28,4 @@ target_link_libraries(QtMarkdownEditor PUBLIC
         QtMarkdownParser)
 add_executable(QtMarkdownEditorMain EditorMain.cpp)
 target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
+add_subdirectory(test)
