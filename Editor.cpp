@@ -71,7 +71,8 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
         CheckboxList, CheckboxItem,
-        UnorderedList, OrderedList,
+        UnorderedList, UnorderedListItem,
+        OrderedList, OrderedListItem,
         LatexBlock, InlineLatex,
         Hr, QuoteBlock, Table> {
     explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin, const QString& filePath):
@@ -419,6 +420,11 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
         m_curY += 10;
     }
+    void visit(UnorderedListItem *node) override {
+        for (const auto &item : node->children()) {
+            item->accept(this);
+        }
+    }
     void visit(OrderedList *node) override {
         int i = 0;
         for (const auto &item : node->children()) {
@@ -430,6 +436,11 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             item->accept(this);
         }
         m_curY += 10;
+    }
+    void visit(OrderedListItem *node) override {
+        for (const auto &item : node->children()) {
+            item->accept(this);
+        }
     }
     void visit(Hr *node) override {
     }

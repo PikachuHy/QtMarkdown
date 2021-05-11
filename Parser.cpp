@@ -674,7 +674,9 @@ private:
         int i = startIndex;
         auto ul = new UnorderedList();
         while (i < lines.size() && lines[i].startsWith("- ")) {
-            _parseLine(ul, parsers, lines[i].mid(2));
+            auto item = new UnorderedListItem();
+            _parseLine(item, parsers, lines[i].mid(2));
+            ul->appendChild(item);
             i++;
         }
         return {
@@ -732,7 +734,9 @@ private:
                         ret
                 };
             j++;
-            _parseLine(ret, parsers, line.mid(j));
+            auto item = new OrderedListItem();
+            _parseLine(item, parsers, line.mid(j));
+            ret->appendChild(item);
             // 下一行
             i++;
         }

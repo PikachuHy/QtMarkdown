@@ -18,8 +18,8 @@ enum class NodeType {
     code_block, inline_code,
     latex_block, inline_latex,
     checkbox, checkbox_item,
-    ul,
-    ol,
+    ul, ul_item,
+    ol, ol_item,
     hr,
     quote_block,
     italic, bold, italic_bold,
@@ -88,9 +88,18 @@ public:
     UnorderedList() { m_type = NodeType::ul; }
 };
 
+class QTMARKDOWNSHARED_EXPORT UnorderedListItem: public ContainerVisitable<UnorderedListItem> {
+public:
+    UnorderedListItem() { m_type = NodeType::ul_item; }
+};
+
 class QTMARKDOWNSHARED_EXPORT OrderedList: public ContainerVisitable<OrderedList> {
 public:
     OrderedList() { m_type = NodeType::ol; }
+};
+class QTMARKDOWNSHARED_EXPORT OrderedListItem: public ContainerVisitable<OrderedListItem> {
+public:
+    OrderedListItem() { m_type = NodeType::ol_item; }
 };
 class QTMARKDOWNSHARED_EXPORT QuoteBlock: public ContainerVisitable<QuoteBlock> {
 public:
