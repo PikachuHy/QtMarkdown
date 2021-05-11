@@ -54,3 +54,14 @@ TEST(ParseInlineLatexTest, Only) {
     auto link = p->children().at(0);
     ASSERT_EQ(link->type(), NodeType::inline_latex);
 }
+TEST(ParseBoldTest, Only) {
+    Parser parser;
+    auto nodes = parser.parse("**666**");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto p = (Paragraph*)node;
+    ASSERT_EQ(p->children().size(), 1);
+    auto link = p->children().at(0);
+    ASSERT_EQ(link->type(), NodeType::bold);
+}

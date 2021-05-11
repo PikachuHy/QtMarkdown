@@ -296,7 +296,7 @@ private:
             startCount++;
         }
         if (startCount == 1) {
-            return i + 2 < tokens.size() && isStar(tokens[i+1]);
+            return i + 1 < tokens.size() && isStar(tokens[i+1]);
         }
         return false;
     }
@@ -308,7 +308,7 @@ private:
             startCount++;
         }
         if (startCount == 2) {
-            return i + 3 < tokens.size()
+            return i + 2 < tokens.size()
                    && isStar(tokens[i+1])
                    && isStar(tokens[i+2]);
         }
@@ -323,7 +323,7 @@ private:
             startCount++;
         }
         if (startCount == 3) {
-            return i + 4 < tokens.size()
+            return i + 3 < tokens.size()
                    && isStar(tokens[i+1])
                    && isStar(tokens[i+2])
                    && isStar(tokens[i+3]);
@@ -363,7 +363,7 @@ private:
         i++;
         i++;
         i++;
-        auto node = new BoldText(tokens[i].str());
+        auto node = new ItalicBoldText(tokens[i].str());
         i++;
         i++;
         i++;
