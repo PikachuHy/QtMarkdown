@@ -56,16 +56,43 @@ struct ParseResult {
 };
 class LineParser {
 public:
-    virtual ParseResult parse(const TokenList& tokens, int startIndex) = 0;
+    virtual ParseResult parse(const TokenList& tokens, int startIndex) const = 0;
+
 };
 class BlockParser {
 public:
-    virtual ParseResult parse(const StringList& lines, int startIndex) = 0;
+    virtual ParseResult parse(const StringList& lines, int startIndex) const = 0;
+
+protected:
+    void _parseLine(Container* ret, const std::vector<LineParser*>& parsers, const String& line) const {
+        auto tokens = parseLine(line);
+        int i = 0;
+        int prev = 0;
+        while (i < tokens.size()) {
+            auto token = tokens[i];
+            bool parsed = false;
+            for(auto& it: parsers) {
+                auto parseRet = it->parse(tokens, i);
+                if (parseRet.success) {
+                    auto text = mergeToText(tokens, prev, i);
+                    if (text) ret->appendChild(text);
+                    ret->appendChild(parseRet.node);
+                    parsed = true;
+                    prev = i + parseRet.offset;
+                    i = prev;
+                    break;
+                }
+            }
+            if (!parsed) i++;
+        }
+        auto text = mergeToText(tokens, prev, i);
+        if (text) ret->appendChild(text);
+    }
 };
 // 图片解析器
 class ImageParser: public LineParser{
 public:
-    ParseResult parse(const TokenList &tokens, int startIndex) {
+    ParseResult parse(const TokenList &tokens, int startIndex) const override {
         auto ok = tryParse(tokens, startIndex);
         if (!ok) {
             return ParseResult::fail();
@@ -74,7 +101,7 @@ public:
     }
 
 private:
-    bool tryParse(const TokenList &tokens, int startIndex) {
+    bool tryParse(const TokenList &tokens, int startIndex) const {
         int i = startIndex;
         if (i >= tokens.size() || !isExclamation(tokens[i])) return false;
         i++;
@@ -99,7 +126,7 @@ private:
         return true;
     }
 
-    ParseResult _parse(const TokenList &tokens, int startIndex) {
+    ParseResult _parse(const TokenList &tokens, int startIndex) const {
         int i = startIndex;
         i++; // !
         i++; // [
@@ -122,14 +149,14 @@ private:
 // 链接解析器
 class LinkParser: public LineParser{
 public:
-    ParseResult parse(const TokenList& tokens, int startIndex) {
+    ParseResult parse(const TokenList& tokens, int startIndex) const override {
         if (!tryParse(tokens, startIndex)) {
             return ParseResult::fail();
         }
         return _parse(tokens, startIndex);
     }
 private:
-    bool tryParse(const TokenList &tokens, int startIndex) {
+    bool tryParse(const TokenList &tokens, int startIndex) const {
         int i = startIndex;
         if (i >= tokens.size() || !isLeftBracket(tokens[i])) return false;
         i++;
@@ -152,7 +179,7 @@ private:
         return true;
     }
 
-    ParseResult _parse(const TokenList &tokens, int startIndex)  {
+    ParseResult _parse(const TokenList &tokens, int startIndex) const {
         int i = startIndex;
         i++; // [
         int prev = i;
@@ -174,7 +201,7 @@ private:
 // 行内代码解析器
 class InlineCodeParser: public LineParser{
 public:
-    ParseResult parse(const TokenList &tokens, int startIndex) {
+    ParseResult parse(const TokenList &tokens, int startIndex) const override {
         if (startIndex >= tokens.size()) return ParseResult::fail();
         if (tryParse(tokens, startIndex)) {
             return parseInlineCode(tokens, startIndex);
@@ -182,7 +209,7 @@ public:
         return ParseResult::fail();
     }
 private:
-    bool tryParse(const TokenList &tokens, int startIndex)  {
+    bool tryParse(const TokenList &tokens, int startIndex) const {
         if (!isBackquote(tokens[startIndex])) return false;
         int i = startIndex + 1;
         while (i < tokens.size()) {
@@ -193,7 +220,7 @@ private:
         }
         return false;
     }
-    ParseResult parseInlineCode(const TokenList& tokens, int startIndex) {
+    ParseResult parseInlineCode(const TokenList& tokens, int startIndex) const {
         int i = startIndex;
         i++; // `
         int prev = i;
@@ -211,14 +238,14 @@ private:
 // 行内公式解析器
 class InlineLatexParser: public LineParser{
 public:
-    ParseResult parse(const TokenList &tokens, int startIndex) {
+    ParseResult parse(const TokenList &tokens, int startIndex) const override {
         if (!tryParse(tokens, startIndex)) {
             return ParseResult::fail();
         }
         return _parse(tokens, startIndex);
     }
 private:
-    bool tryParse(const TokenList &tokens, int startIndex) {
+    bool tryParse(const TokenList &tokens, int startIndex) const {
         int i = startIndex + 1;
         while (i < tokens.size()) {
             if (isDollar(tokens[i])) {
@@ -229,7 +256,7 @@ private:
         return false;
     }
 
-    ParseResult _parse(const TokenList &tokens, int startIndex) {
+    ParseResult _parse(const TokenList &tokens, int startIndex) const {
         int i = startIndex;
         i++;
         String latex;
@@ -248,7 +275,7 @@ private:
 // 加粗和斜体解析器
 class SemanticTextParser: public LineParser{
 public:
-    ParseResult parse(const TokenList &tokens, int startIndex)  {
+    ParseResult parse(const TokenList &tokens, int startIndex) const override {
         if (tryParseItalicAndBold(tokens, startIndex)) {
             return _parseItalicAndBold(tokens, startIndex);
         }
@@ -261,7 +288,7 @@ public:
         return ParseResult::fail();
     }
 private:
-    bool tryParseItalic(const TokenList& tokens, int startIndex) {
+    bool tryParseItalic(const TokenList& tokens, int startIndex) const {
         int startCount = 0;
         int i = startIndex;
         while (i < tokens.size() && isStar(tokens[i])) {
@@ -273,7 +300,7 @@ private:
         }
         return false;
     }
-    bool tryParseBold(const TokenList& tokens, int startIndex) {
+    bool tryParseBold(const TokenList& tokens, int startIndex) const {
         int startCount = 0;
         int i = startIndex;
         while (i < tokens.size() && isStar(tokens[i])) {
@@ -288,7 +315,7 @@ private:
         return false;
     }
 
-    bool tryParseItalicAndBold(const TokenList& tokens, int startIndex) {
+    bool tryParseItalicAndBold(const TokenList& tokens, int startIndex) const {
         int startCount = 0;
         int i = startIndex;
         while (i < tokens.size() && isStar(tokens[i])) {
@@ -305,7 +332,7 @@ private:
     }
 
 
-    ParseResult _parseItalic(const TokenList& tokens, int startIndex) {
+    ParseResult _parseItalic(const TokenList& tokens, int startIndex) const {
         int i = startIndex;
         i++;
         auto node = new ItalicText(tokens[i].str());
@@ -317,7 +344,7 @@ private:
                 node
         };
     }
-    ParseResult _parseBold(const TokenList& tokens, int startIndex) {
+    ParseResult _parseBold(const TokenList& tokens, int startIndex) const {
         int i = startIndex;
         i++;
         i++;
@@ -331,7 +358,7 @@ private:
                 node
         };
     }
-    ParseResult _parseItalicAndBold(const TokenList& tokens, int startIndex) {
+    ParseResult _parseItalicAndBold(const TokenList& tokens, int startIndex) const {
         int i = startIndex;
         i++;
         i++;
@@ -351,7 +378,7 @@ private:
 // 标题解析器
 class HeaderParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex < lines.size() && tryParseHeader(lines[startIndex])) {
             auto header = parseHeader(lines[startIndex]);
             return {
@@ -364,7 +391,7 @@ public:
         }
     }
 private:
-    bool tryParseHeader(const String& line) {
+    bool tryParseHeader(const String& line) const {
         int i = 0;
         while (i < line.size() && line[i] == '#') i++;
         // 如果没有#或#的个数超过6个
@@ -373,7 +400,7 @@ private:
         if (i < line.size() && line[i] == ' ') return true;
         return false;
     }
-    Node *parseHeader(const String& line) {
+    Node *parseHeader(const String& line) const {
         static std::vector<LineParser*> parsers{
                 new LinkParser(),
                 new InlineCodeParser(),
@@ -415,7 +442,7 @@ private:
 // 表格解析器
 class TableParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex < lines.size() && lines[startIndex].startsWith("|")) {
             return parseTable(lines, startIndex);
         } else {
@@ -424,7 +451,7 @@ public:
     }
 private:
 
-    ParseResult parseTable(const StringList &lines, int startIndex) {
+    ParseResult parseTable(const StringList &lines, int startIndex) const {
         int i = startIndex;
         char sep = '|';
         // 统计分隔符的个数
@@ -479,7 +506,7 @@ private:
 // 行间公式解析器
 class LatexBlockParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex < lines.size() && lines[startIndex].startsWith("$$")) {
             return parseLatexBlock(lines, startIndex);
         } else {
@@ -488,7 +515,7 @@ public:
     }
 private:
 
-    ParseResult parseLatexBlock(const StringList &lines, int startIndex) {
+    ParseResult parseLatexBlock(const StringList &lines, int startIndex) const {
         int i = startIndex + 1;
         while (i < lines.size()) {
             if (lines[i].startsWith("$$")) {
@@ -512,16 +539,13 @@ private:
 // 段落解析器(默认解析器)
 class ParagraphParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         return parseParagraph(lines, startIndex);
     }
 private:
 
-    ParseResult parseParagraph(const StringList& lines, int lineIndex) {
+    ParseResult parseParagraph(const StringList& lines, int lineIndex) const {
         auto ret = new Paragraph();
-        auto tokens = parseLine(lines[lineIndex]);
-        int i = 0;
-        int prev = 0;
         static std::vector<LineParser*> parsers{
                 new ImageParser(),
                 new LinkParser(),
@@ -529,25 +553,7 @@ private:
                 new InlineLatexParser(),
                 new SemanticTextParser(),
         };
-        while (i < tokens.size()) {
-            auto token = tokens[i];
-            bool parsed = false;
-            for(auto& it: parsers) {
-                auto parseRet = it->parse(tokens, i);
-                if (parseRet.success) {
-                    auto text = mergeToText(tokens, prev, i);
-                    if (text) ret->appendChild(text);
-                    ret->appendChild(parseRet.node);
-                    parsed = true;
-                    prev = i + parseRet.offset;
-                    i = prev;
-                    break;
-                }
-            }
-            if (!parsed) i++;
-        }
-        auto text = mergeToText(tokens, prev, i);
-        if (text) ret->appendChild(text);
+        _parseLine(ret, parsers, lines[lineIndex]);
         return {
             true,
             1,
@@ -559,14 +565,14 @@ private:
 // 行间代码解析器
 class CodeBlockParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (!tryParseCodeBlock(lines, startIndex)) {
             return ParseResult::fail();
         }
         return parseCodeBlock(lines, startIndex);
     }
 private:
-    ParseResult parseCodeBlock(const StringList& lines, int startIndex) {
+    ParseResult parseCodeBlock(const StringList& lines, int startIndex) const {
         if (startIndex >= lines.size()) return ParseResult::fail();
         int i = startIndex;
         auto line = lines[i];
@@ -585,7 +591,7 @@ private:
             new CodeBlock(new Text(name), new Text(str))
         };
     }
-    bool tryParseCodeBlock(const StringList &lines, int i) {
+    bool tryParseCodeBlock(const StringList &lines, int i) const {
         if (i >= lines.size() || !lines[i].startsWith("```")) return false;
         i++;
         while (i < lines.size() && !lines[i].startsWith("```")) i++;
@@ -597,7 +603,7 @@ private:
 // Checkbox解析器
 class CheckboxListParser : public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex >= lines.size()) return ParseResult::fail();
         auto line = lines[startIndex];
         if (line.startsWith("- [ ] ") || line.startsWith("- [x] ")) {
@@ -607,7 +613,12 @@ public:
         }
     }
 private:
-    ParseResult parseCheckboxList(const StringList& lines, int startIndex) {
+    ParseResult parseCheckboxList(const StringList& lines, int startIndex) const {
+        static std::vector<LineParser*> parsers = {
+            new InlineLatexParser(),
+            new InlineCodeParser(),
+            new SemanticTextParser(),
+        };
         int i = startIndex;
         auto checkboxList = new CheckboxList();
         QString uncheckedPrefix = "- [ ] ";
@@ -618,14 +629,14 @@ private:
                 auto item = new CheckboxItem();
                 item->setChecked(false);
                 line = line.right(line.size() - uncheckedPrefix.size());
-                item->appendChild(new Text(line));
+                _parseLine(item, parsers, line);
                 checkboxList->appendChild(item);
                 i++;
             } else if (line.startsWith(checkedPrefix)) {
                 auto item = new CheckboxItem();
                 item->setChecked(true);
                 line = line.right(line.size() - checkedPrefix.size());
-                item->appendChild(new Text(line));
+                _parseLine(item, parsers, line);
                 checkboxList->appendChild(item);
                 i++;
             } else {
@@ -643,7 +654,7 @@ private:
 // 无序列表解析器
 class UnorderedListParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex >= lines.size()) return ParseResult::fail();
         auto line = lines[startIndex];
         if (line.startsWith("- ")) {
@@ -654,11 +665,16 @@ public:
     }
 private:
 
-    ParseResult parseUnorderedList(const StringList& lines, int startIndex) {
+    ParseResult parseUnorderedList(const StringList& lines, int startIndex) const {
+        static std::vector<LineParser*> parsers = {
+                new InlineLatexParser(),
+                new InlineCodeParser(),
+                new SemanticTextParser(),
+        };
         int i = startIndex;
         auto ul = new UnorderedList();
         while (i < lines.size() && lines[i].startsWith("- ")) {
-            ul->appendChild(new Text(lines[i].mid(2)));
+            _parseLine(ul, parsers, lines[i].mid(2));
             i++;
         }
         return {
@@ -672,7 +688,7 @@ private:
 // 有序列表解析器
 class OrderedListParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex >= lines.size()) return ParseResult::fail();
         auto line = lines[startIndex];
         if (line.startsWith("1. ")) {
@@ -683,7 +699,12 @@ public:
     }
 private:
 
-    ParseResult parseOrderedList(const StringList& lines, int startIndex) {
+    ParseResult parseOrderedList(const StringList& lines, int startIndex) const {
+        static std::vector<LineParser*> parsers = {
+                new InlineLatexParser(),
+                new InlineCodeParser(),
+                new SemanticTextParser(),
+        };
         int i = startIndex;
         auto ret = new OrderedList();
         while (i < lines.size()) {
@@ -711,7 +732,7 @@ private:
                         ret
                 };
             j++;
-            ret->appendChild(new Text(line.mid(j)));
+            _parseLine(ret, parsers, line.mid(j));
             // 下一行
             i++;
         }
@@ -726,7 +747,7 @@ private:
 // 引用解析器
 class QuoteBlockParser: public BlockParser {
 public:
-    ParseResult parse(const StringList &lines, int startIndex) override {
+    ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex >= lines.size()) return ParseResult::fail();
         auto line = lines[startIndex];
         if (line.startsWith("> ")) {
@@ -737,7 +758,7 @@ public:
     }
 private:
 
-    ParseResult parseQuoteBlock(const StringList& lines, int startIndex) {
+    ParseResult parseQuoteBlock(const StringList& lines, int startIndex) const {
         int i = startIndex;
         auto quoteBlock = new QuoteBlock();
         while (i < lines.size() && lines[i].startsWith("> ")) {
