@@ -771,7 +771,6 @@ NodePtrList Parser::parse(String text) {
     NodePtrList ret;
     auto lines = text.split(QRegularExpression("(\r\n|\r|\n)"));
     int i = 0;
-#if 1
     while (i < lines.size()) {
         for(auto parser: parsers) {
             auto parseRet = parser->parse(lines, i);
@@ -782,79 +781,6 @@ NodePtrList Parser::parse(String text) {
             }
         }
     }
-    return ret;
-#endif
-#if 0
-    while (i < lines.size()) {
-        // qDebug() << "parse" << i << lines[i];
-        auto line = lines[i];
-        if (line.isEmpty()) {
-            i++;
-            continue;
-        }
-        if (line.startsWith("#")) {
-            if (tryParseHeader(line)) {
-                auto header = parseHeader(line);
-                ret.emplace_back(header);
-                i++;
-            } else {
-                auto paragraph = parseParagraph(i, lines);
-                ret.emplace_back(paragraph);
-            }
-        }
-        else if (line.startsWith("```")) {
-            if (tryParseCodeBlock(i, lines)) {
-                auto codeBlock = parseCodeBlock(i, lines);
-                ret.emplace_back(codeBlock);
-            } else {
-                auto paragraph = parseParagraph(i, lines);
-                ret.emplace_back(paragraph);
-            }
-        }
-        else if (line.startsWith("- [ ] ") || line.startsWith("- [x] ")) {
-            auto checkbox = parseCheckboxList(i, lines);
-            ret.emplace_back(checkbox);
-        }
-        else if (line.startsWith("- ")) {
-            auto ul = parseUnorderedList(i, lines);
-            ret.emplace_back(ul);
-        }
-        else if (line.startsWith("1. ")) {
-            auto ol = parseOrderedList(i, lines);
-            ret.emplace_back(ol);
-        }
-        else if (line == "---") {
-            ret.emplace_back(new Hr());
-            i++;
-        }
-        else if (line.startsWith("> ")) {
-            auto quoteBlock = parseQuoteBlock(i, lines);
-            ret.emplace_back(quoteBlock);
-        }
-        else if (line.startsWith("|")) {
-            auto node = parseTable(i, lines);
-            if (node == nullptr) {
-                auto paragraph = parseParagraph(i, lines);
-                ret.emplace_back(paragraph);
-            } else {
-                ret.emplace_back(node);
-            }
-        }
-        else if (line.startsWith("$$")) {
-            auto node = parseLatexBlock(i, lines);
-            if (node == nullptr) {
-                auto paragraph = parseParagraph(i, lines);
-                ret.emplace_back(paragraph);
-            } else {
-                ret.emplace_back(node);
-            }
-        }
-        else {
-            auto paragraph = parseParagraph(i, lines);
-            ret.emplace_back(paragraph);
-        }
-    }
-#endif
     return ret;
 }
 
