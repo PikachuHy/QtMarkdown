@@ -10,7 +10,14 @@
 #include <utility>
 #define emplace_back push_back
 using namespace std::string_view_literals;
-
+String trimLeft(String s) {
+    int count = 0;
+    while (count < s.size() && s[count] == ' ') {
+        count++;
+    }
+    if (count == 0) return s;
+    return s.right(s.size() - count);
+}
 TokenList parseLine(String text);
 Text *mergeToText(const TokenList& tokens, int prev, int cur) {
     if (prev >= cur) return nullptr;
@@ -658,6 +665,7 @@ public:
     ParseResult parse(const StringList &lines, int startIndex) const override {
         if (startIndex >= lines.size()) return ParseResult::fail();
         auto line = lines[startIndex];
+        line = trimLeft(line);
         if (line.startsWith("- ")) {
             return parseUnorderedList(lines, startIndex);
         } else {
@@ -674,9 +682,9 @@ private:
         };
         int i = startIndex;
         auto ul = new UnorderedList();
-        while (i < lines.size() && lines[i].startsWith("- ")) {
+        while (i < lines.size() && trimLeft(lines[i]).startsWith("- ")) {
             auto item = new UnorderedListItem();
-            _parseLine(item, parsers, lines[i].mid(2));
+            _parseLine(item, parsers, trimLeft(lines[i]).mid(2));
             ul->appendChild(item);
             i++;
         }
