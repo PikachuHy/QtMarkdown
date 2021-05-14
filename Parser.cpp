@@ -528,6 +528,7 @@ private:
         for(int j=startIndex+1;j<i;j++) {
             latexCode += lines[j] + '\n';
         }
+        i++; // last $$
         return {
             true,
             i - startIndex,
