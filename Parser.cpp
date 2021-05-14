@@ -386,8 +386,10 @@ private:
 class HeaderParser: public BlockParser {
 public:
     ParseResult parse(const StringList &lines, int startIndex) const override {
-        if (startIndex < lines.size() && tryParseHeader(lines[startIndex])) {
-            auto header = parseHeader(lines[startIndex]);
+        if (startIndex >= lines.size()) return ParseResult::fail();
+        auto line = trimLeft(lines[startIndex]);
+        if (tryParseHeader(line)) {
+            auto header = parseHeader(line);
             return {
                     true,
                     1,
