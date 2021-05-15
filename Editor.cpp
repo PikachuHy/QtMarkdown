@@ -343,7 +343,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
                                         rect.y() + y),
                                     playImage.size()
                                     );
-                        qDebug() << rect << playIconRect << playImage.size();
+                        // qDebug() << rect << playIconRect << playImage.size();
                         drawImage(playIconRect, playImage);
                     } else {
                         qWarning() << "play icon file not exist.";
