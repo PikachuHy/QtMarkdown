@@ -75,32 +75,110 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         OrderedList, OrderedListItem,
         LatexBlock, InlineLatex,
         Hr, QuoteBlock, Table> {
-    explicit DefaultEditorVisitor(QPainter& painter, int w, int rightMargin, const QString& filePath):
-            m_painter(painter), m_maxWidth(w - rightMargin), m_filePath(filePath) {
+    explicit DefaultEditorVisitor(int w, int rightMargin, const QString& filePath):
+        m_painter(nullptr),
+            m_maxWidth(w - rightMargin), m_filePath(filePath), m_justCalculate(false) {
 //        qDebug() << "width: " << m_maxWidth;
+        m_lastMaxWidth = w;
+        reset(m_painter);
+    }
+    void reset(QPainter* painter) {
         m_curX = 0;
         m_curY = 0;
         m_lastMaxHeight = 0;
-        m_lastMaxWidth = w;
         QFont font;
         font.setFamily("微软雅黑");
         font.setPixelSize(16);
-        m_painter.setFont(font);
+        if (painter) {
+            m_painter = painter;
+            m_painter->setFont(font);
+        } else {
+            m_font = font;
+        }
+    }
+    // 隔离QPainter
+    void save() {
+        if (justCalculate()) {
+            m_fonts.push(curFont());
+        } else {
+            m_painter->save();
+        }
+    }
+    void restore() {
+        if (justCalculate()) {
+            m_font = m_fonts.pop();
+        } else {
+            m_painter->restore();
+        }
+    }
+    void setFont(const QFont& font) {
+        if (justCalculate()) {
+            m_font = font;
+        } else {
+            m_painter->setFont(font);
+        }
+    }
+    void setPen(const QColor &color) {
+        if (justCalculate()) {
+            // do nothing
+        } else {
+            m_painter->setPen(color);
+        }
+    }
+    QFontMetrics fontMetrics() {
+        if (justCalculate()) {
+            QFontMetrics fm(curFont());
+            return fm;
+        } else {
+            return m_painter->fontMetrics();
+        }
+    }
+    // 所有的绘制走自己写的绘制函数
+    void drawText(const QRectF &r, const QString &text, const QTextOption &o = QTextOption()) {
+        if (justCalculate()) {
+            // do nothing
+        } else {
+            m_painter->drawText(r, text, o);
+        }
+    }
+    void drawImage(const QRect &r, const QImage &image) {
+        if (justCalculate()) {
+            // do nothing
+        } else {
+            m_painter->drawImage(r, image);
+        }
+    }
+    void drawPixmap(const QRect &r, const QPixmap &pm) {
+        if (justCalculate()) {
+            // do nothing
+        } else {
+            m_painter->drawPixmap(r, pm);
+        }
+    }
+    void fillRect(const QRect &rect, const QBrush &b) {
+        if (justCalculate()) {
+            // do nothing
+        } else {
+            m_painter->fillRect(rect, b);
+        }
     }
     QRect textRect(const QString& text) {
-        QFontMetrics metrics = m_painter.fontMetrics();
+        QFontMetrics metrics = fontMetrics();
         QRect textBoundingRect = metrics.boundingRect(QRect(m_curX, m_curY, m_maxWidth, 0), Qt::TextWordWrap, text);
         return textBoundingRect;
     }
     int textWidth(const QString& text) {
-        QFontMetrics metrics = m_painter.fontMetrics();
+        QFontMetrics metrics = fontMetrics();
         int w = metrics.horizontalAdvance(text);
         return w;
     }
     int charWidth(const QChar& ch) {
-        QFontMetrics metrics = m_painter.fontMetrics();
+        QFontMetrics metrics = fontMetrics();
         int w = metrics.horizontalAdvance(ch);
         return w;
+    }
+    int textHeight() {
+        return fontMetrics().height();
     }
     bool currentLineCanDrawText(const QString& text) {
         auto needWidth = textWidth(text);
@@ -152,7 +230,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
 //        qDebug() << "cur";
         auto rect = textRect(text);
 //        qDebug() << rect << text;
-        m_painter.drawText(rect, text);
+        drawText(rect, text);
         if (adjustX) {
             m_curX += rect.width();
         }
@@ -171,11 +249,11 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         std::array<int, 6> fontSize = {
             36, 28,24, 20, 16, 14
         };
-        m_painter.save();
-        auto font = QFont();
+        save();
+        auto font = curFont();
         font.setPixelSize(fontSize[node->level() - 1]);
         font.setBold(true);
-        m_painter.setFont(font);
+        setFont(font);
         moveToNewLine();
 //        QString hn = "h" + String::number(node->level());
 //        drawText(hn);
@@ -184,35 +262,35 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             it->accept(this);
         }
         m_curY += 10;
-        m_painter.restore();
+        restore();
     }
     void visit(Text *node) override {
         drawText(node->str());
     }
     void visit(ItalicText *node) override {
-        m_painter.save();
-        QFont font = m_painter.font();
+        save();
+        QFont font = curFont();
         font.setItalic(true);
-        m_painter.setFont(font);
+        setFont(font);
         drawText(node->str());
-        m_painter.restore();
+        restore();
     }
     void visit(BoldText *node) override {
-        m_painter.save();
-        QFont font = m_painter.font();
+        save();
+        QFont font = curFont();
         font.setBold(true);
-        m_painter.setFont(font);
+        setFont(font);
         drawText(node->str());
-        m_painter.restore();
+        restore();
     }
     void visit(ItalicBoldText *node) override {
-        m_painter.save();
-        QFont font = m_painter.font();
+        save();
+        QFont font = curFont();
         font.setItalic(true);
         font.setBold(true);
-        m_painter.setFont(font);
+        setFont(font);
         drawText(node->str());
-        m_painter.restore();
+        restore();
     }
     void visit(Image *node) override {
         moveToNewLine();
@@ -232,62 +310,66 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             }
             QRect rect(QPoint(m_curX, m_curY), image.size());
 //            qDebug() << "image rect" << rect;
-            m_painter.drawImage(rect, image);
+            drawImage(rect, image);
             m_lastMaxHeight = rect.height();
         } else {
             qWarning() << "image not exist." << imgPath;
         }
     }
     void visit(Link *node) override {
-        m_painter.save();
-        m_painter.setPen(Qt::blue);
-        auto font = m_painter.font();
+        save();
+        setPen(Qt::blue);
+        auto font = curFont();
         font.setUnderline(true);
-        m_painter.setFont(font);
+        setFont(font);
         auto rects = drawText(node->content()->str());
-        auto link = new Element::Link();
-        link->text = node->content()->str();
-        link->url = node->href()->str();
-        link->rects = rects;
-        m_links.append(link);
-        m_painter.restore();
+        if (justCalculate()) {
+
+        } else {
+            auto link = new Element::Link();
+            link->text = node->content()->str();
+            link->url = node->href()->str();
+            link->rects = rects;
+            m_links.append(link);
+        }
+        restore();
     }
     void visit(CodeBlock *node) override {
         moveToNewLine();
         auto y = m_curY;
         m_curY += 10;
         m_curX += 20;
-        m_painter.save();
+        save();
         // #f9f9f9
 //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
         QFont font;
         font.setPixelSize(20);
         font.setFamily("Cascadia Code");
-        m_painter.setFont(font);
+        setFont(font);
         auto rect = textRect(node->code()->str());
-        m_painter.fillRect(QRect(0, y, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
-        m_painter.drawText(rect, node->code()->str());
-        m_painter.restore();
+        fillRect(QRect(0, y, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
+        drawText(rect, node->code()->str());
+        restore();
         m_curY += rect.height();
         m_curY += 10;
     }
     void visit(InlineCode *node) override {
-        m_painter.save();
+        save();
         // #f9f9f9
 //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
         QFont font;
         font.setPixelSize(16);
         font.setFamily("Cascadia Code");
-        m_painter.setFont(font);
+        setFont(font);
         QString code = node->code() ? node->code()->str() : " ";
         auto rect = textRect(code);
-        m_painter.fillRect(rect, QBrush(QColor(249, 249, 249)));
-        m_painter.drawText(rect, code);
+        fillRect(rect, QBrush(QColor(249, 249, 249)));
+        drawText(rect, code);
         m_curX += rect.width();
-        m_painter.restore();
+        restore();
     }
     void visit(LatexBlock *node) override {
-//        qDebug() << node->code()->str();
+        // qDebug() << node->code()->str();
         moveToNewLine();
         m_curY += 10;
         QTemporaryFile tmpFile;
@@ -312,7 +394,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             auto x = (m_maxWidth - image.size().width())/2;
             const QRect rect = QRect(QPoint(x, m_curY), image.size());
 //            m_painter.drawRect(rect);
-            m_painter.drawPixmap(rect, image);
+            drawPixmap(rect, image);
             m_curY += image.height();
             m_curY += 10;
         } else {
@@ -321,6 +403,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     }
     void visit(InlineLatex *node) override {
         QString key = node->code()->str();
+        qDebug() << key;
         QString imgFilename;
         if (m_cacheLatexImage.contains(key) && QFile(m_cacheLatexImage[key]).exists()) {
             imgFilename = m_cacheLatexImage[key];
@@ -362,16 +445,16 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_curX += image.width();
         m_curX += 5;
         m_lastMaxHeight = qMax(m_lastMaxHeight, image.height());
-        m_painter.drawPixmap(rect, image);
+        drawPixmap(rect, image);
     }
     void visit(Paragraph *node) override {
-        m_painter.save();
+        save();
         moveToNewLine();
         for(auto it: node->children()) {
             it->accept(this);
         }
         m_curY += 5;
-        m_painter.restore();
+        restore();
     }
     void visit(CheckboxList *node) override {
         for (const auto &item : node->children()) {
@@ -383,15 +466,15 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         m_curY += 10;
     }
     void visit(CheckboxItem *node) override {
-        m_painter.save();
-        auto font = m_painter.font();
+        save();
+        auto font = curFont();
         // 计算高度偏移
-        auto h1 = m_painter.fontMetrics().height();
-        m_painter.save();
+        auto h1 = textHeight();
+        save();
         font.setPixelSize(36);
         QFontMetrics fm(font);
         auto h2 = fm.height();
-        m_painter.setFont(font);
+        setFont(font);
         auto y = m_curY;
         // 偏移绘制点，使得框框和文字是在同一条线
         m_curY-= (h2 - h1) / 2;
@@ -402,14 +485,14 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
         m_curY = y;
         m_curX += 5;
-        m_painter.restore();
-        font = m_painter.font();
+        restore();
+        font = curFont();
         font.setStrikeOut(node->isChecked());
-        m_painter.setFont(font);
+        setFont(font);
         for (const auto &item : node->children()) {
             item->accept(this);
         }
-        m_painter.restore();
+        restore();
     }
     void visit(UnorderedList *node) override {
         for (const auto &item : node->children()) {
@@ -456,7 +539,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         const QRect rect = QRect(2, startY, 5, endY - startY);
         // qDebug() << rect;
         // #eee
-        m_painter.fillRect(rect, QBrush(QColor(238, 238, 238)));
+        fillRect(rect, QBrush(QColor(238, 238, 238)));
     }
     void visit(Table *node) override {
     }
@@ -469,8 +552,20 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     const QList<Element::Link*>& links() {
         return m_links;
     }
+    [[nodiscard]] inline bool justCalculate() const {
+        return m_justCalculate;
+    }
+    void setJustCalculate(bool flag) {
+        m_justCalculate = flag;
+    }
+    QFont curFont() {
+        return m_font;
+    }
+    void setPainter(QPainter* painter) {
+        m_painter = painter;
+    }
 private:
-    QPainter& m_painter;
+    QPainter* m_painter;
     int m_curX;
     int m_curY;
     int m_lastMaxHeight;
@@ -479,6 +574,9 @@ private:
     QList<Element::Link*> m_links;
     const QString& m_filePath;
     QMap<QString, QString> m_cacheLatexImage;
+    bool m_justCalculate;
+    QStack<QFont> m_fonts;
+    QFont m_font;
 };
 
 template<typename T>
@@ -594,9 +692,6 @@ void EditorWidget::drawInBackground() {
 }
 
 void EditorWidget::drawAsync() {
-    QImage tmp(this->size(), QImage::Format_RGB32);
-    QPainter painter(&tmp);
-    painter.setRenderHint(QPainter::Antialiasing);
     QFile mdFile(m_filePath);
     if (!mdFile.exists()) {
         qDebug() << "file not exist:" << mdFile.fileName();
@@ -605,11 +700,10 @@ void EditorWidget::drawAsync() {
     mdFile.open(QIODevice::ReadOnly);
     auto mdText = mdFile.readAll();
     mdFile.close();
-//    qDebug().noquote().nospace() << mdText;
     Document doc(mdText);
-    DefaultEditorVisitor visitor(painter, m_maxWidth, m_rightMargin, m_filePath);
+    DefaultEditorVisitor visitor(m_maxWidth, m_rightMargin, m_filePath);
+    visitor.setJustCalculate(true);
     doc.accept(&visitor);
-    m_links = visitor.links();
     int h = visitor.realHeight();
     if (h < 0) {
         h = 600;
@@ -618,13 +712,14 @@ void EditorWidget::drawAsync() {
     auto w = qMax(m_maxWidth, visitor.realWidth());
     // qDebug() << "set size:" << w << h;
     m_fixedSize = QSize(w, h);
-    auto buffer = QImage(w, h, QImage::Format_RGB32);
-    buffer.fill(Qt::white);
-    QPainter p(&buffer);
-    p.setRenderHint(QPainter::Antialiasing);
-    DefaultEditorVisitor _visitor(p, w, m_rightMargin, m_filePath);
-    doc.accept(&_visitor);
-    m_buffer = buffer;
+    m_buffer = QImage(m_fixedSize, QImage::Format_RGB32);
+    QPainter painter(&m_buffer);
+    painter.setRenderHint(QPainter::Antialiasing);
+    m_buffer.fill(Qt::white);
+    visitor.setJustCalculate(false);
+    visitor.reset(&painter);
+    doc.accept(&visitor);
+    m_links = visitor.links();
 }
 
 
