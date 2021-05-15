@@ -294,6 +294,9 @@ public:
         if (tryParseItalic(tokens, startIndex)) {
             return _parseItalic(tokens, startIndex);
         }
+        if (tryParseStrickout(tokens, startIndex)) {
+            return _parseStrickout(tokens, startIndex);
+        }
         return ParseResult::fail();
     }
 private:
@@ -340,6 +343,20 @@ private:
         return false;
     }
 
+    bool tryParseStrickout(const TokenList& tokens, int startIndex) const {
+        int startCount = 0;
+        int i = startIndex;
+        while (i < tokens.size() && isTilde(tokens[i])) {
+            i++;
+            startCount++;
+        }
+        if (startCount == 2) {
+            return i + 2 < tokens.size()
+                   && isTilde(tokens[i+1])
+                   && isTilde(tokens[i+2]);
+        }
+        return false;
+    }
 
     ParseResult _parseItalic(const TokenList& tokens, int startIndex) const {
         int i = startIndex;
@@ -374,6 +391,20 @@ private:
         i++;
         auto node = new ItalicBoldText(tokens[i].str());
         i++;
+        i++;
+        i++;
+        i++;
+        return {
+                true,
+                i - startIndex,
+                node
+        };
+    }
+    ParseResult _parseStrickout(const TokenList& tokens, int startIndex) const {
+        int i = startIndex;
+        i++;
+        i++;
+        auto node = new StrickoutText(tokens[i].str());
         i++;
         i++;
         i++;

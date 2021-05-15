@@ -21,6 +21,7 @@ enum class TokenType {
     gt, // >
     quotation_en, // "
     star, // *
+    tilde, // ~
     text,
     backquote, // `
     dollar
@@ -56,6 +57,7 @@ inline bool isExclamation(Token token) { return token.type() == TokenType::excla
 inline bool isGt(Token token) { return token.type() == TokenType::gt; }
 inline bool isQuotationEn(Token token) { return token.type() == TokenType::quotation_en; }
 inline bool isStar(Token token) { return token.type() == TokenType::star; }
+inline bool isTilde(Token token) { return token.type() == TokenType::tilde; }
 inline bool isText(Token token) { return token.type() == TokenType::text; }
 inline bool isBackquote(Token token) { return token.type() == TokenType::backquote; }
 inline bool isDollar(Token token) { return token.type() == TokenType::dollar; }

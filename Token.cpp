@@ -39,6 +39,9 @@ Token::Token(TokenType type) : m_type(type) {
         case TokenType::star:
             m_str = "*";
             break;
+        case TokenType::tilde:
+            m_str = "~";
+            break;
         case TokenType::backquote:
             m_str = "`";
             break;
@@ -65,6 +68,7 @@ QMap<QChar, Token> spMap = {
         {'>', Token(TokenType::gt)},
         {'!', Token(TokenType::exclamation)},
         {'*', Token(TokenType::star)},
+        {'~', Token(TokenType::tilde)},
         {'[', Token(TokenType::left_bracket)},
         {']', Token(TokenType::right_bracket)},
         {'(', Token(TokenType::left_parenthesis)},

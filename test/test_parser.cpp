@@ -89,6 +89,18 @@ TEST(ParseItalicBoldBoldTest, Only) {
     ASSERT_EQ(link->type(), NodeType::italic_bold);
 }
 
+TEST(ParseStrickoutTest, Only) {
+    Parser parser;
+    auto nodes = parser.parse("~~666~~");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto p = (Paragraph*)node;
+    ASSERT_EQ(p->children().size(), 1);
+    auto link = p->children().at(0);
+    ASSERT_EQ(link->type(), NodeType::strickout);
+}
+
 TEST(ParseLinkTest, Middle) {
     Parser parser;
     auto nodes = parser.parse("before[666](http://www.666.com)after");
@@ -177,6 +189,23 @@ TEST(ParseItalicBoldBoldTest, Middle) {
     ASSERT_EQ(before->type(), NodeType::text);
     auto it = p->children().at(1);
     ASSERT_EQ(it->type(), NodeType::italic_bold);
+    auto after = p->children().at(2);
+    ASSERT_EQ(after->type(), NodeType::text);
+}
+
+
+TEST(ParseStrickoutTest, Middle) {
+    Parser parser;
+    auto nodes = parser.parse("before~~666~~after");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto p = (Paragraph*)node;
+    ASSERT_EQ(p->children().size(), 3);
+    auto before = p->children().at(0);
+    ASSERT_EQ(before->type(), NodeType::text);
+    auto strickout = p->children().at(1);
+    ASSERT_EQ(strickout->type(), NodeType::strickout);
     auto after = p->children().at(2);
     ASSERT_EQ(after->type(), NodeType::text);
 }

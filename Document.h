@@ -22,7 +22,7 @@ enum class NodeType {
     ol, ol_item,
     hr,
     quote_block,
-    italic, bold, italic_bold,
+    italic, bold, italic_bold, strickout,
     table
 };
 class QTMARKDOWNSHARED_EXPORT Node {
@@ -132,6 +132,14 @@ private:
 class QTMARKDOWNSHARED_EXPORT ItalicBoldText: public Visitable<ItalicBoldText> {
 public:
     ItalicBoldText(String str): m_str(str) { m_type = NodeType::italic_bold; }
+    String str() { return m_str; }
+    void setStr(String str) { m_str = str; }
+private:
+    String m_str;
+};
+class QTMARKDOWNSHARED_EXPORT StrickoutText: public Visitable<StrickoutText> {
+public:
+    StrickoutText(String str): m_str(str) { m_type = NodeType::strickout; }
     String str() { return m_str; }
     void setStr(String str) { m_str = str; }
 private:
