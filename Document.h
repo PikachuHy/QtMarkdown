@@ -131,7 +131,7 @@ private:
 };
 class QTMARKDOWNSHARED_EXPORT ItalicBoldText: public Visitable<ItalicBoldText> {
 public:
-    ItalicBoldText(String str): m_str(str) { m_type = NodeType::bold; }
+    ItalicBoldText(String str): m_str(str) { m_type = NodeType::italic_bold; }
     String str() { return m_str; }
     void setStr(String str) { m_str = str; }
 private:
