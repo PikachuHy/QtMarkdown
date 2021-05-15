@@ -334,7 +334,7 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         }
         restore();
     }
-    void visit(CodeBlock *node) override {
+    void drawCodeBlock(const String& code) {
         moveToNewLine();
         auto y = m_curY;
         m_curY += 10;
@@ -346,12 +346,18 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         font.setPixelSize(20);
         font.setFamily("Cascadia Code");
         setFont(font);
-        auto rect = textRect(node->code()->str());
+        auto rect = textRect(code);
         fillRect(QRect(0, y, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
-        drawText(rect, node->code()->str());
+        drawText(rect, code);
         restore();
         m_curY += rect.height();
         m_curY += 10;
+    }
+    void visit(CodeBlock *node) override {
+        if (node && node->code()) {
+            auto code = node->code()->str();
+            drawCodeBlock(code);
+        }
     }
     void visit(InlineCode *node) override {
         save();
@@ -362,10 +368,15 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         font.setFamily("Cascadia Code");
         setFont(font);
         QString code = node->code() ? node->code()->str() : " ";
-        auto rect = textRect(code);
-        fillRect(rect, QBrush(QColor(249, 249, 249)));
-        drawText(rect, code);
-        m_curX += rect.width();
+        if (currentLineCanDrawText(code)) {
+            auto rect = textRect(code);
+            fillRect(rect, QBrush(QColor(249, 249, 249)));
+            drawText(rect, code);
+            m_curX += rect.width();
+            m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
+        } else {
+            drawCodeBlock(code);
+        }
         restore();
     }
     void visit(LatexBlock *node) override {
