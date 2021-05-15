@@ -709,7 +709,7 @@ void EditorWidget::mousePressEvent(QMouseEvent *event) {
     for(auto image: m_images) {
         if (image->rect.contains(pos)) {
             QDialog dialog;
-            dialog.setWindowFlag(Qt::FramelessWindowHint);
+            dialog.setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
             auto hbox = new QHBoxLayout();
             auto imgLabel = new QLabel();
             if (image->path.endsWith(".gif")) {
