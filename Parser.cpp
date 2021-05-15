@@ -658,6 +658,7 @@ public:
 private:
     ParseResult parseCheckboxList(const StringList& lines, int startIndex) const {
         static std::vector<LineParser*> parsers = {
+            new LinkParser(),
             new InlineLatexParser(),
             new InlineCodeParser(),
             new SemanticTextParser(),
@@ -711,6 +712,7 @@ private:
 
     ParseResult parseUnorderedList(const StringList& lines, int startIndex) const {
         static std::vector<LineParser*> parsers = {
+                new LinkParser(),
                 new InlineLatexParser(),
                 new InlineCodeParser(),
                 new SemanticTextParser(),
@@ -747,6 +749,7 @@ private:
 
     ParseResult parseOrderedList(const StringList& lines, int startIndex) const {
         static std::vector<LineParser*> parsers = {
+                new LinkParser(),
                 new InlineLatexParser(),
                 new InlineCodeParser(),
                 new SemanticTextParser(),
