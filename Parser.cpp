@@ -253,6 +253,8 @@ public:
     }
 private:
     bool tryParse(const TokenList &tokens, int startIndex) const {
+        if (startIndex >= tokens.size()) return false;
+        if (!isDollar(tokens[startIndex])) return false;
         int i = startIndex + 1;
         while (i < tokens.size()) {
             if (isDollar(tokens[i])) {
