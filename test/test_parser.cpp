@@ -8,6 +8,181 @@
 #include "Token.h"
 #include "gtest/gtest.h"
 
+
+TEST(ParseUnorderedListTest, OnlyText) {
+    Parser parser;
+    auto nodes = parser.parse("- hhh");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::ul);
+    auto ul = (UnorderedList*)node;
+    ASSERT_EQ(ul->children().size(), 1);
+    auto item = ul->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::ul_item);
+    auto ul_item = (UnorderedListItem*)item;
+    ASSERT_EQ(ul_item->children().size(), 1);
+    auto text = ul_item->children().at(0);
+    ASSERT_EQ(text->type(), NodeType::text);
+}
+
+TEST(ParseUnorderedListTest, OnlyLink) {
+    Parser parser;
+    auto nodes = parser.parse("- [666](http://www.666.com)");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::ul);
+    auto ul = (UnorderedList*)node;
+    ASSERT_EQ(ul->children().size(), 1);
+    auto item = ul->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::ul_item);
+    auto ul_item = (UnorderedListItem*)item;
+    ASSERT_EQ(ul_item->children().size(), 1);
+    auto link = ul_item->children().at(0);
+    ASSERT_EQ(link->type(), NodeType::link);
+}
+
+
+TEST(ParseUnorderedListTest, TextAndLink) {
+    Parser parser;
+    auto nodes = parser.parse("- sdfg[666](http://www.666.com)sdfg");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::ul);
+    auto ul = (UnorderedList*)node;
+    ASSERT_EQ(ul->children().size(), 1);
+    auto item = ul->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::ul_item);
+    auto ul_item = (UnorderedListItem*)item;
+    ASSERT_EQ(ul_item->children().size(), 3);
+    {
+        auto text = ul_item->children().at(0);
+        ASSERT_EQ(text->type(), NodeType::text);
+    }
+    auto link = ul_item->children().at(1);
+    ASSERT_EQ(link->type(), NodeType::link);
+    {
+        auto text = ul_item->children().at(2);
+        ASSERT_EQ(text->type(), NodeType::text);
+    }
+}
+
+
+TEST(ParseOrderedListTest, OnlyText) {
+    Parser parser;
+    auto nodes = parser.parse("1. hhh");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::ol);
+    auto ol = (OrderedList*)node;
+    ASSERT_EQ(ol->children().size(), 1);
+    auto item = ol->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::ol_item);
+    auto ul_item = (OrderedListItem*)item;
+    ASSERT_EQ(ul_item->children().size(), 1);
+    auto text = ul_item->children().at(0);
+    ASSERT_EQ(text->type(), NodeType::text);
+}
+
+TEST(ParseOrderedListTest, OnlyLink) {
+    Parser parser;
+    auto nodes = parser.parse("1. [666](http://www.666.com)");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::ol);
+    auto ol = (OrderedList*)node;
+    ASSERT_EQ(ol->children().size(), 1);
+    auto item = ol->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::ol_item);
+    auto ol_item = (OrderedListItem*)item;
+    ASSERT_EQ(ol_item->children().size(), 1);
+    auto link = ol_item->children().at(0);
+    ASSERT_EQ(link->type(), NodeType::link);
+}
+
+
+TEST(ParseOrderedListTest, TextAndLink) {
+    Parser parser;
+    auto nodes = parser.parse("1. sdfg[666](http://www.666.com)sdfg");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::ol);
+    auto ul = (OrderedList*)node;
+    ASSERT_EQ(ul->children().size(), 1);
+    auto item = ul->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::ol_item);
+    auto ol_item = (OrderedListItem*)item;
+    ASSERT_EQ(ol_item->children().size(), 3);
+    {
+        auto text = ol_item->children().at(0);
+        ASSERT_EQ(text->type(), NodeType::text);
+    }
+    auto link = ol_item->children().at(1);
+    ASSERT_EQ(link->type(), NodeType::link);
+    {
+        auto text = ol_item->children().at(2);
+        ASSERT_EQ(text->type(), NodeType::text);
+    }
+}
+
+
+TEST(ParseCheckboxListTest, OnlyText) {
+    Parser parser;
+    auto nodes = parser.parse("- [ ] hhh");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::checkbox);
+    auto ol = (OrderedList*)node;
+    ASSERT_EQ(ol->children().size(), 1);
+    auto item = ol->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::checkbox_item);
+    auto ul_item = (OrderedListItem*)item;
+    ASSERT_EQ(ul_item->children().size(), 1);
+    auto text = ul_item->children().at(0);
+    ASSERT_EQ(text->type(), NodeType::text);
+}
+
+TEST(ParseCheckboxListTest, OnlyLink) {
+    Parser parser;
+    auto nodes = parser.parse("- [ ] [666](http://www.666.com)");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::checkbox);
+    auto ol = (OrderedList*)node;
+    ASSERT_EQ(ol->children().size(), 1);
+    auto item = ol->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::checkbox_item);
+    auto ol_item = (OrderedListItem*)item;
+    ASSERT_EQ(ol_item->children().size(), 1);
+    auto link = ol_item->children().at(0);
+    ASSERT_EQ(link->type(), NodeType::link);
+}
+
+
+TEST(ParseCheckboxListTest, TextAndLink) {
+    Parser parser;
+    auto nodes = parser.parse("- [ ] sdfg[666](http://www.666.com)sdfg");
+    ASSERT_EQ(nodes.size(), 1);
+    auto node = nodes[0];
+    ASSERT_EQ(node->type(), NodeType::checkbox);
+    auto ul = (OrderedList*)node;
+    ASSERT_EQ(ul->children().size(), 1);
+    auto item = ul->children().at(0);
+    ASSERT_EQ(item->type(), NodeType::checkbox_item);
+    auto ol_item = (OrderedListItem*)item;
+    ASSERT_EQ(ol_item->children().size(), 3);
+    {
+        auto text = ol_item->children().at(0);
+        ASSERT_EQ(text->type(), NodeType::text);
+    }
+    auto link = ol_item->children().at(1);
+    ASSERT_EQ(link->type(), NodeType::link);
+    {
+        auto text = ol_item->children().at(2);
+        ASSERT_EQ(text->type(), NodeType::text);
+    }
+}
+
+
 TEST(ParseImageTest, Only) {
     Parser parser;
     auto nodes = parser.parse("![666](http://www.666.com)");
