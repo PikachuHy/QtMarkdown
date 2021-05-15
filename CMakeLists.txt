@@ -20,7 +20,8 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Widgets
         Concurrent
         REQUIRED)
-add_library(QtMarkdownEditor SHARED Editor.cpp)
+add_library(QtMarkdownEditor SHARED Editor.cpp icon.qrc)
+set_target_properties(QtMarkdownEditor PROPERTIES AUTORCC ON)
 target_compile_definitions(QtMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Widgets

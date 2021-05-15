@@ -11,6 +11,8 @@
 #include <QTextList>
 #include <QTextBlock>
 #include <QTextTable>
+#include <QLabel>
+#include <QMovie>
 #include "QtMarkdownParser"
 #include <QPainter>
 #include <QScrollArea>
@@ -24,12 +26,18 @@
 #include <array>
 #include <QProcess>
 #include <QTemporaryFile>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 
 namespace Element {
     struct Link {
         QString text;
         QString url;
         QList<QRect> rects;
+    };
+    struct Image {
+        QString path;
+        QRect rect;
     };
 }
 
@@ -60,6 +68,7 @@ private:
     bool m_needDraw;
     int m_rightMargin;
     QList<Element::Link*> m_links;
+    QList<Element::Image*> m_images;
     Editor* m_editor;
     bool m_isDrawing;
     int m_maxWidth;
@@ -312,6 +321,35 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
 //            qDebug() << "image rect" << rect;
             drawImage(rect, image);
             m_lastMaxHeight = rect.height();
+            if (justCalculate()) {
+
+            } else {
+                auto img = new Element::Image();
+                img->path = imgPath;
+                img->rect = rect;
+                m_images.append(img);
+                if (imgPath.endsWith(".gif")) {
+                    QString playIconPath = ":/icon/play_64x64.png";
+                    QFile playIconFile(playIconPath);
+                    if (playIconFile.exists()) {
+                        QImage playImage(playIconPath);
+                        // 计算播放图标所在位置
+                        // 播放图标放在中心位置
+                        int x = (rect.width() - playImage.width()) / 2;
+                        int y = (rect.height() - playImage.height()) / 2;
+                        QRect playIconRect(
+                                    QPoint(
+                                        rect.x() + x,
+                                        rect.y() + y),
+                                    playImage.size()
+                                    );
+                        qDebug() << rect << playIconRect << playImage.size();
+                        drawImage(playIconRect, playImage);
+                    } else {
+                        qWarning() << "play icon file not exist.";
+                    }
+                }
+            }
         } else {
             qWarning() << "image not exist." << imgPath;
         }
@@ -408,6 +446,14 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
             drawPixmap(rect, image);
             m_curY += image.height();
             m_curY += 10;
+            if (justCalculate()) {
+
+            } else {
+                auto img = new Element::Image();
+                img->path = imgFilename;
+                img->rect = rect;
+                m_images.append(img);
+            }
         } else {
             qDebug() << "tmp file open fail." << tmpFile.fileName();
         }
@@ -563,6 +609,9 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     const QList<Element::Link*>& links() {
         return m_links;
     }
+    const QList<Element::Image*>& images() {
+        return m_images;
+    }
     [[nodiscard]] inline bool justCalculate() const {
         return m_justCalculate;
     }
@@ -583,6 +632,7 @@ private:
     int m_lastMaxWidth;
     int m_maxWidth;
     QList<Element::Link*> m_links;
+    QList<Element::Image*> m_images;
     const QString& m_filePath;
     QMap<QString, QString> m_cacheLatexImage;
     bool m_justCalculate;
@@ -632,6 +682,12 @@ void EditorWidget::mouseMoveEvent(QMouseEvent *event) {
             }
         }
     }
+    for(auto image: m_images) {
+        if (image->rect.contains(pos)) {
+            setCursor(QCursor(Qt::PointingHandCursor));
+            return;
+        }
+    }
 
     setCursor(QCursor(Qt::ArrowCursor));
 }
@@ -648,6 +704,25 @@ void EditorWidget::mousePressEvent(QMouseEvent *event) {
                     QDesktopServices::openUrl(QUrl(link->url));
                 }
             }
+        }
+    }
+    for(auto image: m_images) {
+        if (image->rect.contains(pos)) {
+            QDialog dialog;
+            dialog.setWindowFlag(Qt::FramelessWindowHint);
+            auto hbox = new QHBoxLayout();
+            auto imgLabel = new QLabel();
+            if (image->path.endsWith(".gif")) {
+                auto m = new QMovie(image->path);
+                imgLabel->setMovie(m);
+                m->start();
+            } else {
+                imgLabel->setPixmap(QPixmap(image->path));
+            }
+            hbox->addWidget(imgLabel);
+            hbox->setContentsMargins(0, 0, 0, 0);
+            dialog.setLayout(hbox);
+            dialog.exec();
         }
     }
 }
@@ -731,6 +806,7 @@ void EditorWidget::drawAsync() {
     visitor.reset(&painter);
     doc.accept(&visitor);
     m_links = visitor.links();
+    m_images = visitor.images();
 }
 
 
