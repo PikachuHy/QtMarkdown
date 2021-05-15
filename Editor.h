@@ -13,6 +13,7 @@ public:
     explicit Editor(QWidget *parent = nullptr);
     void loadFile(const QString& path);
     void reload();
+    void setLinkClickedCallback(std::function<bool (QString)> fn);
 private:
     EditorWidget *m_editorWidget;
 };

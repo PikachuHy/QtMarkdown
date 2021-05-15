@@ -60,6 +60,7 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void loadFile(const QString& path);
     void reload();
+    void setLinkClickedCallback(std::function<bool(QString)>& fn);
 private:
     void drawInBackground();
     void drawAsync();
@@ -74,6 +75,7 @@ private:
     int m_maxWidth;
     QSize m_fixedSize;
     QString m_filePath;
+    std::function<bool(QString)> m_linkClickedCallback;
 };
 
 struct DefaultEditorVisitor: MultipleVisitor<Header,
@@ -659,6 +661,9 @@ EditorWidget::EditorWidget(Editor *parent)
     setMouseTracking(true);
     m_buffer = QImage(QSize(800, 600), QImage::Format_RGB32);
     m_buffer.fill(Qt::white);
+    m_linkClickedCallback = [](QString) {
+        return false;
+    };
 }
 
 void EditorWidget::paintEvent(QPaintEvent *e) {
@@ -697,11 +702,16 @@ void EditorWidget::mousePressEvent(QMouseEvent *event) {
     for(auto link: m_links) {
         for(auto rect: link->rects) {
             if (rect.contains(pos)) {
-                auto ret = QMessageBox::question(this, tr("Open URL"),
-                                         QString("%1").arg(link->url)
-                                         );
-                if (ret == QMessageBox::Yes) {
-                    QDesktopServices::openUrl(QUrl(link->url));
+                if (m_linkClickedCallback(link->url)) {
+                    // 用户已处理
+                } else {
+
+                    auto ret = QMessageBox::question(this, tr("Open URL"),
+                                             QString("%1").arg(link->url)
+                                             );
+                    if (ret == QMessageBox::Yes) {
+                        QDesktopServices::openUrl(QUrl(link->url));
+                    }
                 }
             }
         }
@@ -761,6 +771,11 @@ void EditorWidget::reload()
 {
     m_needDraw = true;
     update();
+}
+
+void EditorWidget::setLinkClickedCallback(std::function<bool (QString)> &fn)
+{
+    this->m_linkClickedCallback = fn;
 }
 
 void EditorWidget::drawInBackground() {
@@ -824,6 +839,11 @@ void Editor::loadFile(const QString &path) {
 void Editor::reload()
 {
     m_editorWidget->reload();
+}
+
+void Editor::setLinkClickedCallback(std::function<bool (QString)> fn)
+{
+    m_editorWidget->setLinkClickedCallback(fn);
 }
 
 #include "Editor.moc"
