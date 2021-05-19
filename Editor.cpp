@@ -28,6 +28,7 @@
 #include <QTemporaryFile>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QClipboard>
 
 namespace Element {
     struct Link {
@@ -37,6 +38,10 @@ namespace Element {
     };
     struct Image {
         QString path;
+        QRect rect;
+    };
+    struct CodeBlock {
+        QString code;
         QRect rect;
     };
 }
@@ -70,6 +75,7 @@ private:
     int m_rightMargin;
     QList<Element::Link*> m_links;
     QList<Element::Image*> m_images;
+    QList<Element::CodeBlock*> m_codes;
     Editor* m_editor;
     bool m_isDrawing;
     int m_maxWidth;
@@ -387,11 +393,21 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         font.setFamily("Cascadia Code");
         setFont(font);
         auto rect = textRect(code);
-        fillRect(QRect(0, y, m_maxWidth, rect.height()), QBrush(QColor(249, 249, 249)));
+        const QRect bgRect = QRect(0, y, m_maxWidth, rect.height());
+        fillRect(bgRect, QBrush(QColor(249, 249, 249)));
         drawText(rect, code);
         restore();
         m_curY += rect.height();
         m_curY += 10;
+        if (!justCalculate()) {
+            auto e = new Element::CodeBlock();
+            e->code = code;
+            QPixmap copyBtnImg(":icon/copy_32x32.png");
+            QRect copyBtnRect(QPoint(bgRect.width() - copyBtnImg.width(), bgRect.y()), copyBtnImg.size());
+            e->rect = copyBtnRect;
+            m_codes.append(e);
+            drawPixmap(copyBtnRect, copyBtnImg);
+        }
     }
     void visit(CodeBlock *node) override {
         if (node && node->code()) {
@@ -614,6 +630,9 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
     const QList<Element::Image*>& images() {
         return m_images;
     }
+    const QList<Element::CodeBlock*>& codes() {
+        return m_codes;
+    }
     [[nodiscard]] inline bool justCalculate() const {
         return m_justCalculate;
     }
@@ -635,6 +654,7 @@ private:
     int m_maxWidth;
     QList<Element::Link*> m_links;
     QList<Element::Image*> m_images;
+    QList<Element::CodeBlock*> m_codes;
     const QString& m_filePath;
     QMap<QString, QString> m_cacheLatexImage;
     bool m_justCalculate;
@@ -693,6 +713,12 @@ void EditorWidget::mouseMoveEvent(QMouseEvent *event) {
             return;
         }
     }
+    for(auto code: m_codes) {
+        if (code->rect.contains(pos)) {
+            setCursor(QCursor(Qt::PointingHandCursor));
+            return;
+        }
+    }
 
     setCursor(QCursor(Qt::ArrowCursor));
 }
@@ -733,6 +759,11 @@ void EditorWidget::mousePressEvent(QMouseEvent *event) {
             hbox->setContentsMargins(0, 0, 0, 0);
             dialog.setLayout(hbox);
             dialog.exec();
+        }
+    }
+    for(auto code: m_codes) {
+        if (code->rect.contains(pos)) {
+            QApplication::clipboard()->setText(code->code);
         }
     }
 }
@@ -822,6 +853,7 @@ void EditorWidget::drawAsync() {
     doc.accept(&visitor);
     m_links = visitor.links();
     m_images = visitor.images();
+    m_codes = visitor.codes();
 }
 
 

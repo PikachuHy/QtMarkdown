@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>icon/play_64x64.png</file>
+        <file>icon/copy_64x64.png</file>
+        <file>icon/copy_32x32.png</file>
     </qresource>
 </RCC>
