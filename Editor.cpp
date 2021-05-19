@@ -724,6 +724,9 @@ void EditorWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void EditorWidget::mousePressEvent(QMouseEvent *event) {
+    if (event->button() != Qt::LeftButton) {
+        return;
+    }
     auto pos = event->pos();
     for(auto link: m_links) {
         for(auto rect: link->rects) {
