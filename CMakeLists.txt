@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
     add_compile_options("/utf-8")
 endif()
+if (ANDROID)
+    message(STATUS "andorid abi ${CMAKE_ANDROID_ARCH_ABI}")
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/android-build/libs/${CMAKE_ANDROID_ARCH_ABI}/)
+    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/android-build/libs/${CMAKE_ANDROID_ARCH_ABI}/)
+endif ()
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Core
@@ -28,12 +33,23 @@ target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Concurrent
         QtMarkdownParser)
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
-    add_executable(QtMarkdown main.cpp)
+    qt_add_executable(QtMarkdown
+            MANUAL_FINALIZATION
+            main.cpp
+            )
     target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
-    add_executable(QtMarkdownEditorMain EditorMain.cpp)
+
+    qt_add_executable(QtMarkdownEditorMain
+            MANUAL_FINALIZATION
+            EditorMain.cpp
+            )
     target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
     option(BUILD_TEST "build unit test" OFF)
     if (BUILD_TEST)
         add_subdirectory(test)
     endif()
+    if (QT_VERSION_MAJOR EQUAL 6)
+        qt_finalize_executable(QtMarkdown)
+        qt_finalize_executable(QtMarkdownEditorMain)
+    endif ()
 endif()
