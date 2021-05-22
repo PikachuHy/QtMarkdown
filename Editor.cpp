@@ -402,11 +402,17 @@ struct DefaultEditorVisitor: MultipleVisitor<Header,
         if (!justCalculate()) {
             auto e = new Element::CodeBlock();
             e->code = code;
-            QPixmap copyBtnImg(":icon/copy_32x32.png");
-            QRect copyBtnRect(QPoint(bgRect.width() - copyBtnImg.width(), bgRect.y()), copyBtnImg.size());
-            e->rect = copyBtnRect;
-            m_codes.append(e);
-            drawPixmap(copyBtnRect, copyBtnImg);
+            QString copyBtnFilePath = ":icon/copy_32x32.png";
+            QFile copyBtnFile(copyBtnFilePath);
+            if (copyBtnFile.exists()) {
+                QPixmap copyBtnImg(copyBtnFilePath);
+                QRect copyBtnRect(QPoint(bgRect.width() - copyBtnImg.width(), bgRect.y()), copyBtnImg.size());
+                e->rect = copyBtnRect;
+                m_codes.append(e);
+                drawPixmap(copyBtnRect, copyBtnImg);
+            } else {
+                qWarning() << "copy btn file not exist." << copyBtnFilePath;
+            }
         }
     }
     void visit(CodeBlock *node) override {
