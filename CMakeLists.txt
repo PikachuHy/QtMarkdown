@@ -53,6 +53,21 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
             EditorMain.cpp
             )
     target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
+    find_package(QT NAMES Qt6 Qt5 COMPONENTS Quick REQUIRED)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
+            Quick Qml
+            REQUIRED)
+    qt_add_executable(QtQuickMarkdownEditorMain
+            MANUAL_FINALIZATION
+            QtQuickMarkdown.cpp qml.qrc
+            QtQuickMarkdownItem.cpp QtQuickMarkdownItem.h
+            QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
+            )
+    set_target_properties(QtQuickMarkdownEditorMain PROPERTIES AUTORCC ON)
+    target_link_libraries(QtQuickMarkdownEditorMain PRIVATE QtMarkdownEditor
+            Qt${QT_VERSION_MAJOR}::Quick
+            Qt${QT_VERSION_MAJOR}::Qml
+            )
     option(BUILD_TEST "build unit test" OFF)
     if (BUILD_TEST)
         add_subdirectory(test)
@@ -60,5 +75,6 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
     if (QT_VERSION_MAJOR EQUAL 6)
         qt_finalize_executable(QtMarkdown)
         qt_finalize_executable(QtMarkdownEditorMain)
+        qt_finalize_executable(QtQuickMarkdownEditorMain)
     endif ()
 endif()
