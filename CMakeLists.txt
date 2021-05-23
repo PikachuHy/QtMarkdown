@@ -36,6 +36,12 @@ target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Concurrent
         QtMarkdownParser)
+add_library(QtQuickMarkdownItem SHARED QtQuickMarkdownItem.cpp QtQuickMarkdownItem.h)
+target_compile_definitions(QtQuickMarkdownItem PRIVATE -DQtMarkdown_LIBRARY)
+target_link_libraries(QtQuickMarkdownItem PUBLIC QtMarkdownEditor
+        Qt${QT_VERSION_MAJOR}::Quick
+        Qt${QT_VERSION_MAJOR}::Qml
+        )
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
     if (ANDROID)
         message(STATUS "andorid abi ${CMAKE_ANDROID_ARCH_ABI}")
@@ -60,11 +66,11 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
     qt_add_executable(QtQuickMarkdownEditorMain
             MANUAL_FINALIZATION
             QtQuickMarkdown.cpp qml.qrc
-            QtQuickMarkdownItem.cpp QtQuickMarkdownItem.h
             QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
             )
     set_target_properties(QtQuickMarkdownEditorMain PROPERTIES AUTORCC ON)
     target_link_libraries(QtQuickMarkdownEditorMain PRIVATE QtMarkdownEditor
+            QtQuickMarkdownItem
             Qt${QT_VERSION_MAJOR}::Quick
             Qt${QT_VERSION_MAJOR}::Qml
             )

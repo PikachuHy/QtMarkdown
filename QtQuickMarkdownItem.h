@@ -7,7 +7,7 @@
 #include "QtMarkdown_global.h"
 #include <QQuickPaintedItem>
 class Render;
-class QtQuickMarkdownItem : public QQuickPaintedItem{
+class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownItem : public QQuickPaintedItem{
     Q_OBJECT
     Q_PROPERTY(QString text READ text WRITE setText)
     Q_PROPERTY(QString source READ source WRITE setSource)
