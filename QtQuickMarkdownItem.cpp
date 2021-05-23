@@ -81,9 +81,19 @@ void QtQuickMarkdownItem::calculateHeight() {
     if (w < 200) {
         w = 400;
     }
-    m_render = new Render(w, 0, "");
+    m_render = new Render(w, 0, m_path);
     m_render->setJustCalculate(true);
     doc.accept(m_render);
     setImplicitHeight(m_render->realHeight());
     qDebug() << width() << implicitHeight() << height() << implicitHeight();
+}
+
+QString QtQuickMarkdownItem::path() const {
+    return m_path;
+}
+
+void QtQuickMarkdownItem::setPath(const QString &path) {
+    m_path = path;
+    calculateHeight();
+    update();
 }
