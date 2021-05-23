@@ -19,16 +19,6 @@ QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem* parent): QQuickPaintedItem(
         this->calculateHeight();
         this->update();
     });
-}
-
-
-void QtQuickMarkdownItem::paint(QPainter *painter) {
-    if (!m_render) return;
-    if (width() == 0) return;
-    Document doc(m_text);
-    m_render->setJustCalculate(false);
-    m_render->reset(painter);
-    doc.accept(m_render);
     connect(this, &QtQuickMarkdownItem::widthChanged, [this]() {
         if (this->m_lastWidth == this->width()) return ;
         this->m_lastWidth = this->width();
@@ -41,6 +31,16 @@ void QtQuickMarkdownItem::paint(QPainter *painter) {
         qDebug() << "implicit width change:" << this->implicitWidth();
         calculateHeight();
     });
+}
+
+
+void QtQuickMarkdownItem::paint(QPainter *painter) {
+    if (!m_render) return;
+    if (width() == 0) return;
+    Document doc(m_text);
+    m_render->setJustCalculate(false);
+    m_render->reset(painter);
+    doc.accept(m_render);
 }
 
 void QtQuickMarkdownItem::setText(const QString &text) {
@@ -85,6 +85,8 @@ void QtQuickMarkdownItem::calculateHeight() {
     m_render->setJustCalculate(true);
     doc.accept(m_render);
     setImplicitHeight(m_render->realHeight());
+    setHeight(m_render->realHeight());
+    emit heightChanged();
     qDebug() << width() << implicitHeight() << height() << implicitHeight();
 }
 
