@@ -93,6 +93,7 @@ public:
     void setJustCalculate(bool flag);
     QFont curFont();
     void setPainter(QPainter* painter);
+    QFont codeFont();
 private:
     QPainter* m_painter;
     int m_curX;

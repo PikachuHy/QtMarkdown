@@ -325,10 +325,7 @@ void Render::drawCodeBlock(const String &code) {
     save();
     // #f9f9f9
 //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
-    QFont font;
-    font.setPixelSize(20);
-    font.setFamily("Cascadia Code");
-    setFont(font);
+    setFont(codeFont());
     auto rect = textRect(code);
     const QRect bgRect = QRect(0, y, m_maxWidth, rect.height());
     fillRect(bgRect, QBrush(QColor(249, 249, 249)));
@@ -364,10 +361,7 @@ void Render::visit(InlineCode *node) {
     save();
     // #f9f9f9
 //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
-    QFont font;
-    font.setPixelSize(16);
-    font.setFamily("Cascadia Code");
-    setFont(font);
+    setFont(codeFont());
     QString code = node->code() ? node->code()->str() : " ";
     if (currentLineCanDrawText(code)) {
         auto rect = textRect(code);
@@ -610,4 +604,14 @@ QFont Render::curFont() {
 
 void Render::setPainter(QPainter *painter) {
     m_painter = painter;
+}
+
+QFont Render::codeFont() {
+    auto font = curFont();
+    font.setPixelSize(20);
+#ifdef Q_OS_WiN
+    font.setFamily("Cascadia Code");
+#else
+#endif
+    return font;
 }
