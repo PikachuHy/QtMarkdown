@@ -47,6 +47,9 @@ Token::Token(TokenType type) : m_type(type) {
             break;
         case TokenType::text:
             break;
+        case TokenType::dollar:
+            m_str = "$";
+            break;
     }
 }
 
