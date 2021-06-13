@@ -3,7 +3,7 @@
 //
 
 #include "Render.h"
-
+#include <QDebug>
 Render::Render(int w, int rightMargin, const QString &filePath) :
         m_painter(nullptr),
         m_maxWidth(w - rightMargin), m_filePath(filePath), m_justCalculate(false) {
