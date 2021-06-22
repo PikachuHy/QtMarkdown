@@ -52,6 +52,11 @@ Markdown是[Daring Fireball](http://daringfireball.net/projects/markdown/syntax)
 2. green
 3. blue
 
+## Checkbox
+
+- [ ] 没有选中
+- [x] 已选中
+
 ## 代码
 
 代码的插入方式 `printf('\n');`

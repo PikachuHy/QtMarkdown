@@ -490,6 +490,17 @@ void Render::visit(CheckboxItem *node) {
     // 计算高度偏移
     auto h1 = textHeight();
     save();
+    if (node->isChecked()) {
+        QPixmap image(":icon/checkbox-selected_64x64.png");
+        const QRect rect = QRect(QPoint(m_curX, m_curY), QSize(h1, h1));
+        drawPixmap(rect, image);
+    } else {
+        QPixmap image(":icon/checkbox-unselected_64x64.png");
+        const QRect rect = QRect(QPoint(m_curX, m_curY), QSize(h1, h1));
+        drawPixmap(rect, image);
+    }
+    m_curX += h1 + 10;
+    /*
     font.setPixelSize(36);
     QFontMetrics fm(font);
     auto h2 = fm.height();
@@ -504,6 +515,7 @@ void Render::visit(CheckboxItem *node) {
     }
     m_curY = y;
     m_curX += 5;
+    */
     restore();
     font = curFont();
     font.setStrikeOut(node->isChecked());
