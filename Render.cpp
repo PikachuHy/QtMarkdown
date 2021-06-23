@@ -4,6 +4,8 @@
 
 #include "Render.h"
 #include <QDebug>
+#include <QFontDatabase>
+
 Render::Render(int w, int rightMargin, const QString &filePath) :
         m_painter(nullptr),
         m_maxWidth(w - rightMargin), m_filePath(filePath), m_justCalculate(false) {
@@ -17,7 +19,12 @@ void Render::reset(QPainter *painter) {
     m_curY = 0;
     m_lastMaxHeight = 0;
     QFont font;
+#if Q_OS_WIN
     font.setFamily("微软雅黑");
+#elif defined(Q_OS_MAC)
+    font.setFamily("PingFang SC");
+#else
+#endif
     font.setPixelSize(16);
     if (painter) {
         m_painter = painter;
@@ -620,10 +627,12 @@ void Render::setPainter(QPainter *painter) {
 
 QFont Render::codeFont() {
     auto font = curFont();
-    font.setPixelSize(20);
 #ifdef Q_OS_WiN
     font.setFamily("Cascadia Code");
+    font.setPixelSize(20);
 #else
+    font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    font.setPixelSize(20);
 #endif
     return font;
 }
