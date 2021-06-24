@@ -23,6 +23,14 @@ public:
     void setSource(const QString& source);
     [[nodiscard]] QString path() const;
     void setPath(const QString& path);
+signals:
+    void codeCopied(QString code);
+    void linkClicked(QString url);
+    void imageClicked(QString path);
+protected:
+    void mousePressEvent(QMouseEvent *event) override;
+
+    void hoverMoveEvent(QHoverEvent *event) override;
 
 private:
     void calculateHeight();

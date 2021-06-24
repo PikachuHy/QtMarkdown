@@ -8,12 +8,16 @@
 #include <QFile>
 #include <QDebug>
 #include <QTimer>
+#include <QCursor>
 
 QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem* parent): QQuickPaintedItem(parent)
     ,m_render(nullptr)
     ,m_lastWidth(-1)
     ,m_lastImplicitWidth(-1)
 {
+    setAcceptHoverEvents(true);
+    setAcceptedMouseButtons(Qt::LeftButton);
+    setFlag(ItemAcceptsInputMethod, true);
     QTimer::singleShot(0, this, [this]() {
         qDebug() << "timeout";
         this->calculateHeight();
@@ -98,4 +102,58 @@ void QtQuickMarkdownItem::setPath(const QString &path) {
     m_path = path;
     calculateHeight();
     update();
+}
+
+void QtQuickMarkdownItem::mousePressEvent(QMouseEvent *event) {
+    if (event->button() != Qt::LeftButton) {
+        return;
+    }
+    auto pos = event->pos();
+    for(auto link: m_render->links()) {
+        for(auto rect: link->rects) {
+            if (rect.contains(pos)) {
+                qDebug() << "click link:" << link->url;
+                emit linkClicked(link->url);
+            }
+        }
+    }
+    for(auto image: m_render->images()) {
+        if (image->rect.contains(pos)) {
+            qDebug() << "click image:" << image->path;
+            emit imageClicked(image->path);
+        }
+    }
+    for (const auto &item : m_render->codes()) {
+        if (item->rect.contains(pos)) {
+            qDebug() << "copy code:" << item->code;
+            emit codeCopied(item->code);
+        }
+    }
+}
+
+
+void QtQuickMarkdownItem::hoverMoveEvent(QHoverEvent *event) {
+    auto pos = event->pos();
+    for(auto link: m_render->links()) {
+        for(auto rect: link->rects) {
+            if (rect.contains(pos)) {
+                setCursor(QCursor(Qt::PointingHandCursor));
+                return;
+            }
+        }
+    }
+    for(auto image: m_render->images()) {
+        if (image->rect.contains(pos)) {
+            setCursor(QCursor(Qt::PointingHandCursor));
+            return;
+        }
+    }
+    for(auto code: m_render->codes()) {
+        if (code->rect.contains(pos)) {
+            setCursor(QCursor(Qt::PointingHandCursor));
+            return;
+        }
+    }
+
+    setCursor(QCursor(Qt::ArrowCursor));
 }
