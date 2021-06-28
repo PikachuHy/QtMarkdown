@@ -19,7 +19,7 @@ void Render::reset(QPainter *painter) {
     m_curY = 0;
     m_lastMaxHeight = 0;
     QFont font;
-#if Q_OS_WIN
+#ifdef Q_OS_WIN
     font.setFamily("微软雅黑");
 #elif defined(Q_OS_MAC)
     font.setFamily("PingFang SC");
