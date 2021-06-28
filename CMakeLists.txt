@@ -48,26 +48,41 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
         set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/android-build/libs/${CMAKE_ANDROID_ARCH_ABI}/)
         set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/android-build/libs/${CMAKE_ANDROID_ARCH_ABI}/)
     endif ()
+    if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtMarkdown
             MANUAL_FINALIZATION
             main.cpp
             )
+    else()
+        add_executable(QtMarkdown main.cpp)
+    endif()
     target_link_libraries(QtMarkdown PRIVATE QtMarkdownParser)
-
+    if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtMarkdownEditorMain
             MANUAL_FINALIZATION
             EditorMain.cpp
             )
+    else()
+    add_executable(QtMarkdownEditorMain EditorMain.cpp)
+    endif()
     target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
     find_package(QT NAMES Qt6 Qt5 COMPONENTS Quick REQUIRED)
     find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
             Quick Qml
             REQUIRED)
+    if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtQuickMarkdownEditorMain
             MANUAL_FINALIZATION
             QtQuickMarkdown.cpp qml.qrc
             QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
             )
+    else()
+
+        add_executable(QtQuickMarkdownEditorMain
+                QtQuickMarkdown.cpp qml.qrc
+                QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
+                )
+    endif()
     set_target_properties(QtQuickMarkdownEditorMain PROPERTIES AUTORCC ON)
     target_link_libraries(QtQuickMarkdownEditorMain PRIVATE QtMarkdownEditor
             QtQuickMarkdownItem
