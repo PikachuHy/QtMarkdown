@@ -133,7 +133,9 @@ void QtQuickMarkdownItem::mousePressEvent(QMouseEvent *event) {
 
 
 void QtQuickMarkdownItem::hoverMoveEvent(QHoverEvent *event) {
-    auto pos = event->pos();
+    // 消除警告
+    auto posf= event->position();
+    QPoint pos(posf.x(), posf.y());
     for(auto link: m_render->links()) {
         for(auto rect: link->rects) {
             if (rect.contains(pos)) {
