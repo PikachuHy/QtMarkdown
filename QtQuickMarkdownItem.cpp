@@ -19,20 +19,20 @@ QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem* parent): QQuickPaintedItem(
     setAcceptedMouseButtons(Qt::LeftButton);
     setFlag(ItemAcceptsInputMethod, true);
     QTimer::singleShot(0, this, [this]() {
-        qDebug() << "timeout";
+        // qDebug() << "timeout";
         this->calculateHeight();
         this->update();
     });
     connect(this, &QtQuickMarkdownItem::widthChanged, [this]() {
         if (this->m_lastWidth == this->width()) return ;
         this->m_lastWidth = this->width();
-        qDebug() << "width change:" << this->width();
+        // qDebug() << "width change:" << this->width();
         calculateHeight();
     });
     connect(this, &QtQuickMarkdownItem::implicitWidthChanged, [this]() {
         if (this->m_lastImplicitWidth == this->implicitWidth()) return ;
         this->m_lastImplicitWidth = this->implicitWidth();
-        qDebug() << "implicit width change:" << this->implicitWidth();
+        // qDebug() << "implicit width change:" << this->implicitWidth();
         calculateHeight();
     });
 }
@@ -77,7 +77,7 @@ void QtQuickMarkdownItem::setSource(const QString &source) {
 }
 
 void QtQuickMarkdownItem::calculateHeight() {
-    qDebug() << width() << implicitWidth();
+    // qDebug() << width() << implicitWidth();
     int w = width();
     if (w == 0) return;
     delete m_render;
@@ -91,7 +91,7 @@ void QtQuickMarkdownItem::calculateHeight() {
     setImplicitHeight(m_render->realHeight());
     setHeight(m_render->realHeight());
     emit heightChanged();
-    qDebug() << width() << implicitHeight() << height() << implicitHeight();
+    // qDebug() << width() << implicitHeight() << height() << implicitHeight();
 }
 
 QString QtQuickMarkdownItem::path() const {
