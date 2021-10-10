@@ -7,10 +7,8 @@ if(MSVC)
     add_compile_options("/utf-8")
 endif()
 
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
-        Core
-        REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick Qml REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick Qml REQUIRED)
 add_library(QtMarkdownParser SHARED
         Document.cpp Document.h
         Token.cpp Token.h
@@ -66,10 +64,6 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
     add_executable(QtMarkdownEditorMain EditorMain.cpp)
     endif()
     target_link_libraries(QtMarkdownEditorMain PRIVATE QtMarkdownEditor)
-    find_package(QT NAMES Qt6 Qt5 COMPONENTS Quick REQUIRED)
-    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
-            Quick Qml
-            REQUIRED)
     if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtQuickMarkdownEditorMain
             MANUAL_FINALIZATION
@@ -77,7 +71,6 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
             QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
             )
     else()
-
         add_executable(QtQuickMarkdownEditorMain
                 QtQuickMarkdown.cpp qml.qrc
                 QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
