@@ -144,6 +144,8 @@ int Render::countOfThisLineCanDraw(const QString &text) {
     auto ch_w = charWidth(text.at(0));
     int left_w = m_maxWidth - m_curX;
     int may_ch_count = left_w / ch_w - 1;
+    // 可能根本画不了
+    if (may_ch_count <= 0) return 0;
     if (currentLineCanDrawText(text.left(may_ch_count + 1))) {
         while (currentLineCanDrawText(text.left(may_ch_count + 1))) {
             may_ch_count++;
@@ -164,6 +166,11 @@ QList<QRect> Render::drawText(QString text) {
     while (!currentLineCanDrawText(text)) {
         // qDebug() << text;
         auto count = countOfThisLineCanDraw(text);
+        // 处理画不了的特殊情况
+        if (count == 0) {
+            moveToNewLine();
+            continue;
+        }
         auto rect = drawTextInCurrentLine(text.left(count));
         rects.append(rect);
         text = text.right(text.size() - count);
