@@ -8,6 +8,7 @@
 #include "Token.h"
 #include "Visitor.h"
 #include <vector>
+#include <QDebug>
 enum class NodeType {
     none,
     header,
@@ -25,6 +26,8 @@ enum class NodeType {
     italic, bold, italic_bold, strickout,
     table
 };
+QDebug operator<<(QDebug debug, const NodeType &type);
+
 class QTMARKDOWNSHARED_EXPORT Node {
 public:
     Node(NodeType type = NodeType::none): m_type(type) {}

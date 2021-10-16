@@ -6,7 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
     add_compile_options("/utf-8")
 endif()
-
+include(FetchContent)
+message(STATUS "add dependency: Magic Enum C++")
+FetchContent_Declare(
+        MagicEnum
+        GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+        GIT_PROGRESS ON
+        GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(MagicEnum)
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick Qml REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick Qml REQUIRED)
 add_library(QtMarkdownParser SHARED
@@ -16,7 +24,7 @@ add_library(QtMarkdownParser SHARED
         Visitor.cpp Visitor.h
         )
 target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
-target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core)
+target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core magic_enum::magic_enum)
 target_include_directories(QtMarkdownParser INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Widgets Concurrent REQUIRED)

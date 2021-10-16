@@ -5,6 +5,13 @@
 #include "Document.h"
 #include "Parser.h"
 #include <QDebug>
+#include "magic_enum.hpp"
+QDebug operator<<(QDebug debug, const NodeType &type) {
+  QDebugStateSaver saver(debug);
+  QString str = QString::fromStdString(std::string(magic_enum::enum_name(type)));
+  debug.nospace() << str;
+  return debug;
+}
 struct DefaultHtmlVisitor: MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
