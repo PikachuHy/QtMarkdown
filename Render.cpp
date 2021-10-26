@@ -268,48 +268,45 @@ void Render::visit(Image *node) {
         imgPath = QString("%1/%2").arg(basePath.absolutePath(), imgPath);
     }
     QFile file(imgPath);
-    if (file.exists()) {
-        QImage image(imgPath);
-        int imageMaxWidth = qMin(1080, m_maxWidth);
-        if (image.width() > imageMaxWidth) {
-            image = image.scaledToWidth(imageMaxWidth);
-        }
-        QRect rect(QPoint(m_curX, m_curY), image.size());
-//            qDebug() << "image rect" << rect;
-        drawImage(rect, image);
-        m_lastMaxHeight = rect.height();
-        if (justCalculate()) {
-
-        } else {
-            auto img = new Element::Image();
-            img->path = imgPath;
-            img->rect = rect;
-            m_images.append(img);
-            if (imgPath.endsWith(".gif")) {
-                QString playIconPath = ":/icon/play_64x64.png";
-                QFile playIconFile(playIconPath);
-                if (playIconFile.exists()) {
-                    QImage playImage(playIconPath);
-                    // 计算播放图标所在位置
-                    // 播放图标放在中心位置
-                    int x = (rect.width() - playImage.width()) / 2;
-                    int y = (rect.height() - playImage.height()) / 2;
-                    QRect playIconRect(
-                            QPoint(
-                                    rect.x() + x,
-                                    rect.y() + y),
-                            playImage.size()
-                    );
-                    // qDebug() << rect << playIconRect << playImage.size();
-                    drawImage(playIconRect, playImage);
-                } else {
-                    qWarning() << "play icon file not exist.";
-                }
-            }
-        }
-    } else {
+    if (!file.exists()) {
         qWarning() << "image not exist." << imgPath;
+        return;
     }
+    QImage image(imgPath);
+    int imageMaxWidth = qMin(1080, m_maxWidth);
+    int imgWidth = image.width();
+    while (imgWidth > imageMaxWidth) {
+      imgWidth /= 2;
+    }
+    image = image.scaledToWidth(imgWidth);
+    QRect rect(QPoint(m_curX, m_curY), image.size());
+    //            qDebug() << "image rect" << rect;
+    drawImage(rect, image);
+    m_lastMaxHeight = rect.height();
+    if (justCalculate()) {
+      return;
+    }
+    auto img = new Element::Image();
+    img->path = imgPath;
+    img->rect = rect;
+    m_images.append(img);
+    if (!imgPath.endsWith(".gif")) {
+      return;
+    }
+    QString playIconPath = ":/icon/play_64x64.png";
+    QFile playIconFile(playIconPath);
+  if (!playIconFile.exists()) {
+    qWarning() << "play icon file not exist.";
+    return;
+  }
+  QImage playImage(playIconPath);
+  // 计算播放图标所在位置
+  // 播放图标放在中心位置
+  int x = (rect.width() - playImage.width()) / 2;
+  int y = (rect.height() - playImage.height()) / 2;
+  QRect playIconRect(QPoint(rect.x() + x, rect.y() + y), playImage.size());
+  // qDebug() << rect << playIconRect << playImage.size();
+  drawImage(playIconRect, playImage);
 }
 
 void Render::visit(Link *node) {
