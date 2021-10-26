@@ -578,7 +578,16 @@ void Render::visit(UnorderedList *node) {
     for (const auto &item : node->children()) {
         moveToNewLine();
         m_curX += 32;
-        drawText("●  ");
+        if (!justCalculate()) {
+          save();
+          auto h = textHeight();
+          m_painter->setBrush(QBrush(Qt::black));
+          auto size = 5;
+          auto y = m_curY + (h - size) / 2 + 2;
+          m_painter->drawEllipse(m_curX, y, size,size);
+          restore();
+        }
+        m_curX += 15;
         item->accept(this);
     }
     m_curY += 10;
