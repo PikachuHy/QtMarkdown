@@ -105,7 +105,7 @@ private:
     QList<Element::Link*> m_links;
     QList<Element::Image*> m_images;
     QList<Element::CodeBlock*> m_codes;
-    const QString& m_filePath;
+    QString m_filePath;
     QMap<QString, QString> m_cacheLatexImage;
     bool m_justCalculate;
     QStack<QFont> m_fonts;
