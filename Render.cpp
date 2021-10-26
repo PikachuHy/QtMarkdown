@@ -5,13 +5,68 @@
 #include "Render.h"
 #include <QDebug>
 #include <QFontDatabase>
-
+#include <QStandardPaths>
+#include <QCryptographicHash>
+#include "latex.h"
+#include "platform/qt/graphic_qt.h"
+class TexRender {
+public:
+  TexRender(QString mathFontPath, QString clmPath) {
+    tex::FontSpec math{
+        "xits",
+        mathFontPath.toStdString(),
+        clmPath.toStdString()
+    };
+    tex::LaTeX::init(math);
+  }
+  ~TexRender() {
+    tex::LaTeX::release();
+  }
+};
 Render::Render(int w, int rightMargin, const QString &filePath) :
         m_painter(nullptr),
         m_maxWidth(w - rightMargin), m_filePath(filePath), m_justCalculate(false) {
 //        qDebug() << "width: " << m_maxWidth;
     m_lastMaxWidth = w;
     reset(m_painter);
+    auto paths = QStandardPaths::standardLocations(QStandardPaths::CacheLocation);
+    QString tmpPath;
+    if (paths.isEmpty()) {
+        tmpPath = QDir::homePath();
+    } else {
+        tmpPath = paths.first();
+    }
+    QString mathFontPath = tmpPath + "/XITSMath-Regular.otf";
+    QString clmPath = tmpPath + "/XITSMath-Regular.clm";
+    auto copy = [](QString src, QString dst) {
+        if (QFile::exists(dst)) {
+            // 计算缓存文件的md5
+            QFile oldFile(dst);
+            if (!oldFile.open(QIODevice::ReadOnly)) {
+                QFile::moveToTrash(dst);
+            } else {
+                auto cachedFileMd5 = QCryptographicHash::hash(oldFile.readAll(),QCryptographicHash::Md5);
+                QFile newFile(src);
+                newFile.open(QIODevice::ReadOnly);
+                auto newFileMd5 = QCryptographicHash::hash(newFile.readAll(),QCryptographicHash::Md5);
+                if (cachedFileMd5 == newFileMd5) {
+                    return;
+                }
+                qDebug() << "rewrite cached file: " << dst;
+
+            }
+        }
+        bool ok = QFile::copy(src, dst);
+        if (!ok) {
+            qDebug() << "copy" << src << "to" << dst << "fail";
+        }
+    };
+    copy(":/font/XITSMath-Regular.otf", mathFontPath);
+    copy(":/font/XITSMath-Regular.clm", clmPath);
+    m_texRender = new TexRender(mathFontPath, clmPath);
+}
+Render::~Render() {
+  delete m_texRender;
 }
 
 void Render::reset(QPainter *painter) {
@@ -387,44 +442,26 @@ void Render::visit(InlineCode *node) {
 }
 
 void Render::visit(LatexBlock *node) {
-    // qDebug() << node->code()->str();
     moveToNewLine();
     m_curY += 10;
-    QTemporaryFile tmpFile;
-    if (tmpFile.open()) {
-        tmpFile.write(node->code()->str().toUtf8());
-        tmpFile.close();
-        QStringList args;
-        QString imgFilename = tmpFile.fileName() + ".png";
-        args << tmpFile.fileName() << imgFilename;
-        QProcess p;
-        p.start("latex2png.exe", args);
-        auto ok = p.waitForFinished();
-        if (!ok) {
-            qDebug() << "LaTex.exe run fail";
-            return;
-        }
-        if (!QFile(imgFilename).exists()) {
-            qDebug() << "file not exist." << imgFilename;
-            return;
-        }
-        QPixmap image(imgFilename);
-        auto x = (m_maxWidth - image.size().width())/2;
-        const QRect rect = QRect(QPoint(x, m_curY), image.size());
-//            m_painter.drawRect(rect);
-        drawPixmap(rect, image);
-        m_curY += image.height();
-        m_curY += 10;
-        if (justCalculate()) {
+    auto latex = node->code()->str();
+    try {
+      float textSize = 20;
+      auto render = tex::LaTeX::parse(latex.toStdString(), m_maxWidth, textSize,
+                                      textSize / 3.f, 0xff424242);
+      if (justCalculate()) {
 
-        } else {
-            auto img = new Element::Image();
-            img->path = imgFilename;
-            img->rect = rect;
-            m_images.append(img);
-        }
-    } else {
-        qDebug() << "tmp file open fail." << tmpFile.fileName();
+      } else {
+        tex::Graphics2D_qt g2(m_painter);
+        auto x = (m_maxWidth - render->getWidth())/2;
+        render->draw(g2, x, m_curY);
+      }
+      m_curY += render->getHeight();
+      m_curY += 10;
+      delete render;
+    } catch (const std::exception& ex) {
+      qDebug() << "ERROR" << ex.what();
+      drawText("Render LaTeX fail: " + latex);
     }
 }
 

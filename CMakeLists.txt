@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project(QtMarkdown)
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
     add_compile_options("/utf-8")
@@ -15,6 +15,17 @@ FetchContent_Declare(
         GIT_SHALLOW ON
 )
 FetchContent_MakeAvailable(MagicEnum)
+message(STATUS "add dependency: cLaTeXMath")
+FetchContent_Declare(
+        cLaTeXMath
+        GIT_REPOSITORY https://github.com/PikachuHy/cLaTeXMath.git
+        GIT_PROGRESS ON
+        GIT_SHALLOW ON
+        GIT_TAG openmath-fix
+)
+set(QT ON)
+set(HAVE_LOG OFF)
+FetchContent_MakeAvailable(cLaTeXMath)
 find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Quick Qml REQUIRED)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Quick Qml REQUIRED)
 add_library(QtMarkdownParser SHARED
@@ -39,6 +50,7 @@ add_library(QtMarkdownEditor SHARED
 set_target_properties(QtMarkdownEditor PROPERTIES AUTORCC ON)
 target_compile_definitions(QtMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownEditor PUBLIC
+        clatexmath
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Concurrent
         QtMarkdownParser)

@@ -30,7 +30,7 @@ namespace Element {
         QRect rect;
     };
 }
-
+class TexRender;
 class QTMARKDOWNSHARED_EXPORT Render: public MultipleVisitor<Header,
         Text, ItalicText, BoldText, ItalicBoldText,
         Image, Link, CodeBlock, InlineCode, Paragraph,
@@ -41,6 +41,7 @@ class QTMARKDOWNSHARED_EXPORT Render: public MultipleVisitor<Header,
         Hr, QuoteBlock, Table> {
 public:
     explicit Render(int w, int rightMargin, const QString& filePath);
+    ~Render();
     void reset(QPainter* painter);
     // 隔离QPainter
     void save();
@@ -109,6 +110,7 @@ private:
     bool m_justCalculate;
     QStack<QFont> m_fonts;
     QFont m_font;
+    TexRender* m_texRender;
 };
 
 #endif //QTMARKDOWN_RENDER_H

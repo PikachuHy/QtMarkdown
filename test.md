@@ -92,3 +92,15 @@ class Test{
 ## 图片
 
 ![shiyanlou logo](/Users/pikachu/Downloads/1.jpg)
+
+## LaTeX
+
+勾股定理
+$$
+a^2 + b^2 = c^2
+$$
+
+欧拉恒等式
+$$
+e^{i\pi} + 1 = 0
+$$

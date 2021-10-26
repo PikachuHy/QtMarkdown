@@ -6,5 +6,7 @@
         <file>icon/checkbox-selected_64x64.png</file>
         <file>icon/checkbox-unselected_64x64.png</file>
         <file>test.md</file>
+        <file>font/XITSMath-Regular.clm</file>
+        <file>font/XITSMath-Regular.otf</file>
     </qresource>
 </RCC>
