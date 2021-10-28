@@ -7,8 +7,10 @@
 #include "QtMarkdown_global.h"
 #include "Token.h"
 #include "Visitor.h"
+#include <utility>
 #include <vector>
 #include <QDebug>
+#include <QRect>
 enum class NodeType {
     none,
     header,
@@ -218,7 +220,8 @@ public:
     explicit Document(String str);
     String toHtml();
     void accept(VisitorNode* visitor);
-private:
+    NodePtrList children();
+protected:
     NodePtrList m_nodes;
 };
 

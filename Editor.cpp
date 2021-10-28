@@ -242,7 +242,9 @@ void EditorWidget::drawAsync() {
     auto mdText = mdFile.readAll();
     mdFile.close();
     Document doc(mdText);
-    Render visitor(m_maxWidth, m_rightMargin, m_filePath);
+    RenderSetting renderSetting;
+    renderSetting.maxWidth = m_maxWidth;
+    Render visitor(m_filePath, renderSetting);
     visitor.setJustCalculate(true);
     doc.accept(&visitor);
     int h = visitor.realHeight();

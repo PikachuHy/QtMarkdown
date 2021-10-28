@@ -3,163 +3,238 @@
 //
 
 #include "QtQuickMarkdownItem.h"
-#include "Render.h"
+#include "Cursor.h"
+#include "Document.h"
 #include "Parser.h"
-#include <QFile>
-#include <QDebug>
-#include <QTimer>
+#include "Render.h"
 #include <QCursor>
+#include <QDebug>
+#include <QFile>
+#include <QPainter>
+#include <QTimer>
+class EditorNode {
+public:
+  EditorNode(Node *node) : m_node(node) {
+    if (auto n = dynamic_cast<Container *>(node); n) {
+      for (auto child : n->children()) {
+        m_children.append(new EditorNode(child));
+      }
+    } else {
+      // do nothing
+    }
+  }
+  void accept(Render *render) {}
 
-QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem* parent): QQuickPaintedItem(parent)
-    ,m_render(nullptr)
-    ,m_lastWidth(-1)
-    ,m_lastImplicitWidth(-1)
-{
-    setAcceptHoverEvents(true);
-    setAcceptedMouseButtons(Qt::LeftButton);
-    setFlag(ItemAcceptsInputMethod, true);
-    QTimer::singleShot(0, this, [this]() {
-        // qDebug() << "timeout";
-        this->calculateHeight();
-        this->update();
-    });
-    connect(this, &QtQuickMarkdownItem::widthChanged, [this]() {
-        if (this->m_lastWidth == this->width()) return ;
-        this->m_lastWidth = this->width();
-        // qDebug() << "width change:" << this->width();
-        calculateHeight();
-    });
-    connect(this, &QtQuickMarkdownItem::implicitWidthChanged, [this]() {
-        if (this->m_lastImplicitWidth == this->implicitWidth()) return ;
-        this->m_lastImplicitWidth = this->implicitWidth();
-        // qDebug() << "implicit width change:" << this->implicitWidth();
-        calculateHeight();
-    });
+private:
+  Node *m_node;
+  QList<EditorNode *> m_children;
+};
+class EditorDocument {
+public:
+  explicit EditorDocument(const String &str) : m_doc(str) {
+    for (auto node : m_doc.children()) {
+      m_nodes.append(new EditorNode(node));
+    }
+  }
+  void accept(Render *render) {
+    for (auto node : m_doc.children()) {
+      node->accept(render);
+    }
+  }
+
+private:
+  QList<QRect> m_rects;
+  QList<EditorNode *> m_nodes;
+  Document m_doc;
+};
+QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem *parent)
+    : QQuickPaintedItem(parent), m_render(nullptr), m_lastWidth(-1),
+      m_lastImplicitWidth(-1), m_cursor(new Cursor()), m_holdCtrl(false) {
+  setAcceptHoverEvents(true);
+  setAcceptedMouseButtons(Qt::AllButtons);
+  setFlag(ItemAcceptsInputMethod, true);
+  QTimer::singleShot(0, this, [this]() {
+    this->calculateHeight();
+    this->update();
+  });
+  connect(this, &QtQuickMarkdownItem::widthChanged, [this]() {
+    if (this->m_lastWidth == this->width())
+      return;
+    this->m_lastWidth = this->width();
+    calculateHeight();
+  });
+  connect(this, &QtQuickMarkdownItem::implicitWidthChanged, [this]() {
+    if (this->m_lastImplicitWidth == this->implicitWidth())
+      return;
+    this->m_lastImplicitWidth = this->implicitWidth();
+    calculateHeight();
+  });
+
+  m_cursorTimer.setInterval(500);
+  m_cursorTimer.start();
+  connect(&m_cursorTimer, &QTimer::timeout, this, [this]() { update(); });
 }
 
+QtQuickMarkdownItem::~QtQuickMarkdownItem() { delete m_cursor; }
 
 void QtQuickMarkdownItem::paint(QPainter *painter) {
-    if (!m_render) return;
-    if (width() == 0) return;
-    Document doc(m_text);
-    m_render->setJustCalculate(false);
-    m_render->reset(painter);
-    doc.accept(m_render);
+  if (!m_render)
+    return;
+  if (width() == 0)
+    return;
+  EditorDocument doc(m_text);
+  m_render->setJustCalculate(false);
+  m_render->reset(painter);
+  doc.accept(m_render);
+  if (hasFocus()) {
+    m_render->updateCursor(m_cursor);
+    m_render->highlight(m_cursor);
+    m_cursor->draw(*painter);
+    m_cursor->setNeedUpdateCoord(false);
+  }
 }
 
 void QtQuickMarkdownItem::setText(const QString &text) {
-//    qDebug() << "set text:" << text;
-    if (text == m_text) return ;
-    this->m_text = text;
-    calculateHeight();
+  if (text == m_text)
+    return;
+  this->m_text = text;
+  calculateHeight();
 }
 
 QString QtQuickMarkdownItem::text() const { return m_text; }
 
-QString QtQuickMarkdownItem::source() const {
-    return m_source;
-}
+QString QtQuickMarkdownItem::source() const { return m_source; }
 
 void QtQuickMarkdownItem::setSource(const QString &source) {
-    qDebug() << "load source:" << source;
-    this->m_source = source;
-    QFile file(source);
-    if (file.exists()) {
-        bool ok = file.open(QIODevice::ReadOnly);
-        if (ok) {
-            setText(file.readAll());
-        } else {
-            qWarning() << "file open fail." << source;
-        }
+  this->m_source = source;
+  QFile file(source);
+  if (file.exists()) {
+    bool ok = file.open(QIODevice::ReadOnly);
+    if (ok) {
+      setText(file.readAll());
     } else {
-        qWarning() << "file not exist." << source;
+      qWarning() << "file open fail." << source;
     }
+  } else {
+    qWarning() << "file not exist." << source;
+  }
 }
 
 void QtQuickMarkdownItem::calculateHeight() {
-    // qDebug() << width() << implicitWidth();
-    int w = width();
-    if (w == 0) return;
-    delete m_render;
-    Document doc(m_text);
-    if (w < 200) {
-        w = 400;
-    }
-    QString path = m_path;
-    if (path.isEmpty()) {
-      path = m_source;
-    }
-    m_render = new Render(w, 0, path);
-    m_render->setJustCalculate(true);
-    doc.accept(m_render);
-    setImplicitHeight(m_render->realHeight());
-    setHeight(m_render->realHeight());
-    emit heightChanged();
-    // qDebug() << width() << implicitHeight() << height() << implicitHeight();
+  int w = static_cast<int>(width());
+  if (w == 0)
+    return;
+  delete m_render;
+  EditorDocument doc(m_text);
+  if (w < 200) {
+    w = 400;
+  }
+  QString path = m_path;
+  if (path.isEmpty()) {
+    path = m_source;
+  }
+  RenderSetting renderSetting;
+  renderSetting.maxWidth = w;
+  m_render = new Render(path, renderSetting);
+  m_cursor->setRender(m_render);
+  m_render->setJustCalculate(true);
+  doc.accept(m_render);
+  setImplicitHeight(m_render->realHeight());
+  setHeight(m_render->realHeight());
+  emit heightChanged();
 }
 
-QString QtQuickMarkdownItem::path() const {
-    return m_path;
-}
+QString QtQuickMarkdownItem::path() const { return m_path; }
 
 void QtQuickMarkdownItem::setPath(const QString &path) {
-    m_path = path;
-    calculateHeight();
-    update();
+  m_path = path;
+  calculateHeight();
+  update();
 }
 
 void QtQuickMarkdownItem::mousePressEvent(QMouseEvent *event) {
-    if (event->button() != Qt::LeftButton) {
-        return;
+  if (event->button() != Qt::LeftButton) {
+    return;
+  }
+  forceActiveFocus();
+  auto pos = event->pos();
+  m_cursor->moveTo(pos);
+  m_render->fixCursorPos(m_cursor);
+  update();
+  for (auto link : m_render->links()) {
+    for (auto rect : link->rects) {
+      if (rect.contains(pos) && m_holdCtrl) {
+        qDebug() << "click link:" << link->url;
+        emit linkClicked(link->url);
+      }
     }
-    auto pos = event->pos();
-    for(auto link: m_render->links()) {
-        for(auto rect: link->rects) {
-            if (rect.contains(pos)) {
-                qDebug() << "click link:" << link->url;
-                emit linkClicked(link->url);
-            }
-        }
+  }
+  for (auto image : m_render->images()) {
+    if (image->rect.contains(pos)) {
+      qDebug() << "click image:" << image->path;
+      emit imageClicked(image->path);
     }
-    for(auto image: m_render->images()) {
-        if (image->rect.contains(pos)) {
-            qDebug() << "click image:" << image->path;
-            emit imageClicked(image->path);
-        }
+  }
+  for (const auto &item : m_render->codes()) {
+    if (item->rect.contains(pos)) {
+      qDebug() << "copy code:" << item->code;
+      emit codeCopied(item->code);
     }
-    for (const auto &item : m_render->codes()) {
-        if (item->rect.contains(pos)) {
-            qDebug() << "copy code:" << item->code;
-            emit codeCopied(item->code);
-        }
-    }
+  }
 }
 
-
 void QtQuickMarkdownItem::hoverMoveEvent(QHoverEvent *event) {
-    // 消除警告
-    auto posf= event->position();
-    QPoint pos(posf.x(), posf.y());
-    for(auto link: m_render->links()) {
-        for(auto rect: link->rects) {
-            if (rect.contains(pos)) {
-                setCursor(QCursor(Qt::PointingHandCursor));
-                return;
-            }
-        }
+  // 消除警告
+  auto posf = event->position();
+  QPoint pos(posf.x(), posf.y());
+  for (auto link : m_render->links()) {
+    for (auto rect : link->rects) {
+      if (rect.contains(pos)) {
+        setCursor(QCursor(Qt::PointingHandCursor));
+        return;
+      }
     }
-    for(auto image: m_render->images()) {
-        if (image->rect.contains(pos)) {
-            setCursor(QCursor(Qt::PointingHandCursor));
-            return;
-        }
+  }
+  for (auto image : m_render->images()) {
+    if (image->rect.contains(pos)) {
+      setCursor(QCursor(Qt::PointingHandCursor));
+      return;
     }
-    for(auto code: m_render->codes()) {
-        if (code->rect.contains(pos)) {
-            setCursor(QCursor(Qt::PointingHandCursor));
-            return;
-        }
+  }
+  for (auto code : m_render->codes()) {
+    if (code->rect.contains(pos)) {
+      setCursor(QCursor(Qt::PointingHandCursor));
+      return;
     }
+  }
 
-    setCursor(QCursor(Qt::ArrowCursor));
+  setCursor(QCursor(Qt::ArrowCursor));
+}
+void QtQuickMarkdownItem::keyPressEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_Left) {
+    m_cursor->moveLeft();
+    update();
+  } else if (event->key() == Qt::Key_Right) {
+    m_cursor->moveRight();
+    update();
+  } else if (event->key() == Qt::Key_Up) {
+    m_cursor->moveUp();
+    update();
+  } else if (event->key() == Qt::Key_Down) {
+    m_cursor->moveDown();
+    update();
+  } else if (event->modifiers() & Qt::Modifier::CTRL) {
+    m_holdCtrl = true;
+  }
+  QQuickItem::keyPressEvent(event);
+}
+void QtQuickMarkdownItem::keyReleaseEvent(QKeyEvent *event) {
+  if (event->modifiers() & Qt::Modifier::CTRL) {
+    m_holdCtrl = false;
+  }
+  QQuickItem::keyReleaseEvent(event);
+}
+
+void QtQuickMarkdownItem::focusInEvent(QFocusEvent *event) {
+  forceActiveFocus();
 }

@@ -44,6 +44,7 @@ find_package(Qt${QT_VERSION_MAJOR} COMPONENTS
         Concurrent
         REQUIRED)
 add_library(QtMarkdownEditor SHARED
+        Cursor.cpp Cursor.h
         Editor.cpp Editor.h
         Render.cpp Render.h
         md.qrc)
@@ -54,7 +55,9 @@ target_link_libraries(QtMarkdownEditor PUBLIC
         Qt${QT_VERSION_MAJOR}::Widgets
         Qt${QT_VERSION_MAJOR}::Concurrent
         QtMarkdownParser)
-add_library(QtQuickMarkdownItem SHARED QtQuickMarkdownItem.cpp QtQuickMarkdownItem.h)
+add_library(QtQuickMarkdownItem SHARED QtQuickMarkdownItem.cpp QtQuickMarkdownItem.h
+
+        )
 target_compile_definitions(QtQuickMarkdownItem PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtQuickMarkdownItem PUBLIC QtMarkdownEditor
         Qt${QT_VERSION_MAJOR}::Quick
@@ -87,11 +90,13 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
     if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtQuickMarkdownEditorMain
             MANUAL_FINALIZATION
+            Cursor.cpp Cursor.h
             QtQuickMarkdown.cpp qml.qrc
             QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
             )
     else()
         add_executable(QtQuickMarkdownEditorMain
+                Cursor.cpp Cursor.h
                 QtQuickMarkdown.cpp qml.qrc
                 QtQuickMarkdownItemPlugin.cpp QtQuickMarkdownItemPlugin.h
                 )

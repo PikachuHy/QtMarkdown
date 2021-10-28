@@ -175,3 +175,4 @@ void Document::accept(VisitorNode* visitor) {
         it->accept(visitor);
     }
 }
+NodePtrList Document::children() { return m_nodes; }
