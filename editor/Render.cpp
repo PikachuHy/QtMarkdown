@@ -68,6 +68,11 @@ Render::Render(QString filePath, RenderSetting setting)
   QString mathFontPath = tmpPath + "/XITSMath-Regular.otf";
   QString clmPath = tmpPath + "/XITSMath-Regular.clm";
   auto copy = [](QString src, QString dst) {
+    auto dir = QFileInfo(dst).absoluteDir();
+    if (!dir.exists()) {
+      qDebug() << "mkdir" << dir.absolutePath();
+      dir.mkdir(dir.absolutePath());
+    }
     if (QFile::exists(dst)) {
       // 计算缓存文件的md5
       QFile oldFile(dst);
@@ -81,6 +86,7 @@ Render::Render(QString filePath, RenderSetting setting)
         auto newFileMd5 = QCryptographicHash::hash(newFile.readAll(),
                                                    QCryptographicHash::Md5);
         if (cachedFileMd5 == newFileMd5) {
+          qDebug() << "hit cache math font:" << dst;
           return;
         }
         qDebug() << "rewrite cached file: " << dst;
@@ -89,6 +95,8 @@ Render::Render(QString filePath, RenderSetting setting)
     bool ok = QFile::copy(src, dst);
     if (!ok) {
       qDebug() << "copy" << src << "to" << dst << "fail";
+    } else {
+      qDebug() << "copy" << src << "to" << dst << "success";
     }
   };
   copy(":/font/XITSMath-Regular.otf", mathFontPath);
