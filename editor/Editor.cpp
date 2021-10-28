@@ -30,6 +30,7 @@
 #include <QVBoxLayout>
 #include <QClipboard>
 #include "Render.h"
+#include "EditorDocument.h"
 
 class EditorWidget: public QWidget {
 Q_OBJECT
@@ -66,6 +67,7 @@ private:
     QSize m_fixedSize;
     QString m_filePath;
     std::function<bool(QString)> m_linkClickedCallback;
+    EditorDocument* m_doc;
 };
 
 template<typename T>
@@ -82,12 +84,13 @@ EditorWidget::EditorWidget(Editor *parent)
     : QWidget(parent)
     , m_needDraw(true)
     , m_editor(parent)
+    , m_doc(nullptr)
     {
     m_rightMargin = 0;
     setMouseTracking(true);
     m_buffer = QImage(QSize(800, 600), QImage::Format_RGB32);
     m_buffer.fill(Qt::white);
-    m_linkClickedCallback = [](QString) {
+    m_linkClickedCallback = [](const QString&) {
         return false;
     };
 }
@@ -233,6 +236,7 @@ void EditorWidget::drawInBackground() {
 }
 
 void EditorWidget::drawAsync() {
+#if 0 // 暂时用不到Widget，后面再改吧
     QFile mdFile(m_filePath);
     if (!mdFile.exists()) {
         qDebug() << "file not exist:" << mdFile.fileName();
@@ -241,7 +245,7 @@ void EditorWidget::drawAsync() {
     mdFile.open(QIODevice::ReadOnly);
     auto mdText = mdFile.readAll();
     mdFile.close();
-    Document doc(mdText);
+    EditorDocument doc(mdText);
     RenderSetting renderSetting;
     renderSetting.maxWidth = m_maxWidth;
     Render visitor(m_filePath, renderSetting);
@@ -265,6 +269,7 @@ void EditorWidget::drawAsync() {
     m_links = visitor.links();
     m_images = visitor.images();
     m_codes = visitor.codes();
+#endif
 }
 
 

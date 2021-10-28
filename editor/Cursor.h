@@ -9,6 +9,7 @@
 #include <QDebug>
 #define DEBUG qDebug().noquote() << "[debug]" << __FUNCTION__ << QString(__FILE_NAME__) + QString(":") + QString::number(__LINE__)
 class Render;
+class EditorDocument;
 struct CursorCoord {
   qsizetype lineNo{};
   qsizetype cellNo{};
@@ -40,6 +41,7 @@ public:
   void setOffset(qsizetype offset);
   [[nodiscard]] qsizetype offset() const;
   void setRender(Render* render);
+  void setEditorDocument(EditorDocument* doc);
   void setNeedUpdateCoord(bool flag);
   bool needUpdateCoord();
   CursorCoord coord();
@@ -51,6 +53,7 @@ private:
   bool m_show;
   CursorCoord m_coord;
   Render* m_render;
+  EditorDocument* m_doc;
   bool m_needUpdateCoord;
 };
 

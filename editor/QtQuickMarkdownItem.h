@@ -48,7 +48,7 @@ private:
   QString m_path;
   Render *m_render;
   Cursor *m_cursor;
-  EditorDocument *m_editorDocument;
+  EditorDocument *m_doc;
   int m_lastWidth;
   int m_lastImplicitWidth;
   QTimer m_cursorTimer;

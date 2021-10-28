@@ -5,6 +5,7 @@
 #include "Cursor.h"
 #include <QDebug>
 #include "Render.h"
+#include "EditorDocument.h"
 QDebug operator<<(QDebug debug, const CursorCoord &c)
 {
   QDebugStateSaver saver(debug);
@@ -13,20 +14,20 @@ QDebug operator<<(QDebug debug, const CursorCoord &c)
   return debug;
 }
 void Cursor::moveLeft() {
-  if (!m_render) return;
-  m_render->moveCursorLeft(this);
+  if (!m_doc) return;
+  m_doc->moveCursorLeft(this);
 }
 void Cursor::moveRight() {
-  if (!m_render) return;
-  m_render->moveCursorRight(this);
+  if (!m_doc) return;
+  m_doc->moveCursorRight(this);
 }
 void Cursor::moveUp() {
-  if (!m_render) return;
-  m_render->moveCursorUp(this);
+  if (!m_doc) return;
+  m_doc->moveCursorUp(this);
 }
 void Cursor::moveDown() {
-  if (!m_render) return;
-  m_render->moveCursorDown(this);
+  if (!m_doc) return;
+  m_doc->moveCursorDown(this);
 }
 Cursor::Cursor() {
   m_x = 0;
@@ -88,3 +89,6 @@ void Cursor::setCursorCoord(CursorCoord coord) {
 }
 int Cursor::x() { return m_x; }
 int Cursor::y() { return m_y; }
+void Cursor::setEditorDocument(EditorDocument* doc) {
+  m_doc = doc;
+}

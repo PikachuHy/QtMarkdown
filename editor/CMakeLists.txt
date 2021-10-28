@@ -2,6 +2,7 @@ add_library(QtMarkdownEditor SHARED
         Cursor.cpp Cursor.h
         Editor.cpp Editor.h
         Render.cpp Render.h
+        EditorDocument.cpp EditorDocument.h
         ../assets/md.qrc)
 set_target_properties(QtMarkdownEditor PROPERTIES AUTORCC ON)
 target_compile_definitions(QtMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)
