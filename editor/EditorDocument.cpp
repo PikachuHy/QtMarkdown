@@ -261,6 +261,7 @@ void EditorDocument::fixCursorPos(Cursor *cursor) {
 }
 void EditorDocument::draw(Render* render) {
   if (!render) return;
+  m_lineData.clear();
   m_doc->accept(render);
 }
 void EditorDocument::appendCell(const Cell &cell) {

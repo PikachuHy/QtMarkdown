@@ -294,6 +294,29 @@ public:
     }
   }
 
+  void drawLatex(const String &latex, bool inlineLatex = false) {
+    try {
+      float textSize = m_setting.latexFontSize;
+      auto render =
+          tex::LaTeX::parse(latex.toStdString(), m_setting.contentMaxWidth(),
+                            textSize, textSize / 3.f, 0xff424242);
+      if (justCalculate()) {
+
+      } else {
+        tex::Graphics2D_qt g2(m_painter);
+        auto x = inlineLatex
+                     ? m_curX
+                     : (m_setting.contentMaxWidth() - render->getWidth()) / 2;
+        render->draw(g2, x, m_curY);
+      }
+      m_curX += render->getWidth();
+      delete render;
+    } catch (const std::exception &ex) {
+      qDebug() << "ERROR" << ex.what();
+      drawText("Render LaTeX fail: " + latex);
+    }
+  }
+
 private:
   friend class Render;
   Render *q;
@@ -508,73 +531,12 @@ void Render::visit(InlineCode *node) {
 void Render::visit(LatexBlock *node) {
   d->moveToNewLine();
   auto latex = node->code()->str();
-  try {
-    float textSize = d->m_setting.latexFontSize;
-    auto render =
-        tex::LaTeX::parse(latex.toStdString(), d->m_setting.contentMaxWidth(),
-                          textSize, textSize / 3.f, 0xff424242);
-    if (d->justCalculate()) {
-
-    } else {
-      tex::Graphics2D_qt g2(d->m_painter);
-      auto x = (d->m_setting.contentMaxWidth() - render->getWidth()) / 2;
-      render->draw(g2, x, d->m_curY);
-    }
-    d->m_curY += render->getHeight();
-    delete render;
-  } catch (const std::exception &ex) {
-    qDebug() << "ERROR" << ex.what();
-    d->drawText("Render LaTeX fail: " + latex);
-  }
+  d->drawLatex(latex);
 }
 
 void Render::visit(InlineLatex *node) {
-#if 0
-  QString key = node->code()->str();
-  QString imgFilename;
-  if (m_cacheLatexImage.contains(key) &&
-      QFile(m_cacheLatexImage[key]).exists()) {
-    imgFilename = m_cacheLatexImage[key];
-  } else {
-    // return;
-    QTemporaryFile tmpFile;
-    if (tmpFile.open()) {
-      tmpFile.write(node->code()->str().toUtf8());
-      tmpFile.close();
-      QStringList args;
-      imgFilename = tmpFile.fileName() + ".png";
-      args << tmpFile.fileName() << imgFilename;
-      //                qDebug() << args;
-      QProcess p;
-      p.start("latex2png.exe", args);
-      auto ok = p.waitForFinished();
-      if (!ok) {
-        qDebug() << "LaTex.exe run fail";
-        return;
-      }
-      if (!QFile(imgFilename).exists()) {
-        qDebug() << "file not exist." << imgFilename;
-        return;
-      }
-    } else {
-      qDebug() << "tmp file open fail." << tmpFile.fileName();
-      return;
-    }
-  }
-  QPixmap image(imgFilename);
-  // 如果画不下，硬画的话会卡死
-  // 所以要换行
-  if (m_curX + image.width() + 5 + 5 < m_setting.contentMaxWidth()) {
-    m_curX += 5;
-  } else {
-    moveToNewLine();
-  }
-  const QRect rect = QRect(QPoint(m_curX, m_curY), image.size());
-  m_curX += image.width();
-  m_curX += 5;
-  m_lastMaxHeight = qMax(m_lastMaxHeight, image.height());
-  drawPixmap(rect, image);
-#endif
+  auto latex = node->code()->str();
+  d->drawLatex(latex, true);
 }
 
 void Render::visit(Paragraph *node) {

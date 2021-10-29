@@ -94,7 +94,7 @@ class Test{
 ![shiyanlou logo](/Users/pikachu/Downloads/1.jpg)
 
 ## LaTeX
-
+行内公式: $\alpha + \beta = \gamma $
 勾股定理
 $$
 a^2 + b^2 = c^2
