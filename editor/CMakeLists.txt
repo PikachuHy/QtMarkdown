@@ -3,6 +3,7 @@ add_library(QtMarkdownEditor SHARED
         Editor.cpp Editor.h
         Render.cpp Render.h
         EditorDocument.cpp EditorDocument.h
+        PieceTable.cpp PieceTable.h
         ../assets/md.qrc)
 set_target_properties(QtMarkdownEditor PROPERTIES AUTORCC ON)
 target_compile_definitions(QtMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)

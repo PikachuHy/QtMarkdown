@@ -32,12 +32,16 @@ signals:
   void linkClicked(QString url);
   void imageClicked(QString path);
 
+
 protected:
   void mousePressEvent(QMouseEvent *event) override;
   void hoverMoveEvent(QHoverEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
   void focusInEvent(QFocusEvent *event) override;
   void keyReleaseEvent(QKeyEvent *event) override;
+
+  QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+  void inputMethodEvent(QInputMethodEvent *event) override;
 
 private:
   void calculateHeight();

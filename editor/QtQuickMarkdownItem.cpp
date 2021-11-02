@@ -3,20 +3,27 @@
 //
 
 #include "QtQuickMarkdownItem.h"
-#include "Cursor.h"
-#include "Document.h"
-#include "Parser.h"
-#include "Render.h"
+
 #include <QCursor>
 #include <QDebug>
 #include <QFile>
 #include <QPainter>
 #include <QTimer>
+
+#include "Cursor.h"
+#include "Document.h"
 #include "EditorDocument.h"
+#include "Parser.h"
+#include "Render.h"
+#include "debug.h"
 
 QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem *parent)
-    : QQuickPaintedItem(parent), m_render(nullptr), m_lastWidth(-1),
-      m_lastImplicitWidth(-1), m_cursor(new Cursor()), m_holdCtrl(false) {
+    : QQuickPaintedItem(parent),
+      m_render(nullptr),
+      m_lastWidth(-1),
+      m_lastImplicitWidth(-1),
+      m_cursor(new Cursor()),
+      m_holdCtrl(false) {
   setAcceptHoverEvents(true);
   setAcceptedMouseButtons(Qt::AllButtons);
   setFlag(ItemAcceptsInputMethod, true);
@@ -25,14 +32,12 @@ QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem *parent)
     this->update();
   });
   connect(this, &QtQuickMarkdownItem::widthChanged, [this]() {
-    if (this->m_lastWidth == this->width())
-      return;
+    if (this->m_lastWidth == this->width()) return;
     this->m_lastWidth = this->width();
     calculateHeight();
   });
   connect(this, &QtQuickMarkdownItem::implicitWidthChanged, [this]() {
-    if (this->m_lastImplicitWidth == this->implicitWidth())
-      return;
+    if (this->m_lastImplicitWidth == this->implicitWidth()) return;
     this->m_lastImplicitWidth = this->implicitWidth();
     calculateHeight();
   });
@@ -45,10 +50,8 @@ QtQuickMarkdownItem::QtQuickMarkdownItem(QQuickItem *parent)
 QtQuickMarkdownItem::~QtQuickMarkdownItem() { delete m_cursor; }
 
 void QtQuickMarkdownItem::paint(QPainter *painter) {
-  if (!m_render)
-    return;
-  if (width() == 0)
-    return;
+  if (!m_render) return;
+  if (width() == 0) return;
   m_render->setJustCalculate(false);
   m_render->reset(painter);
   m_doc->draw(m_render);
@@ -61,8 +64,7 @@ void QtQuickMarkdownItem::paint(QPainter *painter) {
 }
 
 void QtQuickMarkdownItem::setText(const QString &text) {
-  if (text == m_text)
-    return;
+  if (text == m_text) return;
   this->m_text = text;
   m_doc = new EditorDocument(text);
   m_cursor->setEditorDocument(m_doc);
@@ -90,8 +92,7 @@ void QtQuickMarkdownItem::setSource(const QString &source) {
 
 void QtQuickMarkdownItem::calculateHeight() {
   int w = static_cast<int>(width());
-  if (w == 0)
-    return;
+  if (w == 0) return;
   delete m_render;
   EditorDocument doc(m_text);
   if (w < 200) {
@@ -178,6 +179,7 @@ void QtQuickMarkdownItem::hoverMoveEvent(QHoverEvent *event) {
 
   setCursor(QCursor(Qt::IBeamCursor));
 }
+
 void QtQuickMarkdownItem::keyPressEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_Left) {
     m_cursor->moveLeft();
@@ -193,9 +195,23 @@ void QtQuickMarkdownItem::keyPressEvent(QKeyEvent *event) {
     update();
   } else if (event->modifiers() & Qt::Modifier::CTRL) {
     m_holdCtrl = true;
+  } else if (event->key() == Qt::Key_Backspace) {
+//    DEBUG << m_cursor->coord();
+    m_cursor->removeText();
+    m_cursor->moveLeft(1, true);
+//    m_render->setJustCalculate(true);
+//    m_doc->draw(m_render);
+//    DEBUG << m_cursor->coord();
   }
-  QQuickItem::keyPressEvent(event);
+  else {
+    // 需要把输入的字符插入到PieceTable中
+    m_cursor->insertText(event->text());
+    m_render->setJustCalculate(true);
+    m_doc->draw(m_render);
+    m_cursor->moveRight(event->text().size(), true);
+  }
 }
+
 void QtQuickMarkdownItem::keyReleaseEvent(QKeyEvent *event) {
   if (event->modifiers() & Qt::Modifier::CTRL) {
     m_holdCtrl = false;
@@ -205,4 +221,30 @@ void QtQuickMarkdownItem::keyReleaseEvent(QKeyEvent *event) {
 
 void QtQuickMarkdownItem::focusInEvent(QFocusEvent *event) {
   forceActiveFocus();
+}
+
+QVariant QtQuickMarkdownItem::inputMethodQuery(
+    Qt::InputMethodQuery query) const {
+  switch (query) {
+    case Qt::ImCursorRectangle: {
+      auto rect = QRect(m_cursor->pos(), QSize(5, m_cursor->h()));
+      return rect;
+    }
+    case Qt::ImCursorPosition: {
+      return m_cursor->pos();
+    }
+    default: {
+    }
+  }
+  return QQuickItem::inputMethodQuery(query);
+}
+
+void QtQuickMarkdownItem::inputMethodEvent(QInputMethodEvent *event) {
+  const auto& commitStr = event->commitString();
+  if (!commitStr.isEmpty()) {
+    m_cursor->insertText(commitStr);
+    m_render->setJustCalculate(true);
+    m_doc->draw(m_render);
+    m_cursor->moveRight(commitStr.size(), true);
+  }
 }

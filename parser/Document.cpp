@@ -5,6 +5,7 @@
 #include "Document.h"
 #include "Parser.h"
 #include <QDebug>
+#include <utility>
 #include "magic_enum.hpp"
 QDebug operator<<(QDebug debug, const NodeType &type) {
   QDebugStateSaver saver(debug);
@@ -157,7 +158,7 @@ Header::Header(int level) : m_level(level) {
 
 Document::Document(String str) {
     Parser parser;
-    m_nodes = parser.parse(str);
+    m_nodes = parser.parse(std::move(str));
 }
 
 String Document::toHtml() {

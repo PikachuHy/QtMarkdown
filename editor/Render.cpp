@@ -3,19 +3,22 @@
 //
 
 #include "Render.h"
-#include "Cursor.h"
-#include "EditorDocument.h"
-#include "latex.h"
-#include "platform/qt/graphic_qt.h"
+
 #include <QCryptographicHash>
 #include <QDebug>
 #include <QFont>
 #include <QFontDatabase>
 #include <QFontMetrics>
 #include <QStandardPaths>
-#include <utility>
+
+#include "Cursor.h"
+#include "EditorDocument.h"
+#include "PieceTable.h"
+#include "debug.h"
+#include "latex.h"
+#include "platform/qt/graphic_qt.h"
 class TexRender {
-public:
+ public:
   TexRender(QString mathFontPath, QString clmPath) {
     tex::FontSpec math{"xits", mathFontPath.toStdString(),
                        clmPath.toStdString()};
@@ -24,7 +27,7 @@ public:
   ~TexRender() { tex::LaTeX::release(); }
 };
 class RenderPrivate {
-public:
+ public:
   explicit RenderPrivate(Render *render) : q(render) {}
   void reset(QPainter *painter) {
     m_curX = m_setting.docMargin.left();
@@ -155,8 +158,7 @@ public:
     int left_w = m_setting.contentMaxWidth() - m_curX;
     int may_ch_count = left_w / ch_w - 1;
     // 可能根本画不了
-    if (may_ch_count <= 0)
-      return 0;
+    if (may_ch_count <= 0) return 0;
     if (currentLineCanDrawText(text.left(may_ch_count + 1))) {
       while (currentLineCanDrawText(text.left(may_ch_count + 1))) {
         may_ch_count++;
@@ -168,12 +170,44 @@ public:
     }
     return may_ch_count;
   }
-
+  QList<QRect> drawText(Text *text) {
+    QList<QRect> rects;
+    // 先将Text*转成PieceTable*
+    // 然后渲染PieceTable
+    auto table = m_doc->pieceTable(text);
+    if (!table) return {};
+    qsizetype totalOffset = 0;
+    for (auto item : *table) {
+      qsizetype startIndex = 0;
+      while (!currentLineCanDrawText(item.mid(startIndex))) {
+        auto count = countOfThisLineCanDraw(item.mid(startIndex));
+        if (count == 0) {
+          moveToNewLine();
+          continue;
+        }
+        const QString &textToDraw = item.mid(startIndex, count);
+        auto rect = drawTextInCurrentLine(textToDraw);
+        Cell cell{curFont(), rect, textToDraw, table, totalOffset};
+        m_doc->appendCell(cell);
+        rects.append(rect);
+        startIndex += count;
+        totalOffset += count;
+        moveToNewLine();
+      }
+      auto lastText = item.mid(startIndex);
+      if (!lastText.isEmpty()) {
+        auto rect = drawTextInCurrentLine(lastText);
+        rects.append(rect);
+        Cell cell{curFont(), rect, lastText, table, totalOffset};
+        m_doc->appendCell(cell);
+        totalOffset += lastText.size();
+      }
+    }
+    return rects;
+  }
   QList<QRect> drawText(QString text) {
-    if (text == "\r")
-      return {};
-    if (text.isEmpty())
-      return {};
+    if (text == "\r") return {};
+    if (text.isEmpty()) return {};
     // 一个文本可能一行画不完，需要多个大rect去存
     // 小大rect去存每个字
     QList<QRect> rects;
@@ -301,7 +335,6 @@ public:
           tex::LaTeX::parse(latex.toStdString(), m_setting.contentMaxWidth(),
                             textSize, textSize / 3.f, 0xff424242);
       if (justCalculate()) {
-
       } else {
         tex::Graphics2D_qt g2(m_painter);
         auto x = inlineLatex
@@ -317,7 +350,7 @@ public:
     }
   }
 
-private:
+ private:
   friend class Render;
   Render *q;
 
@@ -405,7 +438,7 @@ void Render::visit(Header *node) {
   d->restore();
 }
 
-void Render::visit(Text *node) { d->drawText(node->str()); }
+void Render::visit(Text *node) { d->drawText(node); }
 
 void Render::visit(ItalicText *node) {
   d->save();
@@ -490,9 +523,8 @@ void Render::visit(Link *node) {
   auto font = d->curFont();
   font.setUnderline(true);
   d->setFont(font);
-  auto rects = d->drawText(node->content()->str());
+  auto rects = d->drawText(node->content());
   if (d->justCalculate()) {
-
   } else {
     auto link = new Element::Link();
     link->text = node->content()->str();
@@ -540,8 +572,7 @@ void Render::visit(InlineLatex *node) {
 }
 
 void Render::visit(Paragraph *node) {
-  if (node->children().empty())
-    return;
+  if (node->children().empty()) return;
   d->save();
   d->moveToNewLine();
   for (auto it : node->children()) {
@@ -645,10 +676,8 @@ void Render::visit(QuoteBlock *node) {
 void Render::visit(Table *node) {}
 
 void Render::highlight(Cursor *cursor) {
-  if (!cursor)
-    return;
-  if (!d->m_setting.highlightCurrentLine)
-    return;
+  if (!cursor) return;
+  if (!d->m_setting.highlightCurrentLine) return;
   for (int i = 0; i < d->m_doc->lineData().size(); ++i) {
     auto line = d->m_doc->lineData()[i];
     if (line->contains(*cursor)) {

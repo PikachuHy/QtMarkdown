@@ -6,8 +6,6 @@
 #define QTMARKDOWN_CURSOR_H
 #include <QRect>
 #include <QPainter>
-#include <QDebug>
-#define DEBUG qDebug().noquote() << "[debug]" << __FUNCTION__ << QString(__FILE_NAME__) + QString(":") + QString::number(__LINE__)
 class Render;
 class EditorDocument;
 struct CursorCoord {
@@ -28,10 +26,11 @@ public:
   void draw(QPainter& painter);
   int x();
   int y();
+  int h() const { return m_h; };
   QPoint pos() const;
   QRect region() const;
-  void moveLeft();
-  void moveRight();
+  void moveLeft(qsizetype length = 1, bool ignoreCell = false);
+  void moveRight(qsizetype length = 1, bool ignoreCell = false);
   void moveUp();
   void moveDown();
   void setLineNo(qsizetype lineNo);
@@ -46,6 +45,8 @@ public:
   bool needUpdateCoord();
   CursorCoord coord();
   void setCursorCoord(CursorCoord coord);
+  void insertText(QString text);
+  void removeText(qsizetype length=1);
 private:
   int m_x;
   int m_y;

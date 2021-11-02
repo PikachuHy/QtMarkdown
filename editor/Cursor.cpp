@@ -6,6 +6,7 @@
 #include <QDebug>
 #include "Render.h"
 #include "EditorDocument.h"
+#include "debug.h"
 QDebug operator<<(QDebug debug, const CursorCoord &c)
 {
   QDebugStateSaver saver(debug);
@@ -13,13 +14,13 @@ QDebug operator<<(QDebug debug, const CursorCoord &c)
 
   return debug;
 }
-void Cursor::moveLeft() {
+void Cursor::moveLeft(qsizetype length, bool ignoreCell) {
   if (!m_doc) return;
-  m_doc->moveCursorLeft(this);
+  m_doc->moveCursorLeft(this, length, ignoreCell);
 }
-void Cursor::moveRight() {
+void Cursor::moveRight(qsizetype length, bool ignoreCell) {
   if (!m_doc) return;
-  m_doc->moveCursorRight(this);
+  m_doc->moveCursorRight(this, length, ignoreCell);
 }
 void Cursor::moveUp() {
   if (!m_doc) return;
@@ -91,4 +92,11 @@ int Cursor::x() { return m_x; }
 int Cursor::y() { return m_y; }
 void Cursor::setEditorDocument(EditorDocument* doc) {
   m_doc = doc;
+}
+
+void Cursor::insertText(QString text) {
+    m_doc->insertText(text, *this);
+}
+void Cursor::removeText(qsizetype length) {
+  m_doc->removeText(length, *this);
 }

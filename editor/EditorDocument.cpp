@@ -3,15 +3,19 @@
 //
 
 #include "EditorDocument.h"
+
 #include <QFont>
 #include <QRect>
 #include <QString>
+#include <utility>
+
 #include "Cursor.h"
 #include "Document.h"
+#include "PieceTable.h"
 #include "Render.h"
-EditorDocument::EditorDocument(QString text): m_doc(new Document(text)) {
-
-}
+#include "debug.h"
+EditorDocument::EditorDocument(QString text)
+    : m_doc(new Document(std::move(text))) {}
 void LineData::appendCell(const Cell &cell) { m_cells.append(cell); }
 bool LineData::contains(Cursor &cursor) {
   auto pos = cursor.pos();
@@ -36,8 +40,7 @@ void EditorDocument::createNewLineData() {
   m_lineData.append(line);
 }
 void EditorDocument::updateCursor(Cursor *cursor) {
-  if (!cursor)
-    return;
+  if (!cursor) return;
   auto coord = cursor->coord();
   auto cell = m_lineData[coord.lineNo]->cells()[coord.cellNo];
   if (cursor->offset() == 0) {
@@ -50,61 +53,83 @@ void EditorDocument::updateCursor(Cursor *cursor) {
   }
   cursor->updateHeight(cell.rect.height());
 }
-void EditorDocument::moveCursorLeft(Cursor *cursor) {
-
-  if (!cursor)
-    return;
+void EditorDocument::moveCursorLeft(Cursor *cursor, qsizetype length,
+                                    bool ignoreCell) {
+  if (!cursor) return;
   auto coord = cursor->coord();
-  if (coord.offset > 0) {
-    coord.offset--;
-    cursor->setCursorCoord(coord);
-    return;
+  while (length > 0) {
+    if (coord.offset > 0) {
+      // 考虑cell的长度刚好等于左移动的长度
+      auto cell = m_lineData[coord.lineNo]->cells()[coord.cellNo];
+      if (cell.text.size() == length && coord.offset == length) {
+        if (ignoreCell) {
+          coord.offset = 0;
+          // 就设置为上一个cell的最后一个位置
+          cursor->setCursorCoord(coord);
+          moveCursorLeft(cursor, 1, false);
+          return;
+        }
+      } else {
+        coord.offset--;
+        length--;
+        continue;
+      }
+    }
+    if (coord.cellNo > 0) {
+      coord.cellNo--;
+      coord.offset =
+          m_lineData[coord.lineNo]->cells()[coord.cellNo].text.size();
+      if (!ignoreCell) {
+        length--;
+      }
+      continue;
+    }
+    if (coord.lineNo > 0) {
+      coord.lineNo--;
+      coord.cellNo = m_lineData[coord.lineNo]->cells().size() - 1;
+      coord.offset =
+          m_lineData[coord.lineNo]->cells()[coord.cellNo].text.size();
+      if (!ignoreCell) {
+        length--;
+      }
+      continue;
+    }
   }
-  if (coord.cellNo > 0) {
-    coord.cellNo--;
-    coord.offset = m_lineData[coord.lineNo]->cells()[coord.cellNo].text.size();
-    cursor->setCursorCoord(coord);
-    return;
-  }
-  if (coord.lineNo > 0) {
-    coord.lineNo--;
-    coord.cellNo = m_lineData[coord.lineNo]->cells().size() - 1;
-    coord.offset = m_lineData[coord.lineNo]->cells()[coord.cellNo].text.size();
-    cursor->setCursorCoord(coord);
-    return;
-  }
+  cursor->setCursorCoord(coord);
   // 如果已经在第一行的行首，不用处理
 }
-void EditorDocument::moveCursorRight(Cursor *cursor) {
-
-  if (!cursor)
-    return;
+void EditorDocument::moveCursorRight(Cursor *cursor, qsizetype length,
+                                     bool ignoreCell) {
+  if (!cursor) return;
   auto coord = cursor->coord();
-  if (coord.offset <
-      m_lineData[coord.lineNo]->cells()[coord.cellNo].text.size()) {
-    coord.offset++;
-    cursor->setCursorCoord(coord);
-    return;
-  }
-  if (coord.cellNo < m_lineData[coord.lineNo]->cells().size() - 1) {
-    coord.cellNo++;
-    coord.offset = 0;
-    cursor->setCursorCoord(coord);
-    return;
-  }
-  if (coord.lineNo < m_lineData.size() - 1) {
-    coord.lineNo++;
-    coord.cellNo = 0;
-    coord.offset = 0;
-    cursor->setCursorCoord(coord);
-    return;
+  while (length > 0) {
+    if (coord.offset <
+        m_lineData[coord.lineNo]->cells()[coord.cellNo].text.size()) {
+      coord.offset++;
+      length--;
+      continue;
+    }
+    if (coord.cellNo < m_lineData[coord.lineNo]->cells().size() - 1) {
+      coord.cellNo++;
+      coord.offset = 0;
+      if (!ignoreCell) {
+        length--;
+      }
+      continue;
+    }
+    if (coord.lineNo < m_lineData.size() - 1) {
+      coord.lineNo++;
+      coord.cellNo = 0;
+      coord.offset = 0;
+      length--;
+      continue;
+    }
   }
   // 如果已经在最后一行的最后一个位置，不用处理
+  cursor->setCursorCoord(coord);
 }
 void EditorDocument::moveCursorDown(Cursor *cursor) {
-
-  if (!cursor)
-    return;
+  if (!cursor) return;
   auto coord = cursor->coord();
   if (coord.lineNo < m_lineData.size() - 1) {
     // 先x不变，去下一行里找y
@@ -137,8 +162,7 @@ void EditorDocument::moveCursorDown(Cursor *cursor) {
           }
           newX += w;
         }
-        if (!hasFixPos)
-          continue;
+        if (!hasFixPos) continue;
         findCell = true;
         break;
       }
@@ -159,8 +183,7 @@ void EditorDocument::moveCursorDown(Cursor *cursor) {
   cursor->setCursorCoord(coord);
 }
 void EditorDocument::moveCursorUp(Cursor *cursor) {
-  if (!cursor)
-    return;
+  if (!cursor) return;
   auto coord = cursor->coord();
   if (coord.lineNo > 0) {
     // 先x不变，去下一行里找y
@@ -193,8 +216,7 @@ void EditorDocument::moveCursorUp(Cursor *cursor) {
           }
           newX += w;
         }
-        if (!hasFixPos)
-          continue;
+        if (!hasFixPos) continue;
         findCell = true;
         break;
       }
@@ -214,14 +236,12 @@ void EditorDocument::moveCursorUp(Cursor *cursor) {
   cursor->setCursorCoord(coord);
 }
 void EditorDocument::fixCursorPos(Cursor *cursor) {
-  if (!cursor)
-    return;
+  if (!cursor) return;
   auto pos = cursor->pos();
   auto coord = cursor->coord();
   for (int i = 0; i < m_lineData.size(); ++i) {
     auto line = m_lineData[i];
-    if (!line->contains(*cursor))
-      continue;
+    if (!line->contains(*cursor)) continue;
     coord.lineNo = i;
     // 修正光标的x,y值
     bool hasFixCursor = false;
@@ -259,11 +279,45 @@ void EditorDocument::fixCursorPos(Cursor *cursor) {
   }
   cursor->setCursorCoord(coord);
 }
-void EditorDocument::draw(Render* render) {
+void EditorDocument::draw(Render *render) {
   if (!render) return;
   m_lineData.clear();
   m_doc->accept(render);
 }
 void EditorDocument::appendCell(const Cell &cell) {
   m_lineData.back()->appendCell(cell);
+}
+
+void EditorDocument::insertText(QString text, Cursor &cursor) {
+  // 要先算出cell在原Text中的偏移量
+  auto coord = cursor.coord();
+  auto cell = m_lineData[coord.lineNo]->cells()[coord.cellNo];
+  if (!cell.table) {
+    DEBUG << "table in nullptr";
+    return;
+  }
+  auto offset = cell.totalOffset + coord.offset;
+  cell.table->insert(text, offset);
+}
+
+PieceTable *EditorDocument::pieceTable(Text *text) {
+  if (!text) return nullptr;
+  if (m_text2pieceTable.contains(text)) {
+    return m_text2pieceTable[text];
+  }
+  auto table = new PieceTable(text->str());
+  m_text2pieceTable[text] = table;
+  return table;
+}
+
+void EditorDocument::removeText(qsizetype length, Cursor &cursor) {
+  // 要先算出cell在原Text中的偏移量
+  auto coord = cursor.coord();
+  auto cell = m_lineData[coord.lineNo]->cells()[coord.cellNo];
+  if (!cell.table) {
+    DEBUG << "table in nullptr";
+    return;
+  }
+  auto offset = cell.totalOffset + coord.offset;
+  cell.table->remove(offset - length, length);
 }
