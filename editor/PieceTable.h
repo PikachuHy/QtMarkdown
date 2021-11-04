@@ -31,23 +31,22 @@ class PieceTableIterator {
   qsizetype m_index;
   PieceTable* m_table;
 };
-
+class EditorDocument;
 class PieceTable {
   using iterator = PieceTableIterator;
-  using const_iterator = PieceTableIterator;
 
  public:
-  explicit PieceTable(QString text);
-  void insert(QString text, qsizetype offset);
+  explicit PieceTable(EditorDocument& doc, qsizetype offset, qsizetype length);
+  void insert(qsizetype offset, qsizetype addOffset, qsizetype addLength);
   void remove(qsizetype offset, qsizetype length);
   iterator begin();
   iterator end();
 
  private:
   QString itemString(qsizetype index);
+
  private:
-  QString m_originalBuffer;
-  QString m_addBuffer;
+  EditorDocument& m_doc;
   QList<PieceTableItem> m_items;
   friend class PieceTableIterator;
 };

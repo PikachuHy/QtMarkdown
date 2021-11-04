@@ -4,8 +4,6 @@
 
 #ifndef QTMARKDOWN_RENDER_H
 #define QTMARKDOWN_RENDER_H
-#include "Document.h"
-#include "QtMarkdown_global.h"
 #include <QDir>
 #include <QFile>
 #include <QFont>
@@ -14,7 +12,9 @@
 #include <QPainter>
 #include <QProcess>
 #include <QStack>
-#include <QTemporaryFile>
+
+#include "Document.h"
+#include "QtMarkdown_global.h"
 class TexRender;
 class LineData;
 class Cursor;
@@ -35,12 +35,17 @@ struct RenderSetting {
 };
 class RenderPrivate;
 class QTMARKDOWNSHARED_EXPORT Render
-    : public MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText,
-                             Image, Link, CodeBlock, InlineCode, Paragraph,
-                             CheckboxList, CheckboxItem, UnorderedList,
-                             UnorderedListItem, OrderedList, OrderedListItem,
-                             LatexBlock, InlineLatex, Hr, QuoteBlock, Table> {
-public:
+    : public md::parser::MultipleVisitor<
+          md::parser::Header, md::parser::Text, md::parser::ItalicText,
+          md::parser::BoldText, md::parser::ItalicBoldText,
+          md::parser::StrickoutText, md::parser::Image, md::parser::Link,
+          md::parser::CodeBlock, md::parser::InlineCode, md::parser::Paragraph,
+          md::parser::CheckboxList, md::parser::CheckboxItem,
+          md::parser::UnorderedList, md::parser::UnorderedListItem,
+          md::parser::OrderedList, md::parser::OrderedListItem,
+          md::parser::LatexBlock, md::parser::InlineLatex, md::parser::Hr,
+          md::parser::QuoteBlock, md::parser::Table, md::parser::Lf> {
+ public:
   explicit Render(QString filePath, EditorDocument *doc,
                   RenderSetting = RenderSetting());
   ~Render();
@@ -52,32 +57,34 @@ public:
   [[nodiscard]] int realWidth() const;
 
   void reset(QPainter *painter);
-  void visit(Header *node) override;
-  void visit(Text *node) override;
-  void visit(ItalicText *node) override;
-  void visit(BoldText *node) override;
-  void visit(ItalicBoldText *node) override;
-  void visit(Image *node) override;
-  void visit(Link *node) override;
-  void visit(CodeBlock *node) override;
-  void visit(InlineCode *node) override;
-  void visit(LatexBlock *node) override;
-  void visit(InlineLatex *node) override;
-  void visit(Paragraph *node) override;
-  void visit(CheckboxList *node) override;
-  void visit(CheckboxItem *node) override;
-  void visit(UnorderedList *node) override;
-  void visit(UnorderedListItem *node) override;
-  void visit(OrderedList *node) override;
-  void visit(OrderedListItem *node) override;
-  void visit(Hr *node) override;
-  void visit(QuoteBlock *node) override;
-  void visit(Table *node) override;
+  void visit(md::parser::Header *node) override;
+  void visit(md::parser::Text *node) override;
+  void visit(md::parser::ItalicText *node) override;
+  void visit(md::parser::BoldText *node) override;
+  void visit(md::parser::ItalicBoldText *node) override;
+  void visit(md::parser::StrickoutText *node) override;
+  void visit(md::parser::Image *node) override;
+  void visit(md::parser::Link *node) override;
+  void visit(md::parser::CodeBlock *node) override;
+  void visit(md::parser::InlineCode *node) override;
+  void visit(md::parser::LatexBlock *node) override;
+  void visit(md::parser::InlineLatex *node) override;
+  void visit(md::parser::Paragraph *node) override;
+  void visit(md::parser::CheckboxList *node) override;
+  void visit(md::parser::CheckboxItem *node) override;
+  void visit(md::parser::UnorderedList *node) override;
+  void visit(md::parser::UnorderedListItem *node) override;
+  void visit(md::parser::OrderedList *node) override;
+  void visit(md::parser::OrderedListItem *node) override;
+  void visit(md::parser::Hr *node) override;
+  void visit(md::parser::QuoteBlock *node) override;
+  void visit(md::parser::Table *node) override;
+  void visit(md::parser::Lf *node) override;
   void highlight(Cursor *cursor);
 
-private:
+ private:
   RenderPrivate *d;
   friend class LineData;
 };
 
-#endif // QTMARKDOWN_RENDER_H
+#endif  // QTMARKDOWN_RENDER_H

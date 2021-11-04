@@ -4,8 +4,8 @@
 
 #ifndef QTMARKDOWN_CURSOR_H
 #define QTMARKDOWN_CURSOR_H
-#include <QRect>
 #include <QPainter>
+#include <QRect>
 class Render;
 class EditorDocument;
 struct CursorCoord {
@@ -13,9 +13,9 @@ struct CursorCoord {
   qsizetype cellNo{};
   qsizetype offset{};
 };
-QDebug operator<<(QDebug debug, const CursorCoord &c);
+QDebug operator<<(QDebug debug, const CursorCoord& c);
 class Cursor {
-public:
+ public:
   Cursor();
   ~Cursor() = default;
   void moveTo(QPoint pos);
@@ -46,8 +46,10 @@ public:
   CursorCoord coord();
   void setCursorCoord(CursorCoord coord);
   void insertText(QString text);
-  void removeText(qsizetype length=1);
-private:
+  void removeText(qsizetype length = 1);
+  void insertReturn();
+
+ private:
   int m_x;
   int m_y;
   int m_h;
@@ -58,4 +60,4 @@ private:
   bool m_needUpdateCoord;
 };
 
-#endif // QTMARKDOWN_CURSOR_H
+#endif  // QTMARKDOWN_CURSOR_H

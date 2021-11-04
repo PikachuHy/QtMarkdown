@@ -11,11 +11,14 @@
 
 #include "Cursor.h"
 #include "Document.h"
+#include "Parser.h"
 #include "PieceTable.h"
 #include "Render.h"
 #include "debug.h"
-EditorDocument::EditorDocument(QString text)
-    : m_doc(new Document(std::move(text))) {}
+using namespace md::parser;
+EditorDocument::EditorDocument(const QString &text) : m_originalBuffer(text) {
+  m_doc = Parser::parse(text);
+}
 void LineData::appendCell(const Cell &cell) { m_cells.append(cell); }
 bool LineData::contains(Cursor &cursor) {
   auto pos = cursor.pos();
@@ -296,8 +299,11 @@ void EditorDocument::insertText(QString text, Cursor &cursor) {
     DEBUG << "table in nullptr";
     return;
   }
+  auto addOffset = m_addBuffer.size();
+  auto addLength = text.length();
+  m_addBuffer.append(text);
   auto offset = cell.totalOffset + coord.offset;
-  cell.table->insert(text, offset);
+  cell.table->insert(offset, addOffset, addLength);
 }
 
 PieceTable *EditorDocument::pieceTable(Text *text) {
@@ -305,7 +311,7 @@ PieceTable *EditorDocument::pieceTable(Text *text) {
   if (m_text2pieceTable.contains(text)) {
     return m_text2pieceTable[text];
   }
-  auto table = new PieceTable(text->str());
+  auto table = new PieceTable(*this, text->offset(), text->length());
   m_text2pieceTable[text] = table;
   return table;
 }
@@ -315,9 +321,36 @@ void EditorDocument::removeText(qsizetype length, Cursor &cursor) {
   auto coord = cursor.coord();
   auto cell = m_lineData[coord.lineNo]->cells()[coord.cellNo];
   if (!cell.table) {
-    DEBUG << "table in nullptr";
+    DEBUG << "table is nullptr";
     return;
   }
   auto offset = cell.totalOffset + coord.offset;
   cell.table->remove(offset - length, length);
+}
+void EditorDocument::insertReturn(Cursor &cursor) {
+  auto coord = cursor.coord();
+  auto cell = m_lineData[coord.lineNo]->cells()[coord.cellNo];
+  if (!cell.node) {
+    DEBUG << "node is nullptr";
+    return;
+  }
+  if (!cell.node->parent()) {
+    DEBUG << "node parent is nullptr";
+    return;
+  }
+  auto parentNode = cell.node->parent();
+  if (parentNode->type() == NodeType::paragraph) {
+  }
+}
+QString EditorDocument::text2str(md::parser::Text *text) {
+  if (!text) {
+    DEBUG << "text is nullptr";
+    return {};
+  }
+  QString s;
+  auto table = pieceTable(text);
+  for (const auto &item : *table) {
+    s += item;
+  }
+  return s;
 }

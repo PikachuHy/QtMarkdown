@@ -17,6 +17,7 @@
 #include "debug.h"
 #include "latex.h"
 #include "platform/qt/graphic_qt.h"
+using namespace md::parser;
 class TexRender {
  public:
   TexRender(QString mathFontPath, QString clmPath) {
@@ -187,7 +188,7 @@ class RenderPrivate {
         }
         const QString &textToDraw = item.mid(startIndex, count);
         auto rect = drawTextInCurrentLine(textToDraw);
-        Cell cell{curFont(), rect, textToDraw, table, totalOffset};
+        Cell cell{curFont(), rect, textToDraw, table, totalOffset, text};
         m_doc->appendCell(cell);
         rects.append(rect);
         startIndex += count;
@@ -198,7 +199,7 @@ class RenderPrivate {
       if (!lastText.isEmpty()) {
         auto rect = drawTextInCurrentLine(lastText);
         rects.append(rect);
-        Cell cell{curFont(), rect, lastText, table, totalOffset};
+        Cell cell{curFont(), rect, lastText, table, totalOffset, text};
         m_doc->appendCell(cell);
         totalOffset += lastText.size();
       }
@@ -328,6 +329,46 @@ class RenderPrivate {
     }
   }
 
+  void drawCodeBlock(Text *text) {
+    moveToNewLine();
+    auto y = m_curY;
+    m_curY += m_setting.codeMargin.top();
+    m_curX += m_setting.codeMargin.left();
+    save();
+    auto table = m_doc->pieceTable(text);
+    if (!table) return;
+    // #f9f9f9
+    //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
+    setFont(codeFont());
+    //    drawText(rect, code);
+    auto rects = drawText(text);
+    restore();
+    int codeH = 0;
+    for (auto rect : rects) {
+      codeH += rect.height();
+    }
+    m_curY += codeH;
+    const QRect bgRect = QRect(0, y, m_setting.contentMaxWidth(), codeH);
+    //    fillRect(bgRect, QBrush(QColor(249, 249, 249)));
+    if (!justCalculate()) {
+      auto e = new Element::CodeBlock();
+      //      e->code = code;
+      QString copyBtnFilePath = ":icon/copy_32x32.png";
+      QFile copyBtnFile(copyBtnFilePath);
+      if (copyBtnFile.exists()) {
+        QPixmap copyBtnImg(copyBtnFilePath);
+        QRect copyBtnRect(
+            QPoint(bgRect.width() - copyBtnImg.width(), bgRect.y()),
+            copyBtnImg.size());
+        e->rect = copyBtnRect;
+        m_doc->appendCodeBlock(e);
+        drawPixmap(copyBtnRect, copyBtnImg);
+      } else {
+        qWarning() << "copy btn file not exist." << copyBtnFilePath;
+      }
+    }
+  }
+
   void drawLatex(const String &latex, bool inlineLatex = false) {
     try {
       float textSize = m_setting.latexFontSize;
@@ -348,6 +389,16 @@ class RenderPrivate {
       qDebug() << "ERROR" << ex.what();
       drawText("Render LaTeX fail: " + latex);
     }
+  }
+
+  void drawEnter() {
+    if (justCalculate()) return;
+    save();
+    QString enterStr = QString("↲");
+    m_painter->setPen(Qt::blue);
+    auto rect = textRect(enterStr);
+    drawText(rect, enterStr);
+    restore();
   }
 
  private:
@@ -445,7 +496,7 @@ void Render::visit(ItalicText *node) {
   QFont font = d->curFont();
   font.setItalic(true);
   d->setFont(font);
-  d->drawText(node->str());
+  d->drawText(node->text());
   d->restore();
 }
 
@@ -454,7 +505,7 @@ void Render::visit(BoldText *node) {
   QFont font = d->curFont();
   font.setBold(true);
   d->setFont(font);
-  d->drawText(node->str());
+  d->drawText(node->text());
   d->restore();
 }
 
@@ -464,13 +515,22 @@ void Render::visit(ItalicBoldText *node) {
   font.setItalic(true);
   font.setBold(true);
   d->setFont(font);
-  d->drawText(node->str());
+  d->drawText(node->text());
+  d->restore();
+}
+
+void Render::visit(StrickoutText *node) {
+  d->save();
+  QFont font = d->curFont();
+  font.setStrikeOut(true);
+  d->setFont(font);
+  d->drawText(node->text());
   d->restore();
 }
 
 void Render::visit(Image *node) {
   d->moveToNewLine();
-  QString imgPath = node->src()->str();
+  QString imgPath = d->m_doc->text2str(node->src());
   QDir dir(imgPath);
   if (dir.isRelative()) {
     QDir basePath(d->m_filePath);
@@ -527,8 +587,8 @@ void Render::visit(Link *node) {
   if (d->justCalculate()) {
   } else {
     auto link = new Element::Link();
-    link->text = node->content()->str();
-    link->url = node->href()->str();
+    link->text = d->m_doc->text2str(node->content());
+    link->url = d->m_doc->text2str(node->href());
     link->rects = rects;
     d->m_doc->appendLink(link);
   }
@@ -536,10 +596,15 @@ void Render::visit(Link *node) {
 }
 
 void Render::visit(CodeBlock *node) {
-  if (node && node->code()) {
-    auto code = node->code()->str();
-    d->drawCodeBlock(code);
+  if (!node) {
+    DEBUG << "node is nullptr";
   }
+  d->save();
+  d->setFont(d->codeFont());
+  for (auto child : node->children()) {
+    child->accept(this);
+  }
+  d->restore();
 }
 
 void Render::visit(InlineCode *node) {
@@ -547,7 +612,9 @@ void Render::visit(InlineCode *node) {
   // #f9f9f9
   //        m_painter.setBackground(QBrush(QColor(249, 249, 249)));
   d->setFont(d->codeFont());
-  QString code = node->code() ? node->code()->str() : " ";
+  node->code()->accept(this);
+#if 1
+  QString code = d->m_doc->text2str(node->code());
   if (d->currentLineCanDrawText(code)) {
     auto rect = d->textRect(code);
     d->fillRect(rect, QBrush(QColor(249, 249, 249)));
@@ -557,17 +624,25 @@ void Render::visit(InlineCode *node) {
   } else {
     d->drawCodeBlock(code);
   }
+#endif
   d->restore();
 }
 
 void Render::visit(LatexBlock *node) {
   d->moveToNewLine();
-  auto latex = node->code()->str();
+  QString latex;
+  for (auto child : node->children()) {
+    if (child->type() == NodeType::text) {
+      latex += d->m_doc->text2str((Text *)child);
+    } else if (child->type() == NodeType::lf) {
+      latex += "\n";
+    }
+  }
   d->drawLatex(latex);
 }
 
 void Render::visit(InlineLatex *node) {
-  auto latex = node->code()->str();
+  auto latex = d->m_doc->text2str(node->code());
   d->drawLatex(latex, true);
 }
 
@@ -674,7 +749,10 @@ void Render::visit(QuoteBlock *node) {
 }
 
 void Render::visit(Table *node) {}
-
+void Render::visit(Lf *node) {
+  d->drawEnter();
+  d->moveToNewLine();
+}
 void Render::highlight(Cursor *cursor) {
   if (!cursor) return;
   if (!d->m_setting.highlightCurrentLine) return;

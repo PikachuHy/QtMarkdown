@@ -4,9 +4,10 @@
 
 #ifndef QTMARKDOWN_QTQUICKMARKDOWNITEM_H
 #define QTMARKDOWN_QTQUICKMARKDOWNITEM_H
-#include "QtMarkdown_global.h"
 #include <QQuickPaintedItem>
 #include <QTimer>
+
+#include "QtMarkdown_global.h"
 class Render;
 class Cursor;
 class EditorDocument;
@@ -17,7 +18,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownItem : public QQuickPaintedItem {
   Q_PROPERTY(QString path READ path WRITE setPath)
   QML_ELEMENT
   QML_NAMED_ELEMENT(QtQuickMarkdownItem)
-public:
+ public:
   explicit QtQuickMarkdownItem(QQuickItem *parent = nullptr);
   ~QtQuickMarkdownItem();
   void paint(QPainter *painter) override;
@@ -27,13 +28,12 @@ public:
   void setSource(const QString &source);
   [[nodiscard]] QString path() const;
   void setPath(const QString &path);
-signals:
+ signals:
   void codeCopied(QString code);
   void linkClicked(QString url);
   void imageClicked(QString path);
 
-
-protected:
+ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void hoverMoveEvent(QHoverEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
@@ -43,10 +43,10 @@ protected:
   QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
   void inputMethodEvent(QInputMethodEvent *event) override;
 
-private:
+ private:
   void calculateHeight();
 
-private:
+ private:
   QString m_text;
   QString m_source;
   QString m_path;
@@ -59,4 +59,4 @@ private:
   bool m_holdCtrl;
 };
 
-#endif // QTMARKDOWN_QTQUICKMARKDOWNITEM_H
+#endif  // QTMARKDOWN_QTQUICKMARKDOWNITEM_H

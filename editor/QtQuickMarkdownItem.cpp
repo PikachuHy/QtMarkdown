@@ -5,13 +5,11 @@
 #include "QtQuickMarkdownItem.h"
 
 #include <QCursor>
-#include <QDebug>
 #include <QFile>
 #include <QPainter>
 #include <QTimer>
 
 #include "Cursor.h"
-#include "Document.h"
 #include "EditorDocument.h"
 #include "Parser.h"
 #include "Render.h"
@@ -133,20 +131,20 @@ void QtQuickMarkdownItem::mousePressEvent(QMouseEvent *event) {
   for (auto link : m_doc->links()) {
     for (auto rect : link->rects) {
       if (rect.contains(pos) && m_holdCtrl) {
-        qDebug() << "click link:" << link->url;
+        DEBUG << "click link:" << link->url;
         emit linkClicked(link->url);
       }
     }
   }
   for (auto image : m_doc->images()) {
     if (image->rect.contains(pos)) {
-      qDebug() << "click image:" << image->path;
+      DEBUG << "click image:" << image->path;
       emit imageClicked(image->path);
     }
   }
   for (const auto &item : m_doc->codes()) {
     if (item->rect.contains(pos)) {
-      qDebug() << "copy code:" << item->code;
+      DEBUG << "copy code:" << item->code;
       emit codeCopied(item->code);
     }
   }
@@ -196,14 +194,12 @@ void QtQuickMarkdownItem::keyPressEvent(QKeyEvent *event) {
   } else if (event->modifiers() & Qt::Modifier::CTRL) {
     m_holdCtrl = true;
   } else if (event->key() == Qt::Key_Backspace) {
-//    DEBUG << m_cursor->coord();
     m_cursor->removeText();
     m_cursor->moveLeft(1, true);
-//    m_render->setJustCalculate(true);
-//    m_doc->draw(m_render);
-//    DEBUG << m_cursor->coord();
-  }
-  else {
+  } else if (event->key() == Qt::Key_Return) {
+    // 处理回车，要拆结点
+    DEBUG << "Return";
+  } else {
     // 需要把输入的字符插入到PieceTable中
     m_cursor->insertText(event->text());
     m_render->setJustCalculate(true);
@@ -240,7 +236,7 @@ QVariant QtQuickMarkdownItem::inputMethodQuery(
 }
 
 void QtQuickMarkdownItem::inputMethodEvent(QInputMethodEvent *event) {
-  const auto& commitStr = event->commitString();
+  const auto &commitStr = event->commitString();
   if (!commitStr.isEmpty()) {
     m_cursor->insertText(commitStr);
     m_render->setJustCalculate(true);

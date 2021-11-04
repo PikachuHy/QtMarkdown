@@ -1,10 +1,8 @@
 #include "Parser.h"
-#include <iostream>
-#include <memory>
-#include <fstream>
 #include "Document.h"
 #include <QDebug>
 #include <QFile>
+using namespace md::parser;
 int main() {
     QFile mdFile(":/test.md");
     if (!mdFile.exists()) {
@@ -15,8 +13,8 @@ int main() {
     auto mdText = mdFile.readAll();
     mdFile.close();
     qDebug().noquote().nospace() << mdText;
-    Document doc(mdText);
-    auto html = doc.toHtml();
+    auto doc = Parser().parse(mdText);
+    auto html = doc->toHtml();
     qDebug().noquote() << html;
     QFile htmlFile("index.html");
     htmlFile.open(QIODevice::WriteOnly);
