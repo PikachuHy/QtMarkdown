@@ -32,11 +32,20 @@ Markdown是[Daring Fireball](http://daringfireball.net/projects/markdown/syntax)
 
 ###### 六级标题
 
+## 段落
+
+这是一段，
+换行后，还是同一段。
+
+这是新的一段。
+
 ## 强调
 
 - **粗体**
 
-- _斜体_
+- *斜体*
+
+- ~~删除线~~
 
 ## 引用
 

@@ -5,15 +5,12 @@
 #ifndef MD_PARSER_H
 #define MD_PARSER_H
 #include "QtMarkdown_global.h"
-#include "Token.h"
-#include "Document.h"
-#include <vector>
-class Node;
+#include "mddef.h"
+namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Parser {
-public:
-    Parser();
-    NodePtrList parse(String text);
+ public:
+  static DocPtr parse(const String& text);
 };
+}  // namespace md::parser
 
-
-#endif //MD_PARSER_H
+#endif  // MD_PARSER_H
