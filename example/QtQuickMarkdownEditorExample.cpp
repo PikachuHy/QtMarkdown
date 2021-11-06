@@ -5,7 +5,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-#include "QtQuickMarkdownItem.h"
+#include "QtQuickMarkdownEditor.h"
 int main(int argc, char *argv[])
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -13,9 +13,8 @@ int main(int argc, char *argv[])
 #endif
 
     QGuiApplication app(argc, argv);
-
     QQmlApplicationEngine engine;
-    qmlRegisterType<QtQuickMarkdownItem>("cn.net.pikachu.control", 1, 0, "QtQuickMarkdownItem");
+    qmlRegisterType<QtQuickMarkdownEditor>("QtMarkdown", 1, 0, "QtQuickMarkdownEditor");
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
                      &app, [url](QObject *obj, const QUrl &objUrl) {
@@ -25,5 +24,5 @@ int main(int argc, char *argv[])
 
     engine.load(url);
 
-    return app.exec();
+    return QGuiApplication::exec();
 }

@@ -6,12 +6,11 @@
 #define QTMARKDOWN_QTQUICKMARKDOWNITEMPLUGIN_H
 
 #include <QQmlEngineExtensionPlugin>
-class QtQuickMarkdownItemPlugin : public QQmlEngineExtensionPlugin{
-Q_OBJECT
-    Q_PLUGIN_METADATA(IID QQmlEngineExtensionInterface_iid)
-public:
-    void initializeEngine(QQmlEngine *engine, const char *uri) override;
+class QtQuickMarkdownItemPlugin : public QQmlEngineExtensionPlugin {
+  Q_OBJECT
+  Q_PLUGIN_METADATA(IID QQmlEngineExtensionInterface_iid)
+ public:
+  void initializeEngine(QQmlEngine *engine, const char *uri) override;
 };
 
-
-#endif //QTMARKDOWN_QTQUICKMARKDOWNITEMPLUGIN_H
+#endif  // QTMARKDOWN_QTQUICKMARKDOWNITEMPLUGIN_H

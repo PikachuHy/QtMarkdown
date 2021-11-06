@@ -5,5 +5,5 @@
 #include "QtQuickMarkdownItemPlugin.h"
 
 void QtQuickMarkdownItemPlugin::initializeEngine(QQmlEngine *engine, const char *uri) {
-    QQmlEngineExtensionPlugin::initializeEngine(engine, uri);
+  QQmlEngineExtensionPlugin::initializeEngine(engine, uri);
 }

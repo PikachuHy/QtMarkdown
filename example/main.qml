@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
-import cn.net.pikachu.control 1.0
+import QtMarkdown 1.0
 import QtQuick.Controls 2.15
 
 Window {
@@ -14,7 +14,7 @@ Window {
         anchors.fill: parent
         contentWidth: parent.width
         contentHeight: md.height
-        QtQuickMarkdownItem {
+        QtQuickMarkdownEditor {
             id: md
             width: parent.width
             source: ":/test.md"

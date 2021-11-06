@@ -1,0 +1,14 @@
+//
+// Created by pikachu on 2021/5/10.
+//
+
+#ifndef QTMARKDOWNPARSER_QTMARKDOWN_GLOBAL_H
+#define QTMARKDOWNPARSER_QTMARKDOWN_GLOBAL_H
+#include <QtCore/qglobal.h>
+
+#if defined(QtMarkdown_LIBRARY)
+#define QTMARKDOWNSHARED_EXPORT Q_DECL_EXPORT
+#else
+#define QTMARKDOWNSHARED_EXPORT Q_DECL_IMPORT
+#endif
+#endif  // QTMARKDOWNPARSER_QTMARKDOWN_GLOBAL_H
