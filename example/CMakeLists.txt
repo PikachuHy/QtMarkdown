@@ -9,14 +9,10 @@ if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtWidgetMarkdownEditorExample
             MANUAL_FINALIZATION
             QtWidgetMarkdownEditorExample.cpp
-            QtWidgetMarkdownEditor.cpp QtWidgetMarkdownEditor.h
-            ../assets/md.qrc
             )
     qt_add_executable(QtQuickMarkdownEditorExample
             MANUAL_FINALIZATION
             QtQuickMarkdownEditorExample.cpp
-            QtQuickMarkdownEditor.cpp QtQuickMarkdownEditor.h
-            ../assets/md.qrc
             qml.qrc
             )
 else ()
@@ -25,18 +21,15 @@ else ()
     add_executable(QtQuickMarkdownEditorMain
             QtQuickMarkdownEditorExample.cpp
             ../assets/md.qrc qml.qrc
-            QtQuickMarkdownEditor.cpp QtQuickMarkdownEditor.h
             )
 endif ()
 target_link_libraries(QtMarkdownParserExample PRIVATE QtMarkdownParser)
 set_target_properties(QtMarkdownParserExample PROPERTIES AUTORCC ON)
 set_target_properties(QtWidgetMarkdownEditorExample PROPERTIES AUTORCC ON)
-target_link_libraries(QtWidgetMarkdownEditorExample PRIVATE Qt${QT_VERSION_MAJOR}::Widgets QtMarkdownEditor)
+target_link_libraries(QtWidgetMarkdownEditorExample PRIVATE QtWidgetMarkdownEditor)
 set_target_properties(QtQuickMarkdownEditorExample PROPERTIES AUTORCC ON)
 set_target_properties(QtQuickMarkdownEditorExample PROPERTIES AUTOMOC ON)
-target_link_libraries(QtQuickMarkdownEditorExample PRIVATE QtMarkdownEditor
-        Qt${QT_VERSION_MAJOR}::Quick
-        Qt${QT_VERSION_MAJOR}::Qml)
+target_link_libraries(QtQuickMarkdownEditorExample PRIVATE QtQuickMarkdownEditor)
 
 if (QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(QtMarkdownParserExample)

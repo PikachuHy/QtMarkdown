@@ -7,7 +7,7 @@
 #include <QCursor>
 
 #include "debug.h"
-using namespace md::editor;
+namespace md::editor {
 QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPaintedItem(parent) {
   m_editor = std::make_shared<Editor>();
   setAcceptHoverEvents(true);
@@ -56,3 +56,4 @@ QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) con
   return QQuickItem::inputMethodQuery(query);
 }
 void QtQuickMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) { m_editor->insertText(event->commitString()); }
+}  // namespace md::editor

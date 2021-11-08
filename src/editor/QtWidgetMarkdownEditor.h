@@ -10,12 +10,14 @@
 #include <QWidget>
 
 #include "editor/Editor.h"
+namespace md::editor {
 class QtWidgetMarkdownEditor : public QAbstractScrollArea {
   Q_OBJECT
  public:
   explicit QtWidgetMarkdownEditor(QWidget* parent = nullptr);
   void loadFile(QString path);
   QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+  void reload();
 
  protected:
   void paintEvent(QPaintEvent* event) override;
@@ -31,5 +33,5 @@ class QtWidgetMarkdownEditor : public QAbstractScrollArea {
   QPoint m_offset;
   QTimer m_cursorTimer;
 };
-
+}  // namespace md::editor
 #endif  // QTMARKDOWN_QTWIDGETMARKDOWNEDITOR_H

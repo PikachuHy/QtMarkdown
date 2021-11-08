@@ -13,7 +13,7 @@
 
 #include "debug.h"
 #include "editor/Editor.h"
-using namespace md::editor;
+namespace md::editor {
 QtWidgetMarkdownEditor::QtWidgetMarkdownEditor(QWidget *parent) : QAbstractScrollArea(parent), m_offset(0, 0) {
   setFocusPolicy(Qt::StrongFocus);
   setAttribute(Qt::WA_InputMethodEnabled);
@@ -81,3 +81,5 @@ void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) { setCursor(QCursor(Qt::IBeamCursor)); }
+void QtWidgetMarkdownEditor::reload() {}
+}  // namespace md::editor

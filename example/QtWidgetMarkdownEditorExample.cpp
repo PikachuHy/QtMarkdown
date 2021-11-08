@@ -4,10 +4,11 @@
 
 #include <QApplication>
 
-#include "QtWidgetMarkdownEditor.h"
+#include "editor/QtWidgetMarkdownEditor.h"
+using md::editor::QtWidgetMarkdownEditor;
+
 int main(int argc, char *argv[]) {
-  QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
-      Qt::HighDpiScaleFactorRoundingPolicy::Floor);
+  QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
   QApplication a(argc, argv);
   QtWidgetMarkdownEditor w;
   w.resize(800, 600);

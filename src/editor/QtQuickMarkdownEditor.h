@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include "editor/Editor.h"
+namespace md::editor {
 class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   Q_OBJECT
   Q_PROPERTY(QString text READ text WRITE setText)
@@ -45,5 +46,5 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   std::shared_ptr<md::editor::Editor> m_editor;
   QTimer m_cursorTimer;
 };
-
+}  // namespace md::editor
 #endif  // QTMARKDOWN_QTQUICKMARKDOWNEDITOR_H
