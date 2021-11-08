@@ -205,7 +205,8 @@ class ImageParser : public LineParser {
     while (!isRightParenthesis(tokens[i])) i++;
     auto url = mergeToText(tokens, prev, i);
     i++;  // )
-    return {true, i - startIndex, new Image((Text*)alt[0], (Text*)url[0])};
+    Text* altTextNode = alt.empty() ? nullptr : alt[0];
+    return {true, i - startIndex, new Image(altTextNode, (Text*)url[0])};
   }
 };
 // 链接解析器
