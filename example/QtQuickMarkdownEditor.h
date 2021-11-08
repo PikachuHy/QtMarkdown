@@ -5,6 +5,7 @@
 #ifndef QTMARKDOWN_QTQUICKMARKDOWNEDITOR_H
 #define QTMARKDOWN_QTQUICKMARKDOWNEDITOR_H
 #include <QQuickPaintedItem>
+#include <QTimer>
 
 #include "editor/Editor.h"
 class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
@@ -24,11 +25,25 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   [[nodiscard]] QString path() const { return m_path; };
   void setPath(const QString &path);
 
+ protected:
+  void hoverMoveEvent(QHoverEvent *event) override;
+  void mousePressEvent(QMouseEvent *event) override;
+  void keyPressEvent(QKeyEvent *event) override;
+  void keyReleaseEvent(QKeyEvent *event) override;
+  void focusOutEvent(QFocusEvent *event) override;
+
+ public:
+  QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+
+ protected:
+  void inputMethodEvent(QInputMethodEvent *event) override;
+
  private:
   QString m_text;
   QString m_source;
   QString m_path;
   std::shared_ptr<md::editor::Editor> m_editor;
+  QTimer m_cursorTimer;
 };
 
 #endif  // QTMARKDOWN_QTQUICKMARKDOWNEDITOR_H

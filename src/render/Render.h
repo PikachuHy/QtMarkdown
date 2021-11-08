@@ -10,7 +10,7 @@
 namespace md::render {
 class Render {
  public:
-  static InstructionGroup render(parser::Node* node, DocPtr doc);
+  static Block render(parser::Node* node, DocPtr doc);
 
  private:
 };

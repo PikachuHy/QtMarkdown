@@ -14,8 +14,15 @@ class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
     m_items.emplace_back(PieceTableItem{PieceTableItem::original, offset, length});
   }
   [[nodiscard]] String toString(const DocPtr& doc) const;
+  void insert(SizeType totalOffset, PieceTableItem item);
+  void remove(SizeType totalOffset, SizeType length);
+  std::pair<Text*, Text*> split(SizeType totalOffset);
   auto begin() { return m_items.begin(); }
   auto end() { return m_items.end(); }
+
+ private:
+  Text() {}
+  [[nodiscard]] std::pair<SizeType, SizeType> findItem(SizeType totalOffset) const;
 
  private:
   QList<PieceTableItem> m_items;

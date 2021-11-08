@@ -4,14 +4,24 @@
 
 #include "QtWidgetMarkdownEditor.h"
 
+#include <QInputMethod>
+#include <QInputMethodEvent>
 #include <QPainter>
+#include <QRect>
 #include <QScrollBar>
+#include <QVariant>
 
 #include "debug.h"
+#include "editor/Editor.h"
 using namespace md::editor;
 QtWidgetMarkdownEditor::QtWidgetMarkdownEditor(QWidget *parent) : QAbstractScrollArea(parent), m_offset(0, 0) {
+  setFocusPolicy(Qt::StrongFocus);
+  setAttribute(Qt::WA_InputMethodEnabled);
+  setMouseTracking(true);
   m_editor = std::make_shared<Editor>();
   DEBUG << "viewport size:" << viewport()->sizeHint();
+  m_cursorTimer.start(500);
+  connect(&m_cursorTimer, &QTimer::timeout, [this]() { this->viewport()->update(); });
 }
 void QtWidgetMarkdownEditor::loadFile(QString path) {
   m_editor->loadFile(path);
@@ -42,3 +52,32 @@ void QtWidgetMarkdownEditor::scrollContentsBy(int dx, int dy) {
   viewport()->update();
 }
 QSize QtWidgetMarkdownEditor::viewportSizeHint() const { return {m_editor->width(), m_editor->height()}; }
+void QtWidgetMarkdownEditor::keyPressEvent(QKeyEvent *event) {
+  m_editor->keyPressEvent(event);
+  viewport()->update();
+}
+QVariant QtWidgetMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) const {
+  switch (query) {
+    case Qt::ImCursorRectangle: {
+      auto pos = m_editor->cursorPos();
+      auto rect = QRect(pos, QSize(5, 20));
+      return rect;
+    }
+    case Qt::ImCursorPosition: {
+      return m_editor->cursorPos();
+    }
+    default: {
+    }
+  }
+  return QAbstractScrollArea::inputMethodQuery(query);
+}
+void QtWidgetMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
+  auto str = event->commitString();
+  DEBUG << str;
+  m_editor->insertText(str);
+}
+void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
+  m_editor->mousePressEvent(event);
+  viewport()->update();
+}
+void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) { setCursor(QCursor(Qt::IBeamCursor)); }

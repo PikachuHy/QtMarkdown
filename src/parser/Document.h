@@ -61,16 +61,26 @@ struct Visitable : public Node {
     }
   }
 };
-using NodePtrList = QList<Node*>;
+using NodePtr = Node*;
+using NodePtrList = QList<NodePtr>;
 class Text;
 class QTMARKDOWNSHARED_EXPORT Container : public Node {
  public:
   Container() = default;
   NodePtrList& children() { return m_children; }
+  void setChildren(const NodePtrList& children) {
+    m_children = children;
+    for (auto child : m_children) {
+      child->setParent(this);
+    }
+  }
+  void setChild(SizeType index, NodePtr node);
+  void insertChild(SizeType index, NodePtr node);
   void appendChild(Node* child) {
     m_children.push_back(child);
     child->setParent(this);
   }
+  void appendChildren(NodePtrList& children);
   void appendChildren(QList<Text*>& children);
   void accept(VisitorNode* v) override {
     for (auto node : m_children) {

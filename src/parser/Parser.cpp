@@ -839,7 +839,19 @@ class ParserPrivate {
         auto parseRet = parser->parse(m_lines, i);
         if (parseRet.success) {
           i += parseRet.offset;
-          nodes->appendChild(parseRet.node);
+          if (parseRet.node->type() == NodeType::paragraph) {
+            // 空段落直接去掉
+            auto paragraphNode = (Paragraph*)parseRet.node;
+            if (paragraphNode->children().empty()) {
+              DEBUG << "delete empty paragraph node";
+              delete paragraphNode;
+              break;
+            } else {
+              nodes->appendChild(parseRet.node);
+            }
+          } else {
+            nodes->appendChild(parseRet.node);
+          }
           break;
         }
       }

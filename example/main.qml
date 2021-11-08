@@ -16,10 +16,14 @@ Window {
         contentHeight: md.height
         QtQuickMarkdownEditor {
             id: md
+            // 必须focus才能接收键盘输入
+            focus: true
             width: parent.width
             source: ":/test.md"
         }
     }
     Component.onCompleted: function () {
+        console.log(md.width, md.height)
+        console.log(sv.width, sv.height)
     }
 }

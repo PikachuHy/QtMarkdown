@@ -18,6 +18,7 @@ void TextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   painter.drawText(rect, s);
   painter.restore();
 }
+String TextInstruction::textString(DocPtr doc) const { return m_item.toString(doc); }
 void ImageInstruction::run(Painter& painter, Point offset, DocPtr doc) const {}
 void StaticImageInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   auto rect = updateRect(m_config.rect, offset);
@@ -64,5 +65,39 @@ Rect Instruction::updateRect(Rect rect, Point offset) {
   int x = offset.x() + rect.x();
   int y = offset.y() + rect.y();
   return {x, y, rect.width(), rect.height()};
+}
+SizeType Block::maxOffsetOfLogicalLine(SizeType index) const {
+  ASSERT(index >= 0 && index < m_logicalLines.size());
+  auto line = m_logicalLines[index];
+  SizeType totalOffset = 0;
+  for (auto cell : line) {
+    if (!cell->isTextCell()) continue;
+    auto textCell = (TextCell*)cell;
+    totalOffset += textCell->length();
+  }
+  return totalOffset;
+}
+void Block::appendVisualItem(VisualItem item) {
+  ASSERT(!m_visualLines.empty());
+  m_visualLines.back().push_back(item);
+}
+void Block::appendLogicalItem(LogicalItem item) {
+  ASSERT(!m_logicalLines.empty());
+  m_logicalLines.back().push_back(item);
+}
+SizeType Block::countOfVisualItem(SizeType indexOfLine) const {
+  ASSERT(indexOfLine >= 0 && indexOfLine < m_visualLines.size());
+  return m_visualLines[indexOfLine].size();
+}
+const VisualItem& Block::visualItemAt(SizeType indexOfLine, SizeType indexOfItem) const {
+  ASSERT(indexOfLine >= 0 && indexOfLine < m_visualLines.size());
+  ASSERT(indexOfItem >= 0 && indexOfItem < m_visualLines[indexOfLine].size());
+  return m_visualLines[indexOfLine][indexOfItem];
+}
+void Block::insertVisualItem(SizeType indexOfLine, SizeType indexOfItem, VisualItem item) {
+  ASSERT(indexOfLine >= 0 && indexOfLine < m_visualLines.size());
+  ASSERT(indexOfItem >= 0 && indexOfItem < m_visualLines[indexOfLine].size());
+  auto& line = m_visualLines[indexOfLine];
+  line.insert(line.begin() + indexOfItem, item);
 }
 }  // namespace md::render

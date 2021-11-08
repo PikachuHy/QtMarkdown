@@ -11,7 +11,8 @@ namespace md {
 namespace render {
 class Instruction;
 }
-using InstructionPtrList = std::vector<render::Instruction*>;
+using InstructionPtr = render::Instruction*;
+using InstructionPtrList = std::vector<InstructionPtr>;
 using Brush = QBrush;
 using Color = QColor;
 }  // namespace md

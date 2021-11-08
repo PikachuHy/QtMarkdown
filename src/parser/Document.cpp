@@ -39,7 +39,25 @@ void Document::accept(VisitorNode *visitor) {
     it->accept(visitor);
   }
 }
+void Container::setChild(SizeType index, NodePtr node) {
+  ASSERT(index >= 0 && index < m_children.size());
+  node->setParent(this);
+  m_children[index] = node;
+}
+void Container::insertChild(SizeType index, NodePtr node) {
+  ASSERT(index >= 0 && index < m_children.size());
+  node->setParent(this);
+  m_children.insert(index, node);
+}
 void Container::appendChildren(QList<Text *> &children) {
+  if (children.empty()) return;
+  m_children.reserve(m_children.size() + children.size());
+  for (auto &node : children) {
+    node->setParent(this);
+    m_children.append(node);
+  }
+}
+void Container::appendChildren(NodePtrList &children) {
   if (children.empty()) return;
   m_children.reserve(m_children.size() + children.size());
   for (auto &node : children) {

@@ -6,6 +6,7 @@
 #define QTMARKDOWN_QTWIDGETMARKDOWNEDITOR_H
 
 #include <QAbstractScrollArea>
+#include <QTimer>
 #include <QWidget>
 
 #include "editor/Editor.h"
@@ -14,15 +15,21 @@ class QtWidgetMarkdownEditor : public QAbstractScrollArea {
  public:
   explicit QtWidgetMarkdownEditor(QWidget* parent = nullptr);
   void loadFile(QString path);
+  QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
  protected:
   void paintEvent(QPaintEvent* event) override;
   void scrollContentsBy(int dx, int dy) override;
   [[nodiscard]] QSize viewportSizeHint() const override;
+  void keyPressEvent(QKeyEvent* event) override;
+  void inputMethodEvent(QInputMethodEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
 
  private:
   std::shared_ptr<md::editor::Editor> m_editor;
   QPoint m_offset;
+  QTimer m_cursorTimer;
 };
 
 #endif  // QTMARKDOWN_QTWIDGETMARKDOWNEDITOR_H
