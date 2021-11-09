@@ -25,6 +25,8 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void setSource(const QString &source);
   [[nodiscard]] QString path() const { return m_path; };
   void setPath(const QString &path);
+  Q_INVOKABLE void newDoc();
+  Q_INVOKABLE void saveToFile(const QString &path);
 
  protected:
   void hoverMoveEvent(QHoverEvent *event) override;
@@ -34,10 +36,14 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void focusOutEvent(QFocusEvent *event) override;
 
  public:
-  QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+  [[nodiscard]] QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
  protected:
   void inputMethodEvent(QInputMethodEvent *event) override;
+ signals:
+  void docSave();
+  void cursorCoordChanged(QString str);
+  void sourceChanged(QString old);
 
  private:
   QString m_text;
@@ -45,6 +51,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   QString m_path;
   std::shared_ptr<md::editor::Editor> m_editor;
   QTimer m_cursorTimer;
+  bool m_isNewDoc;
 };
 }  // namespace md::editor
 #endif  // QTMARKDOWN_QTQUICKMARKDOWNEDITOR_H

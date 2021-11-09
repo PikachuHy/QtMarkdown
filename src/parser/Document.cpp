@@ -17,6 +17,10 @@ QDebug operator<<(QDebug debug, const NodeType &type) {
   debug.nospace() << QString::fromStdString(str);
   return debug;
 }
+std::ostream &operator<<(std::ostream &os, const NodeType &type) {
+  os << magic_enum::enum_name(type);
+  return os;
+}
 Header::Header(int level) : m_level(level) { m_type = NodeType::header; }
 
 Document::Document(const String &str) : m_originalBuffer(str), m_root(Parser::parse(str)) {}
@@ -45,7 +49,7 @@ void Container::setChild(SizeType index, NodePtr node) {
   m_children[index] = node;
 }
 void Container::insertChild(SizeType index, NodePtr node) {
-  ASSERT(index >= 0 && index < m_children.size());
+  ASSERT(index >= 0 && index <= m_children.size());
   node->setParent(this);
   m_children.insert(index, node);
 }
@@ -64,6 +68,22 @@ void Container::appendChildren(NodePtrList &children) {
     node->setParent(this);
     m_children.append(node);
   }
+}
+NodePtr Container::childAt(SizeType index) const {
+  ASSERT(index >= 0 && index < m_children.size());
+  return m_children[index];
+}
+NodePtr &Container::operator[](SizeType index) {
+  ASSERT(index >= 0 && index < m_children.size());
+  return m_children[index];
+}
+const NodePtr &Container::operator[](SizeType index) const {
+  ASSERT(index >= 0 && index < m_children.size());
+  return m_children[index];
+}
+void Container::removeChildAt(SizeType index) {
+  ASSERT(index >= 0 && index < m_children.size());
+  m_children.removeAt(index);
 }
 ItalicText::ItalicText(Text *text) : m_text(text) {
   m_type = NodeType::italic;

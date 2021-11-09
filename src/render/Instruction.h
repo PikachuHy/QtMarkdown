@@ -49,32 +49,47 @@ class Instruction {
   InstructionPainterConfig m_config;
   bool m_lineH;
 };
+// 仅用来占位
+class DummyInstruction : public Instruction {
+ public:
+  DummyInstruction(InstructionPainterConfig config, bool lineHeight = true) : Instruction(config, lineHeight) {}
+  void run(Painter& painter, Point offset, DocPtr doc) const override {}
+};
 class Cell {
  public:
   Cell(Font font, Point pos, bool bol, bool eol) : m_font(font), m_pos(pos), m_bol(bol), m_eol(eol) {}
-  Font font() const { return m_font; }
-  Point pos() const { return m_pos; }
-  bool bol() const { return m_bol; }
-  bool eol() const { return m_eol; }
-  virtual bool isTextCell() = 0;
+  [[nodiscard]] Font font() const { return m_font; }
+  [[nodiscard]] Point pos() const { return m_pos; }
+  [[nodiscard]] bool bol() const { return m_bol; }
+  void setEol(bool eol) { m_eol = eol; }
+  [[nodiscard]] bool eol() const { return m_eol; }
+  void setRect(Rect rect) { m_rect = rect; }
+  virtual bool isTextCell() const { return false; };
+  virtual bool isStaticTextCell() const { return false; }
   virtual SizeType length() = 0;
+  virtual int width(DocPtr doc) const { return 0; }
+  virtual int height() const { return 0; }
 
- private:
+ protected:
   Font m_font;
   Point m_pos;
   // 视觉行开始
   bool m_bol;
   // 视觉行结束
   bool m_eol;
+  Rect m_rect;
 };
 class TextCell : public Cell {
  public:
   TextCell(parser::Text* text, SizeType offset, SizeType length, Font font, Point pos, bool bol, bool eol)
       : Cell(font, pos, bol, eol), m_text(text), m_offset(offset), m_length(length) {}
-  auto text() const { return m_text; }
-  auto offset() const { return m_offset; }
-  bool isTextCell() override { return true; }
+  [[nodiscard]] auto text() const { return m_text; }
+  [[nodiscard]] auto offset() const { return m_offset; }
   SizeType length() override { return m_length; }
+  [[nodiscard]] bool isTextCell() const override { return true; }
+  int width(DocPtr doc) const override;
+  [[nodiscard]] int height() const override { return m_rect.height(); }
+  String toString(DocPtr doc) const;
 
  private:
   parser::Text* m_text;
@@ -84,8 +99,13 @@ class TextCell : public Cell {
 struct StaticTextCell : public Cell {
  public:
   StaticTextCell(String text, Font font, Point pos, bool bol, bool eol) : Cell(font, pos, bol, eol), m_text(text) {}
-  bool isTextCell() override { return false; }
+
   SizeType length() override { return 0; }
+  [[nodiscard]] bool isStaticTextCell() const override { return true; }
+  [[nodiscard]] int width() const {
+    QFontMetrics fm(m_font);
+    return fm.horizontalAdvance(m_text);
+  }
 
  private:
   String m_text;
@@ -93,16 +113,39 @@ struct StaticTextCell : public Cell {
 using VisualItem = InstructionPtr;
 using LogicalItem = Cell*;
 using VisualLine = InstructionPtrList;
-using LogicalLine = QList<LogicalItem>;
+class LogicalLine {
+ public:
+  LogicalLine(int x, int h) : m_x(x), m_h(h) {}
+  LogicalItem& operator[](SizeType index);
+  const LogicalItem& operator[](SizeType index) const { return m_items[index]; }
+  [[nodiscard]] bool empty() const { return m_items.empty(); }
+  void push_back(LogicalItem item) { m_items.push_back(item); }
+  LogicalItem front();
+  LogicalItem back();
+  [[nodiscard]] SizeType size() const { return m_items.size(); }
+  [[nodiscard]] auto begin() const { return m_items.begin(); }
+  [[nodiscard]] auto end() const { return m_items.end(); }
+  [[nodiscard]] int height() const;
+  void setX(int x) { m_x = x; }
+  [[nodiscard]] int x() const { return m_x; }
+  void setHeight(int h) { m_h = h; }
+
+ private:
+  std::vector<LogicalItem> m_items;
+  // 存放在视觉行的x值，在逻辑Item是空的时候有用
+  int m_x{};
+  int m_h{};
+};
 class Block {
  public:
-  Block(parser::Node* node) : m_node(node) {}
+  explicit Block(parser::Node* node) : m_node(node) {}
   void newVisualLine() { m_visualLines.push_back(VisualLine()); }
-  void newLogicalLine() { m_logicalLines.push_back(LogicalLine()); }
+  void newLogicalLine(int x, int h) { m_logicalLines.push_back(LogicalLine(x, h)); }
   void appendVisualItem(VisualItem item);
   void appendLogicalItem(LogicalItem item);
   [[nodiscard]] int height() const {
     int h = 0;
+#if 0
     for (const auto& list : m_visualLines) {
       int maxH = 0;
       for (auto it : list) {
@@ -110,11 +153,16 @@ class Block {
       }
       h += maxH;
     }
+#endif
+    for (const auto& list : m_logicalLines) {
+      h += list.height();
+    }
     return h;
   }
   [[nodiscard]] SizeType countOfVisualLine() const { return m_visualLines.size(); }
   [[nodiscard]] SizeType countOfLogicalLine() const { return m_logicalLines.size(); }
   [[nodiscard]] SizeType countOfVisualItem(SizeType indexOfLine) const;
+  [[nodiscard]] SizeType countOfLogicalItem(SizeType indexOfLine) const;
   [[nodiscard]] const VisualItem& visualItemAt(SizeType indexOfLine, SizeType indexOfItem) const;
   void insertVisualItem(SizeType indexOfLine, SizeType indexOfItem, VisualItem item);
   void insertNewVisualLineAt(SizeType index, Instruction* instruction) {
@@ -123,6 +171,7 @@ class Block {
   }
   [[nodiscard]] const QList<VisualLine>& visualLines() const { return m_visualLines; }
   [[nodiscard]] const QList<LogicalLine>& logicalLines() const { return m_logicalLines; }
+  [[nodiscard]] QList<LogicalLine>& logicalLines() { return m_logicalLines; }
   [[nodiscard]] SizeType maxOffsetOfLogicalLine(SizeType index) const;
 
  private:
@@ -132,34 +181,6 @@ class Block {
   QList<LogicalLine> m_logicalLines;
   // 方便调试用
   parser::Node* m_node;
-};
-class InstructionGroup2 {
- public:
-  void createNewLine() { m_instructions.append(InstructionPtrList()); }
-  void appendItem(Instruction* instruction) { m_instructions.back().push_back(instruction); }
-  [[nodiscard]] auto begin() const { return m_instructions.begin(); }
-  [[nodiscard]] auto end() const { return m_instructions.end(); }
-  [[nodiscard]] auto size() const { return m_instructions.size(); }
-  void insertNewLineAt(SizeType index, Instruction* instruction) {
-    m_instructions.insert(index, InstructionPtrList());
-    m_instructions[index].push_back(instruction);
-  }
-  [[nodiscard]] auto at(SizeType index) const { return m_instructions.at(index); }
-  InstructionPtrList& operator[](SizeType index) { return m_instructions[index]; }
-  [[nodiscard]] int height() const {
-    int h = 0;
-    for (const auto& list : m_instructions) {
-      int maxH = 0;
-      for (auto it : list) {
-        maxH = std::max(maxH, it->height());
-      }
-      h += maxH;
-    }
-    return h;
-  }
-
- private:
-  QList<InstructionPtrList> m_instructions;
 };
 
 class TextInstruction : public Instruction {
@@ -174,7 +195,8 @@ class TextInstruction : public Instruction {
 };
 class StaticTextInstruction : public Instruction {
  public:
-  StaticTextInstruction(String text, InstructionPainterConfig config) : Instruction(std::move(config)), m_text(text) {}
+  StaticTextInstruction(String text, InstructionPainterConfig config, bool lineHeight = true)
+      : Instruction(std::move(config), lineHeight), m_text(text) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
 
  private:

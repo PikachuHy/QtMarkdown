@@ -1,5 +1,5 @@
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Quick Qml Widgets Concurrent REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Quick Qml Widgets Concurrent REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Quick QuickControls2 Qml Widgets Concurrent REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Quick QuickControls2 Qml Widgets Concurrent REQUIRED)
 if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtMarkdownParserExample
             MANUAL_FINALIZATION
@@ -29,7 +29,7 @@ set_target_properties(QtWidgetMarkdownEditorExample PROPERTIES AUTORCC ON)
 target_link_libraries(QtWidgetMarkdownEditorExample PRIVATE QtWidgetMarkdownEditor)
 set_target_properties(QtQuickMarkdownEditorExample PROPERTIES AUTORCC ON)
 set_target_properties(QtQuickMarkdownEditorExample PROPERTIES AUTOMOC ON)
-target_link_libraries(QtQuickMarkdownEditorExample PRIVATE QtQuickMarkdownEditor)
+target_link_libraries(QtQuickMarkdownEditorExample PRIVATE QtQuickMarkdownEditor Qt${QT_VERSION_MAJOR}::QuickControls2)
 
 if (QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(QtMarkdownParserExample)

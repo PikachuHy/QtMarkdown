@@ -12,29 +12,225 @@
 
 #include "Cursor.h"
 #include "debug.h"
+#include "parser/Text.h"
 #include "render/Instruction.h"
 #include "render/Render.h"
+using namespace md::parser;
 namespace md::editor {
-Editor::Editor() { m_cursor = std::make_shared<Cursor>(); }
-void Editor::loadFile(const String& path) {
-  QFile file(path);
+class SimpleMarkdownVisitor
+    : public MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText, Image, Link, CodeBlock, InlineCode,
+                             Paragraph, CheckboxList, CheckboxItem, UnorderedList, OrderedList, UnorderedListItem,
+                             OrderedListItem, Hr, QuoteBlock, Table, Lf> {
+ public:
+  explicit SimpleMarkdownVisitor(DocPtr doc) : m_doc(doc) {}
+  void visit(Header *node) override {
+    for (int i = 0; i < node->level(); ++i) {
+      m_md += "#";
+    }
+    m_md += " ";
+    for (auto it : node->children()) {
+      it->accept(this);
+    }
+    m_md += "\n";
+  }
+  void visit(Text *node) override { m_md += node->toString(m_doc); }
+  void visit(ItalicText *node) override {
+    m_md += "*";
+    node->text()->accept(this);
+    m_md += "*";
+  }
+  void visit(BoldText *node) override {
+    m_md += "**";
+    node->text()->accept(this);
+    m_md += "**";
+  }
+  void visit(ItalicBoldText *node) override {
+    m_md += "***";
+    node->text()->accept(this);
+    m_md += "***";
+  }
+  void visit(Image *node) override {
+    m_md += "![";
+    if (node->alt()) {
+      node->alt()->accept(this);
+    } else {
+      qDebug() << "image alt is null";
+    }
+    m_md += "]";
+    m_md += "(";
+    if (node->src()) {
+      node->src()->accept(this);
+    } else {
+      qDebug() << "image src is null";
+    }
+    m_md += ")";
+  }
+  void visit(Link *node) override {
+    m_md += "[";
+    if (node->href()) {
+      node->href()->accept(this);
+    } else {
+      qDebug() << "link href is null";
+    }
+    m_md += "]";
+    m_md += "(";
+    if (node->content()) {
+      node->content()->accept(this);
+    } else {
+      qDebug() << "link content is null";
+    }
+    m_md += ")";
+  }
+  void visit(CodeBlock *node) override {
+    m_md += "```";
+    node->name()->accept(this);
+    m_md += "\n";
+    for (auto child : node->children()) {
+      child->accept(this);
+      m_md += "\n";
+    }
+    m_md += "```";
+    m_md += "\n";
+  }
+  void visit(InlineCode *node) override {
+    m_md += "`";
+    if (auto code = node->code(); code) {
+      code->accept(this);
+    }
+    m_md += "`";
+  }
+  void visit(Paragraph *node) override {
+    if (node->children().empty()) return;
+    for (auto it : node->children()) {
+      it->accept(this);
+    }
+    m_md += "\n";
+  }
+  void visit(CheckboxList *node) override {
+    for (auto child : node->children()) {
+      ASSERT(child->type() == NodeType::checkbox_item);
+      auto item = (CheckboxItem *)child;
+      m_md += "- [";
+      if (item->isChecked()) {
+        m_md += "x";
+      } else {
+        m_md += " ";
+      }
+      m_md += "] ";
+      item->accept(this);
+      m_md += "\n";
+    }
+  }
+  void visit(CheckboxItem *node) override {
+    for (auto it : node->children()) {
+      it->accept(this);
+    }
+  }
+  void visit(UnorderedList *node) override {
+    for (auto it : node->children()) {
+      m_md += "- ";
+      it->accept(this);
+      m_md += "\n";
+    }
+  }
+  void visit(OrderedList *node) override {
+    int i = 1;
+    for (auto it : node->children()) {
+      m_md += QString("%1. ").arg(i);
+      it->accept(this);
+      m_md += "\n";
+      i++;
+    }
+  }
+  void visit(OrderedListItem *node) override {
+    for (auto child : node->children()) {
+      child->accept(this);
+    }
+  }
+  void visit(UnorderedListItem *node) override {
+    for (auto child : node->children()) {
+      child->accept(this);
+    }
+  }
+  void visit(Hr *node) override { m_md += "---\n"; }
+  void visit(Lf *node) override { m_md += "\n"; }
+  void visit(QuoteBlock *node) override {
+    m_md += ">";
+    for (auto it : node->children()) {
+      it->accept(this);
+      m_md += "\n";
+    }
+  }
+  void visit(Table *node) override {}
+  String markdown() { return m_md; }
+
+ private:
+  String m_md;
+  DocPtr m_doc;
+};
+
+Editor::Editor() {
+  m_cursor = std::make_shared<Cursor>();
+  m_renderSetting = std::make_shared<render::RenderSetting>();
+}
+void Editor::loadText(const String &text) {
+  m_doc = std::make_shared<Document>(text, m_renderSetting);
+  m_cursor = std::make_shared<Cursor>();
+}
+void Editor::loadFile(const String &path) {
+  String notePath = path;
+  String prefix = "file://";
+  if (path.startsWith(prefix)) {
+    notePath = path.mid(prefix.size());
+  }
+  QFile file(notePath);
   if (!file.exists()) {
-    DEBUG << "file not exist:" << path;
+    DEBUG << "file not exist:" << notePath;
     return;
   }
   if (!file.open(QIODevice::ReadOnly)) {
-    DEBUG << "file open fail:" << path;
+    DEBUG << "file open fail:" << notePath;
     return;
   }
   auto mdText = file.readAll();
-  m_doc = std::make_shared<Document>(mdText);
+  loadText(mdText);
 }
-void Editor::paintEvent(QPoint offset, Painter& painter) {
+
+bool Editor::saveToFile(const String &path) {
+  String notePath = path;
+  String prefix = "file://";
+  if (path.startsWith(prefix)) {
+    notePath = path.mid(prefix.size());
+  }
+  if (!notePath.endsWith(".md")) {
+    notePath += ".md";
+  }
+  DEBUG << "note path" << notePath;
+  QFile file(notePath);
+  if (!file.open(QIODevice::WriteOnly)) {
+    DEBUG << "file open fail:" << notePath;
+    return false;
+  }
+  SimpleMarkdownVisitor visitor(m_doc.get());
+  m_doc->accept(&visitor);
+  auto mdText = visitor.markdown();
+  file.write(mdText.toLocal8Bit());
+  file.close();
+  return true;
+}
+void Editor::paintEvent(QPoint offset, Painter &painter) {
   if (!m_doc) return;
+  // 如果最后一个block不是段落，添加一个段落
+  if (m_doc->m_root->children().back()->type() != NodeType::paragraph) {
+    auto newParagraph = new Paragraph();
+    m_doc->m_root->appendChild(newParagraph);
+    m_doc->m_blocks.append(render::Render::render(newParagraph, m_renderSetting, m_doc.get()));
+  }
   auto oldOffset = offset;
-  for (const auto& instructionGroup : m_doc->m_blocks) {
+  offset.setY(offset.y() + m_renderSetting->docMargin.top());
+  for (const auto &instructionGroup : m_doc->m_blocks) {
     auto h = instructionGroup.height();
-    for (const auto& instructionLine : instructionGroup.visualLines()) {
+    for (const auto &instructionLine : instructionGroup.visualLines()) {
       for (auto instruction : instructionLine) {
         instruction->run(painter, offset, m_doc.get());
       }
@@ -43,6 +239,7 @@ void Editor::paintEvent(QPoint offset, Painter& painter) {
   }
   auto pos = m_cursor->pos();
   auto coord = m_cursor->coord();
+#if 0
   QStringList list;
   list << QString("Cursor: (%1, %2)").arg(pos.x()).arg(pos.y());
   list << QString("BlockNo: %1").arg(coord.blockNo);
@@ -54,27 +251,65 @@ void Editor::paintEvent(QPoint offset, Painter& painter) {
     painter.drawText(x, y, msg);
     y += painter.fontMetrics().height() + 4;
   }
+#endif
   drawCursor(oldOffset, painter);
+  // 高亮当前Block
+  int h = m_renderSetting->docMargin.top();
+  for (int i = 0; i < coord.blockNo; ++i) {
+    h += m_doc->m_blocks[i].height();
+  }
+  auto block = m_doc->m_blocks[coord.blockNo];
+  painter.save();
+  painter.setPen(QColor(0, 255, 255));
+  painter.drawRect(1, h + 1, width() - 2, block.height() - 2);
+  painter.restore();
+  auto node = m_doc->m_root->children()[coord.blockNo];
+  if (node->type() == NodeType::paragraph) {
+    painter.drawText(0, h, "P");
+  } else if (node->type() == NodeType::header) {
+    painter.drawText(0, h, "H");
+  } else if (node->type() == NodeType::ol) {
+    painter.drawText(0, h, "ol");
+  } else if (node->type() == NodeType::ul) {
+    painter.drawText(0, h, "ul");
+  } else if (node->type() == NodeType::checkbox) {
+    painter.drawText(0, h, "cb");
+  }
+  painter.save();
+  painter.setPen(Qt::red);
+  painter.drawText(0, h + 20, QString("%1 ~ %2").arg(h).arg(h + block.height()));
+  painter.restore();
 }
-int Editor::width() const { return 800; }
+int Editor::width() const { return m_renderSetting->maxWidth; }
 int Editor::height() const {
   auto h = 0;
-  for (const auto& instructionGroup : m_doc->m_blocks) {
+  for (const auto &instructionGroup : m_doc->m_blocks) {
     h += instructionGroup.height();
   }
-  return h;
+  return h + m_renderSetting->docMargin.top() + m_renderSetting->docMargin.bottom();
 }
-void Editor::drawCursor(QPoint offset, Painter& painter) {
+void Editor::drawCursor(QPoint offset, Painter &painter) {
   if (m_showCursor) {
     m_doc->updateCursor(*m_cursor);
     auto pos = m_cursor->pos();
     pos += offset;
-    painter.drawLine(pos.x(), pos.y(), pos.x(), pos.y() + m_cursor->height());
+    painter.save();
+    painter.setPen(Qt::red);
+    auto x = pos.x();
+    auto y = pos.y();
+    auto h = m_cursor->height();
+    auto delta = 2;
+    painter.drawLine(x - delta, y, x + delta, y);
+    painter.drawLine(x, y, x, y + h);
+    painter.drawLine(x - delta, y + h, x + delta, y + h);
+    painter.restore();
   }
   m_showCursor = !m_showCursor;
 }
-void Editor::keyPressEvent(KeyEvent* event) {
-  DEBUG << event;
+void Editor::keyPressEvent(KeyEvent *event) {
+  if (event->key() == Qt::Key_Tab) {
+    return;
+  }
   if (event->key() == Qt::Key_Left) {
     if (event->modifiers() & Qt::Modifier::CTRL) {
       m_doc->moveCursorToBol(*m_cursor);
@@ -96,18 +331,38 @@ void Editor::keyPressEvent(KeyEvent* event) {
     m_doc->removeText(*m_cursor);
   } else if (event->key() == Qt::Key_Return) {
     // 处理回车，要拆结点
-    DEBUG << "Return";
     m_doc->insertReturn(*m_cursor);
   } else {
     auto text = event->text();
-    DEBUG << "insert" << text;
     m_doc->insertText(*m_cursor, text);
   }
 }
 Point Editor::cursorPos() const { return m_cursor->pos(); }
-void Editor::mousePressEvent(MouseEvent* event) {
-  DEBUG << event->pos();
+void Editor::mousePressEvent(MouseEvent *event) {
+  // 判断是不是点中了checkbox
+
   m_doc->moveCursorToPos(*m_cursor, event->pos());
 }
 void Editor::insertText(String str) { m_doc->insertText(*m_cursor, str); }
+void Editor::reset() {
+  m_cursor = std::make_shared<Cursor>();
+  m_doc = std::make_shared<Document>("", m_renderSetting);
+}
+String Editor::cursorCoord() const {
+  String s;
+  auto pos = m_cursor->pos();
+  auto coord = m_cursor->coord();
+  s += QString("Cursor: (%1, %2, %3)").arg(pos.x()).arg(pos.y()).arg(m_cursor->height());
+  s += "\n";
+  s += QString("BlockNo: %1/%2").arg(coord.blockNo).arg(m_doc->m_blocks.size());
+  s += "\n";
+  auto &block = m_doc->m_blocks[coord.blockNo];
+  s += QString("LineNo: %1/%2").arg(coord.lineNo).arg(block.countOfLogicalLine());
+  s += "\n";
+  s += QString("CellNo: %1/%2").arg(coord.cellNo).arg(block.countOfLogicalItem(coord.lineNo));
+  s += "\n";
+  s += QString("Offset: %1/%2").arg(coord.offset).arg(block.maxOffsetOfLogicalLine(coord.lineNo));
+  s += "\n";
+  return s;
+}
 }  // namespace md::editor

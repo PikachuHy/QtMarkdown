@@ -88,13 +88,14 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
     m_html += "</p>\n";
   }
   void visit(CheckboxList *node) override {
-    for (auto it : node->children()) {
-      if (it->isChecked()) {
+    for (auto child : node->children()) {
+      auto item = (CheckboxItem *)child;
+      if (item->isChecked()) {
         m_html += "\t<div><input type=\"checkbox\" checked/>";
       } else {
         m_html += "\t<div><input type=\"checkbox\"/>";
       }
-      it->accept(this);
+      item->accept(this);
       m_html += "</div>\n";
     }
   }
@@ -171,6 +172,7 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
 };
 
 int main() {
+  //  QFile mdFile("/Users/pikachu/Desktop/test(1).md");
   QFile mdFile(":/test.md");
   if (!mdFile.exists()) {
     qDebug() << "file not exist:" << mdFile.fileName();

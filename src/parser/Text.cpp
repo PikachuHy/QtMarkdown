@@ -43,20 +43,22 @@ void Text::insert(SizeType totalOffset, PieceTableItem item) {
       return;
     }
     curOffset += m_items[i].length;
+    i++;
   }
 }
 void Text::remove(SizeType totalOffset, SizeType length) {
   ASSERT(totalOffset >= 0);
-  auto [i, curOffset] = findItem(totalOffset);
+  // 删除时，右边必须时开区间，因为是从当前的这个offset往后算
+  auto [i, curOffset] = findItem(totalOffset, false);
   auto leftOffset = totalOffset - curOffset;
   ASSERT(i >= 0 && i < m_items.size());
   if (leftOffset + length > m_items[i].length) {
-    // 这种情况出现在选区删除
-    DEBUG << "support later";
+    auto leftLength = length - m_items[i].length;
+    m_items.removeAt(i);
+    remove(totalOffset, leftLength);
   } else {
     // 然后这里也要判断是头 尾 还是中间
     if (curOffset == totalOffset) {
-      DEBUG << "head";
       // 如果刚好整个item需要删除
       if (curOffset + m_items[i].length == totalOffset + length) {
         m_items.remove(i);
@@ -64,27 +66,28 @@ void Text::remove(SizeType totalOffset, SizeType length) {
         m_items[i].offset += length;
       }
     } else if (curOffset + m_items[i].length == totalOffset + length) {
-      DEBUG << "tail";
       m_items[i].length -= length;
     } else {
       // 拆
-      DEBUG << "split";
       auto oldLength = totalOffset - curOffset;
-      auto item2Length = m_items[i].length - oldLength;
+      auto item2Length = m_items[i].length - oldLength - length;
       m_items[i].length = oldLength;
       PieceTableItem item2{m_items[i].bufferType, m_items[i].offset + m_items[i].length + length, item2Length};
       m_items.insert(i + 1, item2);
     }
   }
-  for (auto& item : m_items) {
-    DEBUG << item.bufferType << item.offset << item.length;
-  }
 }
-std::pair<SizeType, SizeType> Text::findItem(SizeType totalOffset) const {
+std::pair<SizeType, SizeType> Text::findItem(SizeType totalOffset, bool includeRight) const {
   SizeType curOffset = 0;
   for (SizeType i = 0; i < m_items.size(); ++i) {
-    if (curOffset <= totalOffset && totalOffset <= curOffset + m_items[i].length) {
-      return {i, curOffset};
+    if (includeRight) {
+      if (curOffset <= totalOffset && totalOffset <= curOffset + m_items[i].length) {
+        return {i, curOffset};
+      }
+    } else {
+      if (curOffset <= totalOffset && totalOffset < curOffset + m_items[i].length) {
+        return {i, curOffset};
+      }
     }
     curOffset += m_items[i].length;
   }
@@ -102,14 +105,11 @@ std::pair<Text*, Text*> Text::split(SizeType totalOffset) {
   // splitIndex所在item要拆成两个，当然，也要考虑首尾的情况
   PieceTableItem& item = m_items[splitIndex];
   if (curOffset == totalOffset) {
-    DEBUG << "head";
     rightText->m_items.append(item);
   } else if (curOffset + item.length == totalOffset) {
-    DEBUG << "tail";
     leftText->m_items.append(item);
   } else {
     // 拆
-    DEBUG << "split";
     auto oldLength = totalOffset - curOffset;
     auto item2Length = item.length - oldLength;
     item.length = oldLength;
@@ -121,6 +121,18 @@ std::pair<Text*, Text*> Text::split(SizeType totalOffset) {
     rightText->m_items.append(m_items[i]);
   }
   return {leftText, rightText};
+}
+bool Text::empty() const {
+  if (m_items.empty()) return true;
+  for (auto item : m_items) {
+    if (item.length > 0) return false;
+  }
+  return true;
+}
+void Text::merge(Text& text) {
+  for (auto item : text.m_items) {
+    m_items.append(item);
+  }
 }
 
 String LatexBlock::toString(DocPtr const& doc) const {

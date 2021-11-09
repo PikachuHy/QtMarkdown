@@ -21,7 +21,8 @@ QDebug operator<<(QDebug debug, const CursorCoord& c);
 class Cursor {
  public:
   [[nodiscard]] CursorCoord coord() const { return m_coord; };
-  void setCoord(CursorCoord coord) { m_coord = coord; };
+  void setCoord(CursorCoord coord);
+  ;
   [[nodiscard]] Point pos() const { return m_pos; }
   void setPos(Point pos) { m_pos = pos; }
   [[nodiscard]] int height() const { return m_h; }

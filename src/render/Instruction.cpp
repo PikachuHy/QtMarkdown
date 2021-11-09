@@ -6,6 +6,7 @@
 
 #include "debug.h"
 #include "latex.h"
+#include "parser/Text.h"
 #include "platform/qt/graphic_qt.h"
 namespace md::render {
 void TextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
@@ -16,6 +17,15 @@ void TextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   auto rect = updateRect(m_config.rect, offset);
   auto s = m_item.toString(doc);
   painter.drawText(rect, s);
+  // debug用
+  QRect debugRect(rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2);
+  painter.drawRect(debugRect);
+  //  DEBUG << s << rect << debugRect;
+  auto font = painter.font();
+  font.setPixelSize(6);
+  painter.setFont(font);
+  painter.setPen(Qt::red);
+  painter.drawText(rect.x(), rect.y(), QString("%1, %2").arg(rect.width()).arg(rect.height()));
   painter.restore();
 }
 String TextInstruction::textString(DocPtr doc) const { return m_item.toString(doc); }
@@ -31,6 +41,17 @@ void StaticTextInstruction::run(Painter& painter, Point offset, DocPtr doc) cons
   painter.setFont(m_config.font);
   auto rect = updateRect(m_config.rect, offset);
   painter.drawText(rect, m_text);
+#if 0
+  // debug用
+  QRect debugRect(rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2);
+  painter.drawRect(debugRect);
+  //  DEBUG << s << rect << debugRect;
+  auto font = painter.font();
+  font.setPixelSize(6);
+  painter.setFont(font);
+  painter.setPen(Qt::red);
+  painter.drawText(rect.x(), rect.y(), QString("%1, %2").arg(rect.width()).arg(rect.height()));
+#endif
   painter.restore();
 }
 void FillRectInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
@@ -67,6 +88,7 @@ Rect Instruction::updateRect(Rect rect, Point offset) {
   return {x, y, rect.width(), rect.height()};
 }
 SizeType Block::maxOffsetOfLogicalLine(SizeType index) const {
+  if (m_logicalLines.empty()) return 0;
   ASSERT(index >= 0 && index < m_logicalLines.size());
   auto line = m_logicalLines[index];
   SizeType totalOffset = 0;
@@ -99,5 +121,60 @@ void Block::insertVisualItem(SizeType indexOfLine, SizeType indexOfItem, VisualI
   ASSERT(indexOfItem >= 0 && indexOfItem < m_visualLines[indexOfLine].size());
   auto& line = m_visualLines[indexOfLine];
   line.insert(line.begin() + indexOfItem, item);
+}
+SizeType Block::countOfLogicalItem(SizeType indexOfLine) const {
+  if (m_logicalLines.empty()) return 0;
+  ASSERT(indexOfLine >= 0 && indexOfLine < m_logicalLines.size());
+  auto line = m_logicalLines[indexOfLine];
+  if (line.empty()) return 0;
+  return line.size();
+}
+int TextCell::width(DocPtr doc) const {
+  auto s = m_text->toString(doc).mid(m_offset, m_length);
+  QFontMetrics fm(m_font);
+  return fm.horizontalAdvance(s);
+}
+
+String TextCell::toString(DocPtr doc) const { return m_text->toString(doc).mid(m_offset, m_length); }
+LogicalItem LogicalLine::front() {
+  ASSERT(!m_items.empty());
+  return m_items.front();
+}
+LogicalItem LogicalLine::back() {
+  ASSERT(!m_items.empty());
+  return m_items.back();
+}
+int LogicalLine::height() const {
+  if (m_items.empty()) {
+    return m_h;
+  }
+  std::vector<int> hs;
+  std::vector<SizeType> startIndex;
+  int curMaxH = 0;
+  for (SizeType i = 0; i < m_items.size(); ++i) {
+    auto cell = m_items[i];
+    curMaxH = std::max(curMaxH, cell->height());
+    if (cell->eol()) {
+      hs.push_back(curMaxH);
+      curMaxH = 0;
+    }
+    if (cell->bol()) {
+      startIndex.push_back(i);
+    }
+  }
+  ASSERT(!m_items.empty());
+  if (!m_items.back()->eol()) {
+    hs.push_back(curMaxH);
+  }
+  ASSERT(hs.size() == startIndex.size());
+  int h = 0;
+  for (int i = 0; i < hs.size(); ++i) {
+    h += hs[i];
+  }
+  return h;
+}
+LogicalItem& LogicalLine::operator[](SizeType index) {
+  ASSERT(index >= 0 && index < m_items.size());
+  return m_items[index];
 }
 }  // namespace md::render

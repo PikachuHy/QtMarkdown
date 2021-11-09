@@ -12,4 +12,8 @@ QDebug operator<<(QDebug debug, const CursorCoord &c) {
 
   return debug;
 }
+void Cursor::setCoord(CursorCoord coord) {
+  DEBUG << coord;
+  m_coord = coord;
+}
 }  // namespace md::editor

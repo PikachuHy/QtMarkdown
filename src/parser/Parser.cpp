@@ -154,6 +154,13 @@ class BlockParser {
     auto texts = mergeToText(tokens, prev, i);
     ret->appendChildren(texts);
   }
+
+  void skipEmptyLine(const LineList& lines, int& i) const {
+    // 如果是空行
+    while (i < lines.size() && lines[i].length == 0) {
+      i++;
+    }
+  }
 };
 // 图片解析器
 class ImageParser : public LineParser {
@@ -167,7 +174,7 @@ class ImageParser : public LineParser {
   }
 
  private:
-  bool tryParse(const TokenList& tokens, int startIndex) const {
+  static bool tryParse(const TokenList& tokens, int startIndex) {
     int i = startIndex;
     if (i >= tokens.size() || !isExclamation(tokens[i])) return false;
     i++;
@@ -274,8 +281,10 @@ class InlineCodeParser : public LineParser {
     if (!isBackquote(tokens[startIndex])) return false;
     int i = startIndex + 1;
     while (i < tokens.size()) {
+      // 至少有一个字符才触发InlineCode
       if (isBackquote(tokens[i])) {
-        return true;
+        if (i > startIndex + 1) return true;
+        return false;
       }
       i++;
     }
@@ -403,12 +412,14 @@ class SemanticTextParser : public LineParser {
 // 标题解析器
 class HeaderParser : public BlockParser {
  public:
-  ParseResult parse(const LineList& lines, int startIndex) const override {
+  [[nodiscard]] ParseResult parse(const LineList& lines, int startIndex) const override {
     if (startIndex >= lines.size()) return ParseResult::fail();
     auto line = trimLeft(lines[startIndex]);
     if (tryParseHeader(line)) {
       auto header = parseHeader(line);
-      return {true, 1, header};
+      int i = startIndex + 1;
+      skipEmptyLine(lines, i);
+      return {true, i - startIndex, header};
     } else {
       return ParseResult::fail();
     }
@@ -465,7 +476,7 @@ class HeaderParser : public BlockParser {
 // 表格解析器
 class TableParser : public BlockParser {
  public:
-  ParseResult parse(const LineList& lines, int startIndex) const override {
+  [[nodiscard]] ParseResult parse(const LineList& lines, int startIndex) const override {
     //    if (startIndex < lines.size() && lines[startIndex].startsWith("|")) {
     //      return parseTable(lines, startIndex);
     //    } else {
@@ -573,7 +584,7 @@ class ParagraphParser : public BlockParser {
         new ImageParser(), new LinkParser(), new InlineCodeParser(), new InlineLatexParser(), new SemanticTextParser(),
     };
     auto i = lineIndex;
-    StringList prefix_list = {"#", "- ", "1. ", "```", "$$"};
+    StringList prefix_list = {"# ", "## ", "### ", "#### ", "##### ", "###### ", "- ", "1. ", "```", "$$"};
     bool firstInParagraph = true;
     while (i < lines.size()) {
       auto& line = lines[i];
@@ -590,7 +601,13 @@ class ParagraphParser : public BlockParser {
           break;
         }
       }
-      if (hasOtherFeat) break;
+      if (hasOtherFeat) {
+        if (line.startsWith("```") && i + 1 == lines.size()) {
+          // 只一个光秃秃的```，是构不成CodeBlock的，只能当作是段落
+        } else {
+          break;
+        }
+      }
       // 不然的话，就加一个换行，但还是同一个段落
       if (!firstInParagraph) {
         paragraph->appendChild(new Lf());
@@ -599,6 +616,7 @@ class ParagraphParser : public BlockParser {
       i++;
       firstInParagraph = false;
     }
+    skipEmptyLine(lines, i);
     return {true, i - lineIndex, paragraph};
   }
 };
@@ -623,10 +641,11 @@ class CodeBlockParser : public BlockParser {
     auto codeBlock = new CodeBlock(new Text(name.offset, name.length));
     while (i < lines.size() && !lines[i].startsWith("```")) {
       codeBlock->appendChild(new Text(lines[i].offset, lines[i].length));
-      codeBlock->appendChild(new Lf());
+      //      codeBlock->appendChild(new Lf());
       i++;
     }
     i++;
+    skipEmptyLine(lines, i);
     return {true, i - startIndex, codeBlock};
   }
   [[nodiscard]] bool tryParseCodeBlock(const LineList& lines, int i) const {
@@ -683,6 +702,7 @@ class CheckboxListParser : public BlockParser {
         break;
       }
     }
+    skipEmptyLine(lines, i);
     return {true, i - startIndex, checkboxList};
   }
 };
@@ -716,6 +736,7 @@ class UnorderedListParser : public BlockParser {
       ul->appendChild(item);
       i++;
     }
+    skipEmptyLine(lines, i);
     return {true, i - startIndex, ul};
   }
 };
@@ -732,7 +753,6 @@ class OrderedListParser : public BlockParser {
       return ParseResult::fail();
     }
   }
-
  private:
   [[nodiscard]] ParseResult parseOrderedList(const LineList& lines, int startIndex) const {
     static std::vector<LineParser*> parsers = {
@@ -751,7 +771,7 @@ class OrderedListParser : public BlockParser {
         hasDigit = true;
         j++;
       }
-      if (!hasDigit) return {true, i - startIndex, ol};
+      if (!hasDigit) break;
       if (j >= line.size() || line[j] != '.') return {true, i - startIndex, ol};
       j++;
       if (j >= line.size() || line[j] != ' ') return {true, i - startIndex, ol};
@@ -762,6 +782,7 @@ class OrderedListParser : public BlockParser {
       // 下一行
       i++;
     }
+    skipEmptyLine(lines, i);
     return {true, i - startIndex, ol};
   }
 };
@@ -789,6 +810,7 @@ class QuoteBlockParser : public BlockParser {
       i++;
     }
     i++;
+    skipEmptyLine(lines, i);
     return {true, i - startIndex, quoteBlock};
   }
 };
@@ -843,6 +865,7 @@ class ParserPrivate {
           if (parseRet.node->type() == NodeType::paragraph) {
             // 空段落直接去掉
             auto paragraphNode = (Paragraph*)parseRet.node;
+#if 1
             if (paragraphNode->children().empty()) {
               DEBUG << "delete empty paragraph node";
               delete paragraphNode;
@@ -850,12 +873,17 @@ class ParserPrivate {
             } else {
               nodes->appendChild(parseRet.node);
             }
+#endif
           } else {
             nodes->appendChild(parseRet.node);
           }
           break;
         }
       }
+    }
+    // 如果文档为空，默认添加一个段落
+    if (nodes->children().empty()) {
+      nodes->appendChild(new Paragraph());
     }
     return nodes;
   }

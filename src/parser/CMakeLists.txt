@@ -1,4 +1,7 @@
+add_definitions(-D_GNU_SOURCE=1)
+find_package(Boost REQUIRED)
 add_library(QtMarkdownParser SHARED
+        ../debug.cpp ../debug.h
         Document.cpp Document.h
         Token.cpp Token.h
         Parser.cpp Parser.h
@@ -6,5 +9,5 @@ add_library(QtMarkdownParser SHARED
         PieceTable.cpp PieceTable.h
         Text.cpp Text.h)
 target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
-target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core magic_enum::magic_enum)
+target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core magic_enum::magic_enum Boost::boost)
 target_include_directories(QtMarkdownParser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

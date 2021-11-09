@@ -15,6 +15,7 @@ class PieceTableItem {
   SizeType length;
   [[nodiscard]] String toString(const DocPtr& doc) const;
 };
+QDebug operator<<(QDebug debug, const PieceTableItem& item);
 class PieceTable;
 class PieceTableIterator {
  public:

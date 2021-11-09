@@ -12,6 +12,7 @@
 #include <QStandardPaths>
 
 #include "Instruction.h"
+#include "StringUtil.h"
 #include "debug.h"
 #include "latex.h"
 #include "parser/Text.h"
@@ -80,25 +81,13 @@ class TexRenderGuard {
   };
   sptr<TexRender> m_texRender;
 };
-struct RenderSetting {
-  bool highlightCurrentLine = false;
-  int lineSpacing = 10;
-  int maxWidth = 800;
-  int latexFontSize = 20;
-  std::array<int, 6> headerFontSize = {36, 28, 24, 20, 16, 14};
-  QMargins docMargin = QMargins(50, 20, 20, 20);
-  QMargins codeMargin = QMargins(10, 20, 20, 10);
-  QMargins listMargin = QMargins(15, 20, 20, 10);
-  QMargins checkboxMargin = QMargins(15, 20, 20, 10);
-  QMargins quoteMargin = QMargins(10, 20, 20, 10);
-  [[nodiscard]] int contentMaxWidth() const { return maxWidth - docMargin.left() - docMargin.right(); }
-};
 class RenderPrivate
     : public MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText, StrickoutText, Image, Link, CodeBlock,
                              InlineCode, Paragraph, CheckboxList, CheckboxItem, UnorderedList, UnorderedListItem,
                              OrderedList, OrderedListItem, LatexBlock, InlineLatex, Hr, QuoteBlock, Table, Lf> {
  public:
-  explicit RenderPrivate(Node *node, DocPtr doc) : m_instructionGroup(node), m_doc(doc) {
+  explicit RenderPrivate(Node *node, sptr<RenderSetting> setting, DocPtr doc)
+      : m_instructionGroup(node), m_setting(setting), m_doc(doc) {
     Q_ASSERT(doc != nullptr);
     m_config.font.setPixelSize(16);
     m_config.pen = Qt::black;
@@ -108,7 +97,7 @@ class RenderPrivate
     Q_ASSERT(node != nullptr);
     save();
     auto font = curFont();
-    font.setPixelSize(m_setting.headerFontSize[node->level() - 1]);
+    font.setPixelSize(m_setting->headerFontSize[node->level() - 1]);
     font.setBold(true);
     setFont(font);
     moveToNewLine();
@@ -125,37 +114,84 @@ class RenderPrivate
     auto font = curFont();
     setFont(font);
     moveToNewLine();
+    // m_instructionGroup.appendVisualItem(new StaticTextInstruction("", m_config));
     newLogicalLine();
     for (auto it : node->children()) {
       it->accept(this);
+    }
+    // 如果为空的话，放一个x的值
+    if (m_instructionGroup.logicalLines().back().empty()) {
+      auto &line = m_instructionGroup.logicalLines().back();
+      if (m_instructionGroup.visualLines().back().empty()) {
+        line.setX(m_curX);
+        line.setHeight(textHeight());
+      } else {
+        auto &rect = m_instructionGroup.visualLines().back().back()->config().rect;
+        line.setX(rect.x() + rect.width());
+        line.setHeight(rect.height());
+      }
     }
     restore();
   }
   void visit(Text *node) override {
     Q_ASSERT(node != nullptr);
-    SizeType totalOffset = 0;
-    for (auto item : *node) {
-      SizeType startIndex = 0;
-      auto str = item.toString(m_doc);
-      while (!currentLineCanDrawText(str.mid(startIndex))) {
-        auto count = countOfThisLineCanDraw(str.mid(startIndex));
+    auto str = node->toString(m_doc);
+    // 将字符串按中文，英文，emoji切分
+    auto stringList = StringUtil::split(str);
+    for (auto s : stringList) {
+      SizeType startIndex = s.offset;
+      while (!currentLineCanDrawText(str.mid(startIndex, s.length))) {
+        auto count = countOfThisLineCanDraw(str.mid(startIndex, s.length));
         if (count == 0) {
           moveToNewLine();
           continue;
         }
-        PieceTableItem newItem{item.bufferType, item.offset + startIndex, count};
-        m_instructionGroup.appendLogicalItem(newLogicalItem(node, startIndex, count, true));
-        drawTextInCurrentLine(newItem);
+        if (count + 1 < s.length) {
+          auto ts = str.mid(startIndex + count, 1);
+          // 如果是中文的逗号或者句号结尾，就少画一个中文字，把符号画到下一行。
+          if (ts == "，" || ts == "。") {
+            count--;
+          }
+        }
+        save();
+        if (s.type == RenderString::English) {
+          if (m_rewriteFont) {
+            auto font = curFont();
+            font.setFamily(m_setting->enTextFont);
+            setFont(font);
+          }
+        } else if (s.type == RenderString::Chinese) {
+          auto font = curFont();
+          font.setFamily(m_setting->zhTextFont);
+          setFont(font);
+        }
+        LogicalItem item = newLogicalItem(node, startIndex, count, true);
+        auto rect = drawTextInCurrentLine(str.mid(startIndex, count));
+        item->setRect(rect);
+        m_instructionGroup.appendLogicalItem(item);
+        restore();
         startIndex += count;
-        totalOffset += count;
         moveToNewLine();
       }
-      auto lastLength = item.length - startIndex;
+      auto lastLength = s.length + s.offset - startIndex;
       if (lastLength > 0) {
-        PieceTableItem newItem{item.bufferType, item.offset + startIndex, lastLength};
-        m_instructionGroup.appendLogicalItem(newLogicalItem(node, startIndex, lastLength, false));
-        drawTextInCurrentLine(newItem);
-        totalOffset += lastLength;
+        save();
+        if (s.type == RenderString::English) {
+          if (m_rewriteFont) {
+            auto font = curFont();
+            font.setFamily(m_setting->enTextFont);
+            setFont(font);
+          }
+        } else if (s.type == RenderString::Chinese) {
+          auto font = curFont();
+          font.setFamily(m_setting->zhTextFont);
+          setFont(font);
+        }
+        LogicalItem item = newLogicalItem(node, startIndex, lastLength, false);
+        auto rect = drawTextInCurrentLine(str.mid(startIndex, lastLength));
+        item->setRect(rect);
+        m_instructionGroup.appendLogicalItem(item);
+        restore();
       }
     }
   }
@@ -192,10 +228,16 @@ class RenderPrivate
     auto x = m_curX;
     auto y = m_curY;
     setFont(codeFont());
-    for (auto child : node->children()) {
+    m_rewriteFont = false;
+    for (int i = 0; i < node->size(); ++i) {
+      if (i != 0) {
+        moveToNewLine();
+        newLogicalLine();
+      }
+      auto child = node->childAt(i);
       child->accept(this);
     }
-    auto w = m_setting.contentMaxWidth() + 10;
+    auto w = m_setting->contentMaxWidth() + 10;
     auto h = m_instructionGroup.height() + 10;
     m_config.rect = QRect(x - 5, y - 5, w, h);
     m_config.brush = QBrush(QColor(249, 249, 249));
@@ -207,9 +249,9 @@ class RenderPrivate
     save();
     auto latex = node->code()->toString(m_doc);
     try {
-      float textSize = m_setting.latexFontSize;
+      float textSize = m_setting->latexFontSize;
       auto render =
-          tex::LaTeX::parse(latex.toStdString(), m_setting.contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
+          tex::LaTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
       QRect rect(m_curX, m_curY, render->getWidth(), render->getHeight());
       m_curX += render->getWidth();
       drawLatex(rect, textSize, latex);
@@ -227,10 +269,10 @@ class RenderPrivate
     newLogicalLine();
     auto latex = node->toString(m_doc);
     try {
-      float textSize = m_setting.latexFontSize;
+      float textSize = m_setting->latexFontSize;
       auto render =
-          tex::LaTeX::parse(latex.toStdString(), m_setting.contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
-      QRect rect((m_setting.contentMaxWidth() - render->getWidth()) / 2, m_curY, m_setting.contentMaxWidth(),
+          tex::LaTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
+      QRect rect((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY, m_setting->contentMaxWidth(),
                  render->getHeight());
       m_curX += render->getWidth();
       drawLatex(rect, textSize, latex);
@@ -289,7 +331,7 @@ class RenderPrivate
       return;
     }
     QImage image(imgPath);
-    int imageMaxWidth = qMin(1080, m_setting.contentMaxWidth());
+    int imageMaxWidth = qMin(1080, m_setting->contentMaxWidth());
     int imgWidth = image.width();
     while (imgWidth > imageMaxWidth) {
       imgWidth /= 2;
@@ -304,7 +346,7 @@ class RenderPrivate
     for (const auto &item : node->children()) {
       moveToNewLine();
       newLogicalLine();
-      m_curX += m_setting.checkboxMargin.left();
+      m_curX += m_setting->checkboxMargin.left();
       item->accept(this);
     }
   }
@@ -339,7 +381,7 @@ class RenderPrivate
     for (const auto &item : node->children()) {
       moveToNewLine();
       newLogicalLine();
-      m_curX += m_setting.listMargin.left();
+      m_curX += m_setting->listMargin.left();
       auto h = textHeight();
       auto size = 5;
       auto y = m_curY + (h - size) / 2 + 2;
@@ -350,6 +392,17 @@ class RenderPrivate
       m_instructionGroup.appendVisualItem(instruction);
       m_curX += 15;
       item->accept(this);
+      // 如果为空的话，放一个x的值
+      if (m_instructionGroup.logicalLines().back().empty()) {
+        auto &line = m_instructionGroup.logicalLines().back();
+        auto config = m_config;
+        config.rect = QRect(m_curX, m_curY, 0, textHeight());
+        auto dummyInstruction = new DummyInstruction(config);
+        m_instructionGroup.appendVisualItem(dummyInstruction);
+        auto &rect = m_instructionGroup.visualLines().back().back()->config().rect;
+        line.setX(rect.x() + rect.width());
+        line.setHeight(rect.height());
+      }
     }
   }
   void visit(UnorderedListItem *node) override {
@@ -365,11 +418,19 @@ class RenderPrivate
       i++;
       moveToNewLine();
       newLogicalLine();
-      m_curX += m_setting.listMargin.left();
+      m_curX += m_setting->listMargin.left();
       QString numStr = QString("%1.  ").arg(i);
-      m_instructionGroup.appendLogicalItem(new StaticTextCell(numStr, curFont(), Point(m_curX, m_curY), true, false));
+      // m_instructionGroup.appendLogicalItem(new StaticTextCell(numStr, curFont(), Point(m_curX, m_curY), true,
+      // false));
       drawTextInCurrentLine(numStr);
       item->accept(this);
+      // 如果为空的话，放一个x的值
+      if (m_instructionGroup.logicalLines().back().empty()) {
+        auto &line = m_instructionGroup.logicalLines().back();
+        auto &rect = m_instructionGroup.visualLines().back().back()->config().rect;
+        line.setX(rect.x() + rect.width());
+        line.setHeight(rect.height());
+      }
     }
   }
   void visit(OrderedListItem *node) override {
@@ -385,7 +446,7 @@ class RenderPrivate
     newLogicalLine();
     int startY = m_curY;
     for (auto child : node->children()) {
-      m_curX += m_setting.quoteMargin.left();
+      m_curX += m_setting->quoteMargin.left();
       child->accept(this);
       moveToNewLine();
     }
@@ -421,7 +482,8 @@ class RenderPrivate
     rect.setX(m_curX - rect.width() - 1);
     m_config.rect = rect;
     m_config.font = font;
-    m_instructionGroup.appendVisualItem(new StaticTextInstruction(prefix, m_config));
+    m_instructionGroup.appendVisualItem(new StaticTextInstruction(prefix, m_config, false));
+    moveToNewLine();
     restore();
   }
 
@@ -448,12 +510,26 @@ class RenderPrivate
   void setPen(const QColor &color) { m_config.pen = color; }
   void moveToNewLine() {
     m_curY += m_lastMaxHeight;
-    m_curX = m_setting.docMargin.left();
+    m_curX = m_setting->docMargin.left();
     m_instructionGroup.newVisualLine();
+    m_config.font = curFont();
+    m_config.rect = QRect(m_curX, m_curY, 1, textHeight());
   }
-  void newLogicalLine() { m_instructionGroup.newLogicalLine(); }
+  void newLogicalLine() {
+    QFontMetrics fm(m_setting->zhTextFont);
+    auto size = fm.size(Qt::TextSingleLine, "龙");
+    m_instructionGroup.newLogicalLine(m_curX, size.height());
+  }
   LogicalItem newLogicalItem(Text *node, SizeType offset, SizeType length, bool eol) {
+    //    bool bol = m_instructionGroup.logicalLines().back().empty();
     bool bol = m_instructionGroup.visualLines().back().empty();
+    if (bol) {
+      // 如果是新行开头，那上一个item设置为eol
+      auto line = m_instructionGroup.logicalLines().back();
+      if (!line.empty()) {
+        line.back()->setEol(true);
+      }
+    }
     Point pos(m_curX, m_curY);
     auto item = new TextCell(node, offset, length, curFont(), pos, bol, eol);
     return item;
@@ -465,18 +541,19 @@ class RenderPrivate
     m_curX += rect.width();
     m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
   }
-  void drawTextInCurrentLine(const String &str) {
+  Rect drawTextInCurrentLine(const String &str) {
     QRect rect = textRect(str);
+    DEBUG << str << rect << textHeight();
     drawText(rect, str);
     m_curX += rect.width();
     m_lastMaxHeight = qMax(m_lastMaxHeight, rect.height());
+    return rect;
   }
 
   QRect textRect(const QString &text) {
     QFontMetrics metrics = fontMetrics();
-    const QRect rect(m_curX, m_curY, m_setting.contentMaxWidth(), 0);
-    QRect textBoundingRect = metrics.boundingRect(rect, Qt::TextWordWrap, text);
-    return textBoundingRect;
+    auto size = metrics.size(Qt::TextSingleLine, text);
+    return Rect(QPoint(m_curX, m_curY), size);
   }
 
   int textWidth(const QString &text) {
@@ -491,7 +568,14 @@ class RenderPrivate
     return w;
   }
 
-  int textHeight() { return fontMetrics().height(); }
+  int textHeight() {
+    auto fm = fontMetrics();
+    //    auto size = fm.size(Qt::TextSingleLine, "龙");
+    auto h = fm.height();
+    //    return std::max(h, size.height());
+    DEBUG << curFont().family();
+    return h;
+  }
 
   QFontMetrics fontMetrics() {
     QFontMetrics fm(curFont());
@@ -500,7 +584,7 @@ class RenderPrivate
 
   bool currentLineCanDrawText(const QString &text) {
     auto needWidth = textWidth(text);
-    if (m_curX + needWidth < m_setting.contentMaxWidth()) {
+    if (m_curX + needWidth < m_setting->contentMaxWidth()) {
       return true;
     } else {
       return false;
@@ -510,7 +594,7 @@ class RenderPrivate
   int countOfThisLineCanDraw(const QString &text) {
     // 计算这一行可以画多少个字符
     auto ch_w = charWidth(text.at(0));
-    int left_w = m_setting.contentMaxWidth() - m_curX;
+    int left_w = m_setting->contentMaxWidth() - m_curX;
     int may_ch_count = left_w / ch_w - 1;
     // 可能根本画不了
     if (may_ch_count <= 0) return 0;
@@ -562,13 +646,15 @@ class RenderPrivate
   int m_curY{};
   int m_lastMaxHeight{};
   int m_lastMaxWidth{};
-  RenderSetting m_setting;
+  sptr<RenderSetting> m_setting;
+
+  bool m_rewriteFont = true;
 };
-Block Render::render(Node *node, DocPtr doc) {
+Block Render::render(Node *node, sptr<RenderSetting> setting, DocPtr doc) {
   Q_ASSERT(node != nullptr);
   Q_ASSERT(doc != nullptr);
   static TexRenderGuard texRenderGuard;
-  RenderPrivate render(node, doc);
+  RenderPrivate render(node, setting, doc);
   node->accept(&render);
   return render.renderRet();
 }

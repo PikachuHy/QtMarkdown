@@ -6,6 +6,7 @@
 #define MD_DOCUMENT_H
 #include <QDebug>
 #include <QRect>
+#include <iostream>
 
 #include "QtMarkdown_global.h"
 #include "Token.h"
@@ -39,10 +40,11 @@ enum class NodeType {
   lf  // 换行
 };
 QDebug operator<<(QDebug debug, const NodeType& type);
-
+std::ostream& operator<<(std::ostream& os, const NodeType& type);
 class QTMARKDOWNSHARED_EXPORT Node {
  public:
   explicit Node(NodeType type = NodeType::none, Node* parent = nullptr) : m_type(type), m_parent(parent) {}
+  virtual ~Node() {}
   virtual void accept(VisitorNode*) = 0;
   NodeType type() { return m_type; }
   void setParent(Node* parent) { m_parent = parent; }
@@ -82,6 +84,11 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   }
   void appendChildren(NodePtrList& children);
   void appendChildren(QList<Text*>& children);
+  [[nodiscard]] NodePtr childAt(SizeType index) const;
+  void removeChildAt(SizeType index);
+  NodePtr& operator[](SizeType index);
+  const NodePtr& operator[](SizeType index) const;
+  [[nodiscard]] auto size() const { return m_children.size(); }
   void accept(VisitorNode* v) override {
     for (auto node : m_children) {
       node->accept(v);
@@ -121,14 +128,9 @@ class QTMARKDOWNSHARED_EXPORT CheckboxItem : public ContainerVisitable<CheckboxI
  private:
   bool m_checked;
 };
-class QTMARKDOWNSHARED_EXPORT CheckboxList : public Visitable<CheckboxList> {
+class QTMARKDOWNSHARED_EXPORT CheckboxList : public ContainerVisitable<CheckboxList> {
  public:
   CheckboxList() { m_type = NodeType::checkbox; }
-  [[nodiscard]] QList<CheckboxItem*> children() const { return m_children; }
-  void appendChild(CheckboxItem* item) { m_children.append(item); }
-
- private:
-  QList<CheckboxItem*> m_children;
 };
 class QTMARKDOWNSHARED_EXPORT UnorderedList : public ContainerVisitable<UnorderedList> {
  public:
