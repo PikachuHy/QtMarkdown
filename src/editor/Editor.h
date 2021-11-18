@@ -14,7 +14,8 @@ class Editor {
   void loadText(const String& text);
   void loadFile(const String& path);
   bool saveToFile(const String& path);
-  void paintEvent(QPoint offset, Painter& painter);
+  void drawDoc(Point offset, Painter& painter);
+  void drawCursor(Point offset, Painter& painter);
   void keyPressEvent(KeyEvent* event);
   void mousePressEvent(MouseEvent* event);
   [[nodiscard]] int width() const;
@@ -26,8 +27,6 @@ class Editor {
   [[nodiscard]] sptr<Document> document() const { return m_doc; }
 
  private:
-  void drawCursor(QPoint offset, Painter& painter);
-
  private:
   sptr<Document> m_doc;
   sptr<Cursor> m_cursor;

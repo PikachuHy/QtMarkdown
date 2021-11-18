@@ -70,12 +70,7 @@ Window {
             focus: true
             width: parent.width
             implicitHeight: parent.height
-            // source: ":/test.md"
-            // source: "/Users/pikachu/Documents/MyNotes//workshop/4oVeQks/index.md"
-            // source: "/Users/pikachu/Documents/MyNotes/workshop/0RSBQNs/index.md"
-            // source: "/Users/pikachu/Documents/MyNotes//workshop/3sR3eOs/index.md"
-            // source: "file:///Users/pikachu/Desktop/test(1).md"
-            source: "file:///Users/pikachu/Desktop/Qt Markdown Editor 开发小结.md"
+            source: ":/test.md"
             onDocSave: {
                 saveFileDialog.open()
             }

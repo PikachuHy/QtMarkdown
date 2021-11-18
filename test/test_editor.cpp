@@ -112,7 +112,6 @@ b
   auto coord = cursor.coord();
   coord.blockNo = 1;
   coord.lineNo = 0;
-  coord.cellNo = 0;
   coord.offset = 0;
   cursor.setCoord(coord);
   doc->removeText(cursor);
@@ -130,6 +129,23 @@ b
     auto s = textNode->toString(doc.get());
     ASSERT_EQ(s, QString("ab"));
   }
+}
+TEST(ParagraphEditTest, RemoveEmoji) {
+  Editor editor;
+  editor.loadText(R"(
+a😊b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  doc->moveCursorToEndOfDocument(cursor);
+  ASSERT_EQ(cursor.coord().offset, 4);
+  doc->removeText(cursor);
+  ASSERT_EQ(cursor.coord().offset, 3);
+  doc->removeText(cursor);
+  ASSERT_EQ(cursor.coord().offset, 1);
+  doc->removeText(cursor);
+  ASSERT_EQ(cursor.coord().offset, 0);
 }
 
 TEST(ParagraphEditTest, UpgradeToHeader) {
@@ -266,7 +282,7 @@ TEST(CheckboxEditTest, DegradeToParagraph) {
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
   ASSERT_EQ(blocks[0].countOfLogicalLine(), 1);
-  ASSERT_EQ(blocks[0].countOfLogicalItem(0), 0);
+  ASSERT_EQ(blocks[0].logicalLineAt(0).m_cells.size(), 0);
   doc->moveCursorToEndOfDocument(*editor.m_cursor);
   doc->removeText(*editor.m_cursor);
   ASSERT_EQ(blocks.size(), 1);
@@ -275,6 +291,25 @@ TEST(CheckboxEditTest, DegradeToParagraph) {
   ASSERT_EQ(node->type(), NodeType::paragraph);
   auto paragraphNode = (md::parser::Paragraph*)node;
   ASSERT_EQ(paragraphNode->size(), 0);
+}
+TEST(CheckboxEditTest, DegradeToParagraph2) {
+  Editor editor;
+  editor.loadText("- [ ] 666");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  ASSERT_EQ(blocks[0].countOfLogicalLine(), 1);
+  ASSERT_EQ(blocks[0].logicalLineAt(0).m_cells.size(), 1);
+  doc->moveCursorToBeginOfDocument(cursor);
+  doc->removeText(*editor.m_cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  auto node = doc->m_root->childAt(0);
+  ASSERT_EQ(node->type(), NodeType::paragraph);
+  auto paragraphNode = (md::parser::Paragraph*)node;
+  ASSERT_EQ(paragraphNode->size(), 1);
 }
 TEST(EditorTest, HeaderReturn) {
   Editor editor;
@@ -400,6 +435,31 @@ TEST(CodeBlockEditTest, InsertText) {
     ASSERT_EQ(s, QString("a"));
     ASSERT_EQ(blocks[0].countOfLogicalLine(), 1);
   }
+}
+
+TEST(CursorMoveTest, Emoji) {
+  Editor editor;
+  editor.loadText(R"(
+a😊b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  ASSERT_EQ(cursor.coord().offset, 0);
+  doc->moveCursorToRight(cursor);
+  ASSERT_EQ(cursor.coord().offset, 1);
+  doc->moveCursorToRight(cursor);
+  ASSERT_EQ(cursor.coord().offset, 3);
+  doc->moveCursorToRight(cursor);
+  ASSERT_EQ(cursor.coord().offset, 4);
+  doc->moveCursorToLeft(cursor);
+  ASSERT_EQ(cursor.coord().offset, 3);
+  doc->moveCursorToLeft(cursor);
+  ASSERT_EQ(cursor.coord().offset, 1);
+  doc->moveCursorToLeft(cursor);
+  ASSERT_EQ(cursor.coord().offset, 0);
 }
 int main(int argc, char** argv) {
   // 必须加这一句

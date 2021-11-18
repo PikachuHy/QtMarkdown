@@ -176,8 +176,11 @@ Editor::Editor() {
 void Editor::loadText(const String &text) {
   m_doc = std::make_shared<Document>(text, m_renderSetting);
   m_cursor = std::make_shared<Cursor>();
+  m_doc->updateCursor(*m_cursor, m_cursor->coord());
+  DEBUG << "load text done";
 }
 void Editor::loadFile(const String &path) {
+  DEBUG << path;
   String notePath = path;
   String prefix = "file://";
   if (path.startsWith(prefix)) {
@@ -218,41 +221,26 @@ bool Editor::saveToFile(const String &path) {
   file.close();
   return true;
 }
-void Editor::paintEvent(QPoint offset, Painter &painter) {
+void Editor::drawDoc(QPoint offset, Painter &painter) {
   if (!m_doc) return;
   // 如果最后一个block不是段落，添加一个段落
   if (m_doc->m_root->children().back()->type() != NodeType::paragraph) {
     auto newParagraph = new Paragraph();
     m_doc->m_root->appendChild(newParagraph);
-    m_doc->m_blocks.append(render::Render::render(newParagraph, m_renderSetting, m_doc.get()));
+    m_doc->m_blocks.push_back(render::Render::render(newParagraph, m_renderSetting, m_doc.get()));
   }
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (const auto &instructionGroup : m_doc->m_blocks) {
-    auto h = instructionGroup.height();
-    for (const auto &instructionLine : instructionGroup.visualLines()) {
-      for (auto instruction : instructionLine) {
-        instruction->run(painter, offset, m_doc.get());
-      }
+  for (const auto &block : m_doc->m_blocks) {
+    auto h = block.height();
+    // 把每个指令都画出来
+    for (const auto &instruction : block) {
+      instruction->run(painter, offset, m_doc.get());
     }
     offset.setY(offset.y() + h);
   }
   auto pos = m_cursor->pos();
   auto coord = m_cursor->coord();
-#if 0
-  QStringList list;
-  list << QString("Cursor: (%1, %2)").arg(pos.x()).arg(pos.y());
-  list << QString("BlockNo: %1").arg(coord.blockNo);
-  list << QString("LineNo: %1").arg(coord.lineNo);
-  list << QString("Offset: %1").arg(coord.offset);
-  int x = 500;
-  int y = 400;
-  for (auto msg : list) {
-    painter.drawText(x, y, msg);
-    y += painter.fontMetrics().height() + 4;
-  }
-#endif
-  drawCursor(oldOffset, painter);
   // 高亮当前Block
   int h = m_renderSetting->docMargin.top();
   for (int i = 0; i < coord.blockNo; ++i) {
@@ -261,24 +249,23 @@ void Editor::paintEvent(QPoint offset, Painter &painter) {
   auto block = m_doc->m_blocks[coord.blockNo];
   painter.save();
   painter.setPen(QColor(0, 255, 255));
-  painter.drawRect(1, h + 1, width() - 2, block.height() - 2);
+  auto highlightPos = Point(m_renderSetting->docMargin.left(), h);
+  auto size = Size(block.width(), block.height() - m_renderSetting->lineSpacing);
+  painter.drawRect(Rect(highlightPos + oldOffset, size));
   painter.restore();
   auto node = m_doc->m_root->children()[coord.blockNo];
+  auto typePos = Point(0, h) + oldOffset;
   if (node->type() == NodeType::paragraph) {
-    painter.drawText(0, h, "P");
+    painter.drawText(typePos, "P");
   } else if (node->type() == NodeType::header) {
-    painter.drawText(0, h, "H");
+    painter.drawText(typePos, "H");
   } else if (node->type() == NodeType::ol) {
-    painter.drawText(0, h, "ol");
+    painter.drawText(typePos, "ol");
   } else if (node->type() == NodeType::ul) {
-    painter.drawText(0, h, "ul");
+    painter.drawText(typePos, "ul");
   } else if (node->type() == NodeType::checkbox) {
-    painter.drawText(0, h, "cb");
+    painter.drawText(typePos, "cb");
   }
-  painter.save();
-  painter.setPen(Qt::red);
-  painter.drawText(0, h + 20, QString("%1 ~ %2").arg(h).arg(h + block.height()));
-  painter.restore();
 }
 int Editor::width() const { return m_renderSetting->maxWidth; }
 int Editor::height() const {
@@ -290,7 +277,6 @@ int Editor::height() const {
 }
 void Editor::drawCursor(QPoint offset, Painter &painter) {
   if (m_showCursor) {
-    m_doc->updateCursor(*m_cursor);
     auto pos = m_cursor->pos();
     pos += offset;
     painter.save();
@@ -359,9 +345,9 @@ String Editor::cursorCoord() const {
   auto &block = m_doc->m_blocks[coord.blockNo];
   s += QString("LineNo: %1/%2").arg(coord.lineNo).arg(block.countOfLogicalLine());
   s += "\n";
-  s += QString("CellNo: %1/%2").arg(coord.cellNo).arg(block.countOfLogicalItem(coord.lineNo));
-  s += "\n";
-  s += QString("Offset: %1/%2").arg(coord.offset).arg(block.maxOffsetOfLogicalLine(coord.lineNo));
+  //  s += QString("CellNo: %1/%2").arg(coord.cellNo).arg(block.countOfLogicalItem(coord.lineNo));
+  //  s += "\n";
+  s += QString("Offset: %1/%2").arg(coord.offset).arg(block.logicalLineAt(coord.lineNo).length());
   s += "\n";
   return s;
 }

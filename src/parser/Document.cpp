@@ -51,14 +51,14 @@ void Container::setChild(SizeType index, NodePtr node) {
 void Container::insertChild(SizeType index, NodePtr node) {
   ASSERT(index >= 0 && index <= m_children.size());
   node->setParent(this);
-  m_children.insert(index, node);
+  m_children.insert(m_children.begin() + index, node);
 }
 void Container::appendChildren(QList<Text *> &children) {
   if (children.empty()) return;
   m_children.reserve(m_children.size() + children.size());
   for (auto &node : children) {
     node->setParent(this);
-    m_children.append(node);
+    m_children.push_back(node);
   }
 }
 void Container::appendChildren(NodePtrList &children) {
@@ -66,7 +66,7 @@ void Container::appendChildren(NodePtrList &children) {
   m_children.reserve(m_children.size() + children.size());
   for (auto &node : children) {
     node->setParent(this);
-    m_children.append(node);
+    m_children.push_back(node);
   }
 }
 NodePtr Container::childAt(SizeType index) const {
@@ -83,7 +83,16 @@ const NodePtr &Container::operator[](SizeType index) const {
 }
 void Container::removeChildAt(SizeType index) {
   ASSERT(index >= 0 && index < m_children.size());
-  m_children.removeAt(index);
+  m_children.erase(m_children.begin() + index);
+}
+SizeType Container::indexOf(NodePtr child) const {
+  for (int i = 0; i < m_children.size(); ++i) {
+    if (m_children[i] == child) {
+      return i;
+    }
+  }
+  DEBUG << child->type() << child;
+  ASSERT(false && "no child");
 }
 ItalicText::ItalicText(Text *text) : m_text(text) {
   m_type = NodeType::italic;

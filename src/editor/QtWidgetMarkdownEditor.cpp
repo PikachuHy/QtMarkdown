@@ -43,7 +43,7 @@ void QtWidgetMarkdownEditor::loadFile(QString path) {
 }
 void QtWidgetMarkdownEditor::paintEvent(QPaintEvent *event) {
   QPainter painter(viewport());
-  m_editor->paintEvent(m_offset, painter);
+  m_editor->drawDoc(m_offset, painter);
 }
 void QtWidgetMarkdownEditor::scrollContentsBy(int dx, int dy) {
   auto x = m_offset.x() + dx;

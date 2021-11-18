@@ -1,4 +1,5 @@
 add_library(QtMarkdownRender SHARED
+        Cell.cpp Cell.h
         Render.cpp Render.h
         Instruction.cpp Instruction.h
         StringUtil.cpp StringUtil.h

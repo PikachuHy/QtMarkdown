@@ -8,21 +8,18 @@
 namespace md::editor {
 struct CursorCoord {
   // Block 下标
-  SizeType blockNo{};
+  SizeType blockNo = 0;
   // 逻辑行 下标
-  SizeType lineNo{};
-  // 逻辑行里 Cell 下标
-  // 用于辅助判断键盘
-  SizeType cellNo{};
+  SizeType lineNo = 0;
   // 逻辑行里到列
-  SizeType offset{};
+  SizeType offset = 0;
 };
 QDebug operator<<(QDebug debug, const CursorCoord& c);
 class Cursor {
  public:
   [[nodiscard]] CursorCoord coord() const { return m_coord; };
   void setCoord(CursorCoord coord);
-  ;
+  void setX(int x) { m_pos.setX(x); };
   [[nodiscard]] Point pos() const { return m_pos; }
   void setPos(Point pos) { m_pos = pos; }
   [[nodiscard]] int height() const { return m_h; }

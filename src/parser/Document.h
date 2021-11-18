@@ -64,7 +64,7 @@ struct Visitable : public Node {
   }
 };
 using NodePtr = Node*;
-using NodePtrList = QList<NodePtr>;
+using NodePtrList = std::vector<NodePtr>;
 class Text;
 class QTMARKDOWNSHARED_EXPORT Container : public Node {
  public:
@@ -86,8 +86,10 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   void appendChildren(QList<Text*>& children);
   [[nodiscard]] NodePtr childAt(SizeType index) const;
   void removeChildAt(SizeType index);
+  SizeType indexOf(NodePtr child) const;
   NodePtr& operator[](SizeType index);
   const NodePtr& operator[](SizeType index) const;
+  auto empty() const { return m_children.empty(); }
   [[nodiscard]] auto size() const { return m_children.size(); }
   void accept(VisitorNode* v) override {
     for (auto node : m_children) {

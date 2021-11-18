@@ -19,8 +19,11 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
-  m_editor->paintEvent(QPoint(0, 0), *painter);
+  m_editor->drawDoc(QPoint(0, 0), *painter);
   setImplicitHeight(m_editor->height());
+  if (hasActiveFocus()) {
+    m_editor->drawCursor(QPoint(0, 0), *painter);
+  }
   emit cursorCoordChanged(m_editor->cursorCoord());
   emit implicitHeightChanged();
 }
@@ -55,9 +58,9 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
 }
-void QtQuickMarkdownEditor::focusOutEvent(QFocusEvent *event) { forceActiveFocus(); }
 void QtQuickMarkdownEditor::hoverMoveEvent(QHoverEvent *event) { setCursor(QCursor(Qt::IBeamCursor)); }
 void QtQuickMarkdownEditor::mousePressEvent(QMouseEvent *event) {
+  forceActiveFocus();
   m_editor->mousePressEvent(event);
   this->update();
 }

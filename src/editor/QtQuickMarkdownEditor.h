@@ -33,7 +33,6 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void mousePressEvent(QMouseEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
   void keyReleaseEvent(QKeyEvent *event) override;
-  void focusOutEvent(QFocusEvent *event) override;
 
  public:
   [[nodiscard]] QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
