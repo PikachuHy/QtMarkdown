@@ -13,7 +13,7 @@
 #include "Visitor.h"
 #include "mddef.h"
 namespace md::parser {
-enum class NodeType {
+enum class QTMARKDOWNSHARED_EXPORT NodeType {
   none,
   header,
   paragraph,
@@ -39,8 +39,8 @@ enum class NodeType {
   table,
   lf  // 换行
 };
-QDebug operator<<(QDebug debug, const NodeType& type);
-std::ostream& operator<<(std::ostream& os, const NodeType& type);
+QTMARKDOWNSHARED_EXPORT QDebug operator<<(QDebug debug, const NodeType& type);
+QTMARKDOWNSHARED_EXPORT std::ostream& operator<<(std::ostream& os, const NodeType& type);
 class QTMARKDOWNSHARED_EXPORT Node {
  public:
   explicit Node(NodeType type = NodeType::none, Node* parent = nullptr) : m_type(type), m_parent(parent) {}

@@ -4,6 +4,7 @@
 
 #ifndef QTMARKDOWN_CURSOR_H
 #define QTMARKDOWN_CURSOR_H
+#include "QtMarkdown_global.h"
 #include "mddef.h"
 namespace md::editor {
 struct CursorCoord {
@@ -15,7 +16,7 @@ struct CursorCoord {
   SizeType offset = 0;
 };
 QDebug operator<<(QDebug debug, const CursorCoord& c);
-class Cursor {
+class QTMARKDOWNSHARED_EXPORT Cursor {
  public:
   [[nodiscard]] CursorCoord coord() const { return m_coord; };
   void setCoord(CursorCoord coord);

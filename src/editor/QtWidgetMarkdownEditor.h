@@ -11,7 +11,7 @@
 
 #include "editor/Editor.h"
 namespace md::editor {
-class QtWidgetMarkdownEditor : public QAbstractScrollArea {
+class QTMARKDOWNSHARED_EXPORT QtWidgetMarkdownEditor : public QAbstractScrollArea {
   Q_OBJECT
  public:
   explicit QtWidgetMarkdownEditor(QWidget* parent = nullptr);

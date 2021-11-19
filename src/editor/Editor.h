@@ -4,11 +4,12 @@
 
 #ifndef QTMARKDOWN_EDITOR_H
 #define QTMARKDOWN_EDITOR_H
+#include "QtMarkdown_global.h"
 #include "Document.h"
 #include "mddef.h"
 namespace md::editor {
 class Cursor;
-class Editor {
+class QTMARKDOWNSHARED_EXPORT Editor {
  public:
   Editor();
   void loadText(const String& text);

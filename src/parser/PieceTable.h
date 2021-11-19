@@ -4,10 +4,10 @@
 
 #ifndef QTMARKDOWN_PIECETABLE_H
 #define QTMARKDOWN_PIECETABLE_H
-
+#include "QtMarkdown_global.h"
 #include "mddef.h"
 namespace md::parser {
-class PieceTableItem {
+class QTMARKDOWNSHARED_EXPORT PieceTableItem {
  public:
   enum BufferType { original, add };
   BufferType bufferType;
@@ -17,7 +17,7 @@ class PieceTableItem {
 };
 QDebug operator<<(QDebug debug, const PieceTableItem& item);
 class PieceTable;
-class PieceTableIterator {
+class QTMARKDOWNSHARED_EXPORT PieceTableIterator {
  public:
   PieceTableIterator(PieceTable* table, SizeType index) : m_table(table), m_index(index) {}
   PieceTableIterator& operator++() {
@@ -32,7 +32,7 @@ class PieceTableIterator {
   PieceTable* m_table;
 };
 class EditorDocument;
-class PieceTable {
+class QTMARKDOWNSHARED_EXPORT PieceTable {
   using iterator = PieceTableIterator;
 
  public:

@@ -12,7 +12,11 @@ int main(int argc, char *argv[]) {
   QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
   QGuiApplication app(argc, argv);
+#ifdef Q_OS_WIN
+  QQuickStyle::setStyle("Windows");
+#else
   QQuickStyle::setStyle("macOS");
+#endif
   QQmlApplicationEngine engine;
   qmlRegisterType<QtQuickMarkdownEditor>("QtMarkdown", 1, 0, "QtQuickMarkdownEditor");
   const QUrl url(QStringLiteral("qrc:/main.qml"));

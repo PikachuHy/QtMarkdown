@@ -4,6 +4,7 @@
 
 #ifndef QTMARKDOWN_RENDER_H
 #define QTMARKDOWN_RENDER_H
+#include "QtMarkdown_global.h"
 #include "Instruction.h"
 #include "mddef.h"
 #include "parser/Document.h"
@@ -24,7 +25,7 @@ struct RenderSetting {
   [[nodiscard]] int contentMaxWidth() const { return maxWidth - docMargin.left() - docMargin.right(); }
 };
 class LogicalLine;
-class VisualLine {
+class QTMARKDOWNSHARED_EXPORT VisualLine {
  public:
   VisualLine(Point pos, int h) : m_pos(pos), m_h(h) {}
   int height() const;
@@ -40,7 +41,7 @@ class VisualLine {
   friend class RenderPrivate;
   friend class LogicalLine;
 };
-class LogicalLine {
+class QTMARKDOWNSHARED_EXPORT LogicalLine {
   using VisualLineList = std::vector<VisualLine>;
 
  public:
@@ -71,7 +72,7 @@ class LogicalLine {
   int m_padding = 0;
   friend class RenderPrivate;
 };
-class Block {
+class QTMARKDOWNSHARED_EXPORT Block {
  public:
   using LogicalLineList = std::vector<LogicalLine>;
   explicit Block(parser::Node* node) : m_node(node) {}
@@ -95,7 +96,7 @@ class Block {
   friend class RenderPrivate;
 };
 
-class Render {
+class QTMARKDOWNSHARED_EXPORT Render {
  public:
   static Block render(parser::Node* node, sptr<RenderSetting> setting, DocPtr doc);
 

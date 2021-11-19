@@ -4,14 +4,16 @@
 
 #ifndef QTMARKDOWN_DOCUMENT_H
 #define QTMARKDOWN_DOCUMENT_H
+#include "QtMarkdown_global.h"
 #include "mddef.h"
 #include "parser/Document.h"
 #include "render/Instruction.h"
 #include "render/Render.h"
+
 namespace md::editor {
 class Cursor;
 struct CursorCoord;
-class Document : public parser::Document, public std::enable_shared_from_this<Document> {
+class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::enable_shared_from_this<Document> {
  public:
   explicit Document(const String& str, sptr<render::RenderSetting> setting);
   void moveCursorToRight(Cursor& cursor);
