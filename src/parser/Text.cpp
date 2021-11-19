@@ -64,6 +64,7 @@ void Text::remove(SizeType totalOffset, SizeType length) {
         m_items.remove(i);
       } else {
         m_items[i].offset += length;
+        m_items[i].length -= length;
       }
     } else if (curOffset + m_items[i].length == totalOffset + length) {
       m_items[i].length -= length;

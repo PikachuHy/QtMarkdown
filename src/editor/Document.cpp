@@ -589,7 +589,13 @@ void Document::removeText(Cursor& cursor) {
     textNode->remove(leftOffset - 1, 1);
     coord.offset--;
   }
-  updateCursor(cursor, coord);
+  if (textNode->empty()) {
+    auto p = node2container(textNode->parent());
+    // 段落里面的空Text删除掉
+    if (p->type() == NodeType::paragraph) {
+      p->removeChild(textNode);
+    }
+  }
   renderBlock(coord.blockNo);
   updateCursor(cursor, coord);
 }

@@ -6,16 +6,8 @@
 #define QTMARKDOWN_CURSOR_H
 #include "QtMarkdown_global.h"
 #include "mddef.h"
+#include "CursorCoord.h"
 namespace md::editor {
-struct CursorCoord {
-  // Block 下标
-  SizeType blockNo = 0;
-  // 逻辑行 下标
-  SizeType lineNo = 0;
-  // 逻辑行里到列
-  SizeType offset = 0;
-};
-QDebug operator<<(QDebug debug, const CursorCoord& c);
 class QTMARKDOWNSHARED_EXPORT Cursor {
  public:
   [[nodiscard]] CursorCoord coord() const { return m_coord; };

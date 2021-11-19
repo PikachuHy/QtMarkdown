@@ -8,6 +8,7 @@
 
 #include "QtMarkdown_global.h"
 #include "Document.h"
+#include "CursorCoord.h"
 #include "mddef.h"
 namespace md::editor {
 class Cursor;
@@ -53,7 +54,10 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   [[nodiscard]] int width() const;
   [[nodiscard]] int height() const;
   [[nodiscard]] Point cursorPos() const;
+  [[nodiscard]] Rect cursorRect() const;
   void insertText(String str);
+  void setPreedit(String str);
+  void commitString(String str);
   void reset();
   [[nodiscard]] String cursorCoord() const;
   [[nodiscard]] sptr<Document> document() const { return m_doc; }
@@ -68,6 +72,9 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   sptr<render::RenderSetting> m_renderSetting;
   bool m_showCursor;
   bool m_holdCtrl;
+  bool m_preediting = false;
+  int m_preeditLength;
+  Point m_preeditPos;
   std::function<void(String)> m_linkClickedCallback;
   std::function<void(String)> m_imageClickedCallback;
   std::function<void(String)> m_copyCodeBtnClickedCallback;

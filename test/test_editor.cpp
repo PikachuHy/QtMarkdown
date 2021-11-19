@@ -461,6 +461,34 @@ a😊b
   doc->moveCursorToLeft(cursor);
   ASSERT_EQ(cursor.coord().offset, 0);
 }
+TEST(PreeditTest, ShowPreedit) {
+  Editor editor;
+  editor.loadText(R"()");
+  editor.setPreedit("a");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  ASSERT_EQ(cursor.coord().offset, 1);
+  ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 1);
+  auto node = doc->m_root->childAt(0);
+  ASSERT_EQ(node->type(), NodeType::paragraph);
+  auto paragraphNode = (md::parser::Paragraph*)node;
+  ASSERT_EQ(paragraphNode->size(), 1);
+  editor.setPreedit("ab");
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  ASSERT_EQ(cursor.coord().offset, 2);
+  ASSERT_EQ(paragraphNode->size(), 1);
+  ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 2);
+  editor.setPreedit("abc");
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  ASSERT_EQ(cursor.coord().offset, 3);
+  ASSERT_EQ(paragraphNode->size(), 1);
+  ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 3);
+}
 int main(int argc, char** argv) {
   // 必须加这一句
   // 不然调用字体(QFontMetric)时会崩溃

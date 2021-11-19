@@ -89,9 +89,7 @@ void QtQuickMarkdownEditor::keyReleaseEvent(QKeyEvent *event) {
 QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) const {
   switch (query) {
     case Qt::ImCursorRectangle: {
-      auto pos = m_editor->cursorPos();
-      auto rect = QRect(pos, QSize(5, 20));
-      return rect;
+      return m_editor->cursorRect();
     }
     case Qt::ImCursorPosition: {
       return m_editor->cursorPos();
@@ -104,9 +102,13 @@ QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) con
 void QtQuickMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
   auto str = event->commitString();
   if (!str.isEmpty()) {
-    m_editor->insertText(str);
-    this->update();
+    m_editor->commitString(str);
   }
+  auto preeditStr = event->preeditString();
+  if (!preeditStr.isEmpty()) {
+    m_editor->setPreedit(preeditStr);
+  }
+  this->update();
 }
 void QtQuickMarkdownEditor::newDoc() {
   m_editor->reset();

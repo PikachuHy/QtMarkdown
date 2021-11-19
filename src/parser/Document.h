@@ -86,6 +86,7 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   void appendChildren(QList<Text*>& children);
   [[nodiscard]] NodePtr childAt(SizeType index) const;
   void removeChildAt(SizeType index);
+  void removeChild(NodePtr node);
   SizeType indexOf(NodePtr child) const;
   NodePtr& operator[](SizeType index);
   const NodePtr& operator[](SizeType index) const;

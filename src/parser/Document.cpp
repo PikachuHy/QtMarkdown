@@ -94,6 +94,14 @@ SizeType Container::indexOf(NodePtr child) const {
   DEBUG << child->type() << child;
   ASSERT(false && "no child");
 }
+void Container::removeChild(NodePtr node) {
+  auto it = std::find(m_children.begin(), m_children.end(), node);
+  if (it == m_children.end()) {
+    DEBUG << node->type();
+    ASSERT(false && "no child");
+  }
+  m_children.erase(it);
+}
 ItalicText::ItalicText(Text *text) : m_text(text) {
   m_type = NodeType::italic;
   m_text->setParent(this);

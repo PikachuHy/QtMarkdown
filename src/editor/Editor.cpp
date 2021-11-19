@@ -375,7 +375,12 @@ void Editor::keyPressEvent(KeyEvent *event) {
     m_doc->insertText(*m_cursor, text);
   }
 }
-Point Editor::cursorPos() const { return m_cursor->pos(); }
+Point Editor::cursorPos() const { return m_preediting ? m_preeditPos : m_cursor->pos(); }
+Rect Editor::cursorRect() const {
+  auto pos = cursorPos();
+  auto h = m_cursor->height();
+  return Rect(pos, Size(5, h));
+}
 void Editor::mousePressEvent(Point offset, MouseEvent *event) {
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
@@ -441,5 +446,27 @@ void Editor::keyReleaseEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_Control) {
     m_holdCtrl = false;
   }
+}
+void Editor::setPreedit(String str) {
+  if (m_preediting) {
+    for (int i = 0; i < m_preeditLength; ++i) {
+      m_doc->removeText(*m_cursor);
+    }
+  } else {
+    m_preeditPos = m_cursor->pos();
+  }
+  m_preediting = true;
+  m_preeditLength = str.length();
+  m_doc->insertText(*m_cursor, str);
+}
+void Editor::commitString(String str) {
+  if (m_preediting) {
+    for (int i = 0; i < m_preeditLength; ++i) {
+      m_doc->removeText(*m_cursor);
+    }
+  }
+  m_doc->insertText(*m_cursor, str);
+  m_preediting = false;
+  m_preeditLength = 0;
 }
 }  // namespace md::editor
