@@ -65,6 +65,13 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
         DEBUG << "save fail";
       }
     }
+  } else if ((event->modifiers() & Qt::Modifier::CTRL) && event->key() == Qt::Key_V) {
+    auto s = QGuiApplication::clipboard()->text();
+    if (!s.isEmpty()) {
+      m_editor->insertText(s);
+    } else {
+      m_editor->keyPressEvent(event);
+    }
   } else {
     m_editor->keyPressEvent(event);
   }
