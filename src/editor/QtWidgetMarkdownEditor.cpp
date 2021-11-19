@@ -77,7 +77,7 @@ void QtWidgetMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
   m_editor->insertText(str);
 }
 void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
-  m_editor->mousePressEvent(event);
+  m_editor->mousePressEvent(Point(0, 0), event);
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) { setCursor(QCursor(Qt::IBeamCursor)); }
