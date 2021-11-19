@@ -576,7 +576,7 @@ void Document::removeText(Cursor& cursor) {
     return;
   }
   if (leftOffset - 1 > 0) {
-    auto s = line.left(coord.offset, this);
+    auto s = textNode->toString(this);
     auto ch = s[leftOffset - 2].unicode();
     // 如果是emoji的开始标志，两个都要删除
     if (ch == 0xd83d || ch == 0xd83c) {

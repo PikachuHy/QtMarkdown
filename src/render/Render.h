@@ -49,6 +49,8 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   int height() const;
   int width() const;
   std::pair<Point, int> cursorAt(SizeType offset, DocPtr doc);
+  // 第一个Text是当前offset所在Text结点
+  // 第二个int是当前offset在结点中还有的offset
   std::pair<parser::Text*, int> textAt(SizeType offset) const;
   SizeType length() const;
   String left(SizeType length, DocPtr doc) const;

@@ -140,12 +140,49 @@ a😊b
   auto& cursor = *editor.m_cursor;
   doc->moveCursorToEndOfDocument(cursor);
   ASSERT_EQ(cursor.coord().offset, 4);
+  {
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 4);
+  }
   doc->removeText(cursor);
   ASSERT_EQ(cursor.coord().offset, 3);
+  {
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 3);
+  }
   doc->removeText(cursor);
   ASSERT_EQ(cursor.coord().offset, 1);
+  {
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 1);
+  }
   doc->removeText(cursor);
   ASSERT_EQ(cursor.coord().offset, 0);
+  {
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 0);
+  }
+}
+
+TEST(ParagraphEditTest, RemoveEmoji2) {
+  Editor editor;
+  QString s;
+  editor.loadText(R"(
+a [666](www.baidu.com) b 😊
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  doc->moveCursorToEndOfDocument(cursor);
+  {
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 10);
+  }
+  doc->removeText(cursor);
+  {
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 8);
+  }
 }
 
 TEST(ParagraphEditTest, UpgradeToHeader) {
