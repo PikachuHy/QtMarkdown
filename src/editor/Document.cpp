@@ -433,6 +433,7 @@ void Document::removeText(Cursor& cursor) {
         if (block.logicalLineAt(0).length() == 0) {
           // 删除当前block，光标左移动
           moveCursorToLeft(cursor);
+          coord = cursor.coord();
           removeBlock(blockNo);
         }
         updateCursor(cursor, coord);

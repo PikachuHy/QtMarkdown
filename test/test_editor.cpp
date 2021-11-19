@@ -489,6 +489,34 @@ TEST(PreeditTest, ShowPreedit) {
   ASSERT_EQ(paragraphNode->size(), 1);
   ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 3);
 }
+
+TEST(MultiBlockEditTest, RemoveEmptyParagraph) {
+  Editor editor;
+  editor.loadText(R"(
+# a
+c
+# b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+
+  ASSERT_EQ(blocks.size(), 3);
+  ASSERT_EQ(doc->m_root->size(), 3);
+  auto coord = cursor.coord();
+  coord.blockNo = 1;
+  coord.lineNo = 0;
+  coord.offset = 1;
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 2);
+  ASSERT_EQ(doc->m_root->size(), 2);
+  coord = cursor.coord();
+  ASSERT_EQ(coord.blockNo, 0);
+  ASSERT_EQ(coord.lineNo, 0);
+  ASSERT_EQ(coord.offset, 1);
+}
 int main(int argc, char** argv) {
   // 必须加这一句
   // 不然调用字体(QFontMetric)时会崩溃
