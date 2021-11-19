@@ -163,7 +163,12 @@ class RenderPrivate
     auto font = curFont();
     font.setUnderline(true);
     setFont(font);
+    auto startIndex = m_block.m_logicalLines.back().m_cells.size();
     node->content()->accept(this);
+    for (auto i = startIndex; i < m_block.m_logicalLines.back().m_cells.size(); ++i) {
+      auto cell = m_block.m_logicalLines.back().m_cells[i];
+      m_block.appendElement({node, cell->m_pos, cell->m_size});
+    }
     restore();
   }
   void visit(InlineCode *node) override {
@@ -208,6 +213,13 @@ class RenderPrivate
     auto h = m_block.height() - m_setting->lineSpacing;
     auto instruction = new FillRectInstruction(Point(x - 3, y - 3), Size(w + 6, h + 6), QColor(249, 249, 249));
     m_block.insertInstruction(indexToInsertFillRect, instruction);
+    QString copyBtnFilePath = ":icon/copy_32x32.png";
+    QFile copyBtnFile(copyBtnFilePath);
+    ASSERT(copyBtnFile.exists());
+    QPixmap copyBtnImg(copyBtnFilePath);
+    Point pos(x + w - copyBtnImg.width(), y);
+    m_block.appendInstruction(new StaticImageInstruction(copyBtnFilePath, pos, copyBtnImg.size()));
+    m_block.appendElement({node, pos, copyBtnImg.size()});
     restore();
   }
   void visit(InlineLatex *node) override {
@@ -305,12 +317,28 @@ class RenderPrivate
       imgWidth /= 2;
     }
     image = image.scaledToWidth(imgWidth);
-    auto cell = new ImageCell(node, imgPath, Point(m_curX, m_curY), image.size());
+    const QPoint &pos = Point(m_curX, m_curY);
+    auto cell = new ImageCell(node, imgPath, pos, image.size());
     m_block.appendInstruction(new ImageInstruction(cell));
     m_curY += image.height();
+    m_block.appendElement({node, pos, image.size()});
     // TODO: 需要重新考虑图片
     m_block.m_logicalLines.back().m_lines.back().m_h = image.height();
     endVisualLine();
+    if (!imgPath.endsWith(".gif")) {
+      return;
+    }
+    // gif加一个播放的图标
+    QString playIconPath = ":/icon/play_64x64.png";
+    QFile playIconFile(playIconPath);
+    ASSERT(playIconFile.exists());
+    QImage playImage(playIconPath);
+    // 计算播放图标所在位置
+    // 播放图标放在中心位置
+    int x = (image.width() - playImage.width()) / 2 + pos.x();
+    int y = (image.height() - playImage.height()) / 2 + pos.y();
+    auto instruction = new StaticImageInstruction(playIconPath, Point(x, y), playImage.size());
+    m_block.appendInstruction(instruction);
   }
   void visit(CheckboxList *node) override {
     Q_ASSERT(node != nullptr);
@@ -332,16 +360,19 @@ class RenderPrivate
     auto h1 = textHeight();
 
     save();
+    const QPoint &pos = Point(m_curX, m_curY);
+    const QSize &size = Size(h1, h1);
     if (node->isChecked()) {
       QString imagePath = ":icon/checkbox-selected_64x64.png";
-      auto instruction = new StaticImageInstruction(imagePath, Point(m_curX, m_curY), Size(h1, h1));
+      auto instruction = new StaticImageInstruction(imagePath, pos, size);
       m_block.appendInstruction(instruction);
 
     } else {
       QString imagePath = ":icon/checkbox-unselected_64x64.png";
-      auto instruction = new StaticImageInstruction(imagePath, Point(m_curX, m_curY), Size(h1, h1));
+      auto instruction = new StaticImageInstruction(imagePath, pos, size);
       m_block.appendInstruction(instruction);
     }
+    m_block.appendElement({node, pos, size});
     m_curX += h1 + 10;
     restore();
     font = curFont();

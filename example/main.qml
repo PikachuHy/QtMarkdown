@@ -85,6 +85,17 @@ Window {
             onSourceChanged: {
                 console.log('source change:',source)
             }
+            onImageClicked: function (path) {
+                console.log('click image:', path)
+                if (path.endsWith(".gif")) {
+                    previewGif.source = 'file://' + path
+                    previewGifPopup.visible = true
+                } else {
+                    previewImage.source = 'file://' + path
+                    previewImagePopup.visible = true
+                }
+
+            }
             Component.onCompleted: {
                 root.title = source.substring(source.lastIndexOf('/') + 1)
             }
@@ -103,7 +114,30 @@ Window {
             text: md.height
         }
     }
+    Popup {
+        id: previewImagePopup
+        visible: false
+        anchors.centerIn: parent
+        ScrollView {
+            anchors.fill: parent
 
+            Image {
+                id: previewImage
+            }
+        }
+    }
+    Popup {
+        id: previewGifPopup
+        visible: false
+        anchors.centerIn: parent
+        ScrollView {
+            anchors.fill: parent
+
+            AnimatedImage {
+                id: previewGif
+            }
+        }
+    }
     Component.onCompleted: function () {
         console.log(md.width, md.height)
         console.log(sv.width, sv.height)

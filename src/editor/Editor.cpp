@@ -168,10 +168,59 @@ class SimpleMarkdownVisitor
   String m_md;
   DocPtr m_doc;
 };
+class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, CodeBlock> {
+ public:
+  MousePressVisitor(Document &doc, Editor &editor, SizeType blockNo)
+      : m_handled(false), m_doc(doc), m_editor(editor), m_blockNo(blockNo) {}
+  void visit(Link *node) override {
+    if (m_editor.m_holdCtrl) {
+      auto url = node->href()->toString(&m_doc);
+      m_editor.m_holdCtrl = false;
+      m_editor.m_linkClickedCallback(url);
+      m_handled = true;
+    }
+  }
+  void visit(CheckboxItem *node) override {
+    node->setChecked(!node->isChecked());
+    m_doc.renderBlock(m_blockNo);
+    m_handled = true;
+  }
+  void visit(Image *node) override {
+    auto path = node->src()->toString(&m_doc);
+    m_editor.m_imageClickedCallback(path);
+    m_handled = true;
+  }
+  void visit(CodeBlock *node) override {
+    String code;
+    for (const auto &child : node->children()) {
+      if (child->type() == NodeType::text) {
+        auto text = (Text *)child;
+        code += text->toString(&m_doc);
+        code += "\n";
+      } else if (child->type() == NodeType::lf) {
+        code += "\n";
+      } else {
+        DEBUG << node->type();
+        ASSERT(false && "not support");
+      }
+    }
+    m_editor.m_copyCodeBtnClickedCallback(code);
+    m_handled = true;
+  }
+  [[nodiscard]] bool handled() const { return m_handled; }
 
+ private:
+  bool m_handled;
+  Document &m_doc;
+  Editor &m_editor;
+  SizeType m_blockNo;
+};
 Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
+  m_linkClickedCallback = [](String s) { DEBUG << "click link" << s; };
+  m_imageClickedCallback = [](String s) { DEBUG << "click link" << s; };
+  m_copyCodeBtnClickedCallback = [](String s) { DEBUG << "click link" << s; };
 }
 void Editor::loadText(const String &text) {
   m_doc = std::make_shared<Document>(text, m_renderSetting);
@@ -296,6 +345,9 @@ void Editor::keyPressEvent(KeyEvent *event) {
   if (event->key() == Qt::Key_Tab) {
     return;
   }
+  if (event->modifiers() & Qt::Modifier::CTRL) {
+    m_holdCtrl = true;
+  }
   if (event->key() == Qt::Key_Left) {
     if (event->modifiers() & Qt::Modifier::CTRL) {
       m_doc->moveCursorToBol(*m_cursor);
@@ -324,9 +376,23 @@ void Editor::keyPressEvent(KeyEvent *event) {
   }
 }
 Point Editor::cursorPos() const { return m_cursor->pos(); }
-void Editor::mousePressEvent(MouseEvent *event) {
-  // 判断是不是点中了checkbox
-
+void Editor::mousePressEvent(Point offset, MouseEvent *event) {
+  auto oldOffset = offset;
+  offset.setY(offset.y() + m_renderSetting->docMargin.top());
+  for (int blockNo = 0; blockNo < m_doc->m_blocks.size(); ++blockNo) {
+    const auto &block = m_doc->m_blocks[blockNo];
+    auto h = block.height();
+    for (const auto &element : block.elementList()) {
+      if (Rect(element.pos + offset, element.size).contains(event->pos())) {
+        MousePressVisitor visitor(*m_doc, *this, blockNo);
+        element.node->accept(&visitor);
+        if (visitor.handled()) {
+          return;
+        }
+      }
+    }
+    offset.setY(offset.y() + h);
+  }
   m_doc->moveCursorToPos(*m_cursor, event->pos());
 }
 void Editor::insertText(String str) { m_doc->insertText(*m_cursor, str); }
@@ -349,6 +415,31 @@ String Editor::cursorCoord() const {
   //  s += "\n";
   s += QString("Offset: %1/%2").arg(coord.offset).arg(block.logicalLineAt(coord.lineNo).length());
   s += "\n";
+  s += QString("Hold Ctrl: ");
+  if (m_holdCtrl)
+    s += "YES";
+  else
+    s += "NO";
+  s += "\n";
   return s;
+}
+CursorShape Editor::cursorShape(Point offset, Point pos) {
+  auto oldOffset = offset;
+  offset.setY(offset.y() + m_renderSetting->docMargin.top());
+  for (const auto &block : m_doc->m_blocks) {
+    auto h = block.height();
+    for (const auto &element : block.elementList()) {
+      if (Rect(element.pos + offset, element.size).contains(pos)) {
+        return PointingHandCursor;
+      }
+    }
+    offset.setY(offset.y() + h);
+  }
+  return IBeamCursor;
+}
+void Editor::keyReleaseEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_Control) {
+    m_holdCtrl = false;
+  }
 }
 }  // namespace md::editor

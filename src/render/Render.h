@@ -8,6 +8,7 @@
 #include "Instruction.h"
 #include "mddef.h"
 #include "parser/Document.h"
+#include "Element.h"
 namespace md::render {
 struct RenderSetting {
   bool highlightCurrentLine = false;
@@ -77,6 +78,7 @@ class QTMARKDOWNSHARED_EXPORT Block {
   using LogicalLineList = std::vector<LogicalLine>;
   explicit Block(parser::Node* node) : m_node(node) {}
   void appendInstruction(Instruction* instruction);
+  void appendElement(Element element) { m_elements.push_back(element); }
   void insertInstruction(SizeType index, Instruction* instruction);
   int width() const;
   [[nodiscard]] int height() const;
@@ -85,12 +87,15 @@ class QTMARKDOWNSHARED_EXPORT Block {
   [[nodiscard]] auto end() const { return m_instructions.end(); }
   auto countOfLogicalLine() const { return m_logicalLines.size(); }
   const LogicalLine& logicalLineAt(SizeType index) const;
+  const ElementList& elementList() const { return m_elements; }
 
  private:
   // 逻辑行
   LogicalLineList m_logicalLines;
   // 绘图指令
   InstructionPtrList m_instructions;
+  ElementList m_elements;
+
   // 方便调试用
   parser::Node* m_node;
   friend class RenderPrivate;

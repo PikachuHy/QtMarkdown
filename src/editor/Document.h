@@ -30,12 +30,13 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   void insertReturn(Cursor& cursor);
   const render::BlockList& blocks() const { return m_blocks; };
 
- private:
   void replaceBlock(SizeType blockNo, parser::Node* node);
   void insertBlock(SizeType blockNo, parser::Node* node);
   void renderBlock(SizeType blockNo);
   void removeBlock(SizeType blockNo);
   void mergeBlock(SizeType blockNo1, SizeType blockNo2);
+
+ private:
   parser::Container* node2container(parser::Node* node);
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
 

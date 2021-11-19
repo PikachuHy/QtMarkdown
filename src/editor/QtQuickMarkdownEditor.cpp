@@ -6,11 +6,25 @@
 
 #include <QCursor>
 #include <QGuiApplication>
+#include <QDesktopServices>
+#include <QClipboard>
 
 #include "debug.h"
 namespace md::editor {
 QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPaintedItem(parent) {
   m_editor = std::make_shared<Editor>();
+  m_editor->setLinkClickedCallback([](QString url) {
+    DEBUG << url;
+    QDesktopServices::openUrl(url);
+  });
+  m_editor->setImageClickedCallback([this](QString path) {
+    DEBUG << path;
+    emit imageClicked(path);
+  });
+  m_editor->setCopyCodeBtnClickedCallback([this](QString code) {
+    DEBUG << code;
+    QGuiApplication::clipboard()->setText(code);
+  });
   setAcceptHoverEvents(true);
   setAcceptedMouseButtons(Qt::AllButtons);
   setFlag(ItemAcceptsInputMethod, true);
@@ -58,13 +72,20 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
 }
-void QtQuickMarkdownEditor::hoverMoveEvent(QHoverEvent *event) { setCursor(QCursor(Qt::IBeamCursor)); }
+void QtQuickMarkdownEditor::hoverMoveEvent(QHoverEvent *event) {
+  QPoint pos(event->position().x(), event->position().y());
+  CursorShape shape = m_editor->cursorShape(QPoint(0, 0), pos);
+  setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
+}
 void QtQuickMarkdownEditor::mousePressEvent(QMouseEvent *event) {
   forceActiveFocus();
-  m_editor->mousePressEvent(event);
+  m_editor->mousePressEvent(QPoint(0, 0), event);
   this->update();
 }
-void QtQuickMarkdownEditor::keyReleaseEvent(QKeyEvent *event) {}
+void QtQuickMarkdownEditor::keyReleaseEvent(QKeyEvent *event) {
+  m_editor->keyReleaseEvent(event);
+  this->update();
+}
 QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) const {
   switch (query) {
     case Qt::ImCursorRectangle: {

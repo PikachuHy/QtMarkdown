@@ -43,6 +43,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void docSave();
   void cursorCoordChanged(QString str);
   void sourceChanged(QString old);
+  void imageClicked(QString path);
 
  private:
   QString m_text;

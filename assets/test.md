@@ -102,6 +102,7 @@ class Test{
 
 ![shiyanlou logo](/Users/pikachu/Downloads/1.jpg)
 
+![gif demo](/Users/pikachu/Desktop/gif_demo.gif)
 ## LaTeX
 行内公式: $\alpha + \beta = \gamma $
 勾股定理

@@ -4,11 +4,40 @@
 
 #ifndef QTMARKDOWN_EDITOR_H
 #define QTMARKDOWN_EDITOR_H
+#include <utility>
+
 #include "QtMarkdown_global.h"
 #include "Document.h"
 #include "mddef.h"
 namespace md::editor {
 class Cursor;
+enum CursorShape {
+  ArrowCursor,
+  UpArrowCursor,
+  CrossCursor,
+  WaitCursor,
+  IBeamCursor,
+  SizeVerCursor,
+  SizeHorCursor,
+  SizeBDiagCursor,
+  SizeFDiagCursor,
+  SizeAllCursor,
+  BlankCursor,
+  SplitVCursor,
+  SplitHCursor,
+  PointingHandCursor,
+  ForbiddenCursor,
+  WhatsThisCursor,
+  BusyCursor,
+  OpenHandCursor,
+  ClosedHandCursor,
+  DragCopyCursor,
+  DragMoveCursor,
+  DragLinkCursor,
+  LastCursor = DragLinkCursor,
+  BitmapCursor = 24,
+  CustomCursor = 25
+};
 class QTMARKDOWNSHARED_EXPORT Editor {
  public:
   Editor();
@@ -18,7 +47,9 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void drawDoc(Point offset, Painter& painter);
   void drawCursor(Point offset, Painter& painter);
   void keyPressEvent(KeyEvent* event);
-  void mousePressEvent(MouseEvent* event);
+  void keyReleaseEvent(KeyEvent* event);
+  void mousePressEvent(Point offset, MouseEvent* event);
+  CursorShape cursorShape(Point offset, Point pos);
   [[nodiscard]] int width() const;
   [[nodiscard]] int height() const;
   [[nodiscard]] Point cursorPos() const;
@@ -26,6 +57,9 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void reset();
   [[nodiscard]] String cursorCoord() const;
   [[nodiscard]] sptr<Document> document() const { return m_doc; }
+  void setLinkClickedCallback(std::function<void(String)> cb) { m_linkClickedCallback = std::move(cb); }
+  void setImageClickedCallback(std::function<void(String)> cb) { m_imageClickedCallback = std::move(cb); }
+  void setCopyCodeBtnClickedCallback(std::function<void(String)> cb) { m_copyCodeBtnClickedCallback = std::move(cb); }
 
  private:
  private:
@@ -33,6 +67,11 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   sptr<Cursor> m_cursor;
   sptr<render::RenderSetting> m_renderSetting;
   bool m_showCursor;
+  bool m_holdCtrl;
+  std::function<void(String)> m_linkClickedCallback;
+  std::function<void(String)> m_imageClickedCallback;
+  std::function<void(String)> m_copyCodeBtnClickedCallback;
+  friend class MousePressVisitor;
 };
 }  // namespace md::editor
 
