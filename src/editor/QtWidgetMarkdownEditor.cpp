@@ -4,8 +4,15 @@
 
 #include "QtWidgetMarkdownEditor.h"
 
+#include <QApplication>
+#include <QClipboard>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QHBoxLayout>
 #include <QInputMethod>
 #include <QInputMethodEvent>
+#include <QLabel>
+#include <QMovie>
 #include <QPainter>
 #include <QRect>
 #include <QScrollBar>
@@ -19,6 +26,31 @@ QtWidgetMarkdownEditor::QtWidgetMarkdownEditor(QWidget *parent) : QAbstractScrol
   setAttribute(Qt::WA_InputMethodEnabled);
   setMouseTracking(true);
   m_editor = std::make_shared<Editor>();
+  m_editor->setLinkClickedCallback([](QString url) {
+    DEBUG << url;
+    QDesktopServices::openUrl(url);
+  });
+  m_editor->setCopyCodeBtnClickedCallback([this](QString code) {
+    DEBUG << code;
+    QApplication::clipboard()->setText(code);
+  });
+  m_editor->setImageClickedCallback([this](QString path) {
+    QDialog dialog;
+    dialog.setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
+    auto hbox = new QHBoxLayout();
+    auto imgLabel = new QLabel();
+    if (path.endsWith(".gif")) {
+      auto m = new QMovie(path);
+      imgLabel->setMovie(m);
+      m->start();
+    } else {
+      imgLabel->setPixmap(QPixmap(path));
+    }
+    hbox->addWidget(imgLabel);
+    hbox->setContentsMargins(0, 0, 0, 0);
+    dialog.setLayout(hbox);
+    dialog.exec();
+  });
   DEBUG << "viewport size:" << viewport()->sizeHint();
   m_cursorTimer.start(500);
   connect(&m_cursorTimer, &QTimer::timeout, [this]() { this->viewport()->update(); });
@@ -44,6 +76,9 @@ void QtWidgetMarkdownEditor::loadFile(QString path) {
 void QtWidgetMarkdownEditor::paintEvent(QPaintEvent *event) {
   QPainter painter(viewport());
   m_editor->drawDoc(m_offset, painter);
+  if (hasFocus()) {
+    m_editor->drawCursor(m_offset, painter);
+  }
 }
 void QtWidgetMarkdownEditor::scrollContentsBy(int dx, int dy) {
   auto x = m_offset.x() + dx;
@@ -59,9 +94,7 @@ void QtWidgetMarkdownEditor::keyPressEvent(QKeyEvent *event) {
 QVariant QtWidgetMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) const {
   switch (query) {
     case Qt::ImCursorRectangle: {
-      auto pos = m_editor->cursorPos();
-      auto rect = QRect(pos, QSize(5, 20));
-      return rect;
+      return m_editor->cursorRect();
     }
     case Qt::ImCursorPosition: {
       return m_editor->cursorPos();
@@ -73,13 +106,24 @@ QVariant QtWidgetMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) co
 }
 void QtWidgetMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
   auto str = event->commitString();
-  DEBUG << str;
-  m_editor->insertText(str);
-}
-void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
-  m_editor->mousePressEvent(Point(0, 0), event);
+  if (!str.isEmpty()) {
+    m_editor->commitString(str);
+  }
+  auto preeditStr = event->preeditString();
+  if (!preeditStr.isEmpty()) {
+    m_editor->setPreedit(preeditStr);
+  }
   viewport()->update();
 }
-void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) { setCursor(QCursor(Qt::IBeamCursor)); }
+void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
+  m_editor->mousePressEvent(m_offset, event);
+  viewport()->update();
+}
+void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
+  QPoint pos(event->position().x(), event->position().y());
+  CursorShape shape = m_editor->cursorShape(m_offset, pos);
+  setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
+  viewport()->update();
+}
 void QtWidgetMarkdownEditor::reload() {}
 }  // namespace md::editor
