@@ -100,7 +100,7 @@ std::pair<Text*, Text*> Text::split(SizeType totalOffset) {
   auto leftOffset = totalOffset - curOffset;
   auto leftText = new Text();
   auto rightText = new Text();
-  for (int i = 0; i < splitIndex - 1; ++i) {
+  for (int i = 0; i < splitIndex; ++i) {
     leftText->m_items.append(m_items[i]);
   }
   // splitIndex所在item要拆成两个，当然，也要考虑首尾的情况

@@ -311,6 +311,55 @@ TEST(UlEditTest, UpgradeToCheckbox) {
   auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
   ASSERT_EQ(ulItemNode->size(), 0);
 }
+TEST(UlEditTest, InsertReturn) {
+  Editor editor;
+  editor.loadText(R"(
+- GIF啊
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  {
+    ASSERT_EQ(blocks.size(), 1);
+    ASSERT_EQ(doc->m_root->size(), 1);
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::ul);
+    auto ulNode = (md::parser::UnorderedList*)node;
+    ASSERT_EQ(ulNode->size(), 1);
+    auto ulItem = ulNode->childAt(0);
+    ASSERT_EQ(ulItem->type(), NodeType::ul_item);
+    auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
+    ASSERT_EQ(ulItemNode->size(), 1);
+    auto text = ulItemNode->childAt(0);
+    ASSERT_EQ(text->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)text;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("GIF啊"));
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 4);
+  }
+  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  doc->insertReturn(cursor);
+  {
+    ASSERT_EQ(blocks.size(), 1);
+    ASSERT_EQ(doc->m_root->size(), 1);
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::ul);
+    auto ulNode = (md::parser::UnorderedList*)node;
+    ASSERT_EQ(ulNode->size(), 2);
+    auto ulItem = ulNode->childAt(0);
+    ASSERT_EQ(ulItem->type(), NodeType::ul_item);
+    auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
+    ASSERT_EQ(ulItemNode->size(), 1);
+    auto text = ulItemNode->childAt(0);
+    ASSERT_EQ(text->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)text;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("GIF啊"));
+    auto& line = blocks[0].logicalLineAt(0);
+    ASSERT_EQ(line.length(), 4);
+  }
+}
 TEST(CheckboxEditTest, DegradeToParagraph) {
   Editor editor;
   editor.loadText("- [ ] ");
