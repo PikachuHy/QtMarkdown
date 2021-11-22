@@ -45,6 +45,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   sptr<render::RenderSetting> m_setting;
   friend class Editor;
   friend class EditorTest;
+  friend class InsertReturnVisitor;
 };
 }  // namespace md::editor
 

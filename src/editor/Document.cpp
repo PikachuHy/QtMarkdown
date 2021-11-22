@@ -12,6 +12,182 @@
 using namespace md::parser;
 using namespace md::render;
 namespace md::editor {
+class InsertReturnVisitor
+    : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock> {
+ public:
+  InsertReturnVisitor(Cursor& cursor, Document* doc) : cursor(cursor), m_doc(doc) {
+    coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    auto textAndOffset = line.textAt(coord.offset);
+    this->textNode = textAndOffset.first;
+    this->leftOffset = textAndOffset.second;
+    auto leftRightText = textNode->split(leftOffset);
+    this->leftTextNode = leftRightText.first;
+    this->rightTextNode = leftRightText.second;
+  }
+  void visit(Paragraph* node) override {
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+
+    Container* oldBlock = nullptr;
+    Container* newBlock = nullptr;
+    String prefix = line.left(coord.offset, m_doc);
+    if (prefix.startsWith("```")) {
+      leftTextNode->remove(0, 3);
+      oldBlock = new CodeBlock(leftTextNode);
+      if (rightTextNode->empty()) {
+        m_doc->replaceBlock(coord.blockNo, oldBlock);
+        coord.offset = 0;
+        updateCursor(cursor, coord);
+        delete node;
+        return;
+      }
+      newBlock = new Paragraph();
+    } else {
+      oldBlock = new Paragraph();
+      newBlock = new Paragraph();
+    }
+    splitNode(node, oldBlock, newBlock);
+  }
+  void visit(Header* node) override {
+    auto oldBlock = new Header(node->level());
+    Container* newBlock;
+    if (rightTextNode->toString(m_doc).isEmpty()) {
+      newBlock = new Paragraph();
+    } else {
+      newBlock = new Header(node->level());
+    }
+    splitNode(node, oldBlock, newBlock);
+  }
+  void visit(OrderedList* node) override {
+    auto [listIndex, itemIndex] = indexOfItem(node);
+    auto originalItem = (OrderedListItem*)node->childAt(listIndex);
+    auto oldItem = new OrderedListItem();
+    auto newItem = new OrderedListItem();
+    splitListNode(node, originalItem, oldItem, newItem, listIndex, itemIndex);
+  }
+  void visit(UnorderedList* node) override {
+    auto [listIndex, itemIndex] = indexOfItem(node);
+    auto originalItem = (UnorderedListItem*)node->childAt(listIndex);
+    auto oldItem = new UnorderedListItem();
+    auto newItem = new UnorderedListItem();
+    splitListNode(node, originalItem, oldItem, newItem, listIndex, itemIndex);
+  }
+  void visit(CheckboxList* node) override {
+    auto [listIndex, itemIndex] = indexOfItem(node);
+    auto originalItem = (CheckboxItem*)node->childAt(listIndex);
+    auto oldItem = new CheckboxItem();
+    oldItem->setChecked(originalItem->isChecked());
+    auto newItem = new CheckboxItem();
+    splitListNode(node, originalItem, oldItem, newItem, listIndex, itemIndex);
+  }
+  void visit(CodeBlock* node) override {
+    node->removeChildAt(coord.lineNo);
+    node->insertChild(coord.lineNo, leftTextNode);
+    node->insertChild(coord.lineNo + 1, rightTextNode);
+    m_doc->renderBlock(coord.blockNo);
+    coord.lineNo++;
+    coord.offset = 0;
+    updateCursor(cursor, coord);
+  }
+
+ private:
+  void splitNode(Container* originalBlock, Container* oldBlock, Container* newBlock) {
+    ASSERT(originalBlock != nullptr);
+    ASSERT(oldBlock != nullptr);
+    ASSERT(newBlock != nullptr);
+    // 需要找到子结点的下标
+    ASSERT(textNode->parent() == originalBlock);
+    int childIndex = 0;
+    while (childIndex < originalBlock->size()) {
+      if (originalBlock->childAt(childIndex) == textNode) {
+        break;
+      }
+      childIndex++;
+    }
+    for (int i = 0; i < childIndex; ++i) {
+      oldBlock->appendChild(originalBlock->children()[i]);
+    }
+    if (!leftTextNode->empty()) {
+      oldBlock->appendChild(leftTextNode);
+    }
+    if (!rightTextNode->empty()) {
+      newBlock->appendChild(rightTextNode);
+    }
+    for (SizeType i = childIndex + 1; i < originalBlock->children().size(); ++i) {
+      DEBUG << i;
+      NodePtr& child = originalBlock->children()[i];
+      newBlock->appendChild(child);
+      DEBUG << child->type();
+      if (child->type() == NodeType::text) {
+        auto textNode = (Text*)child;
+        auto s = textNode->toString(m_doc);
+        DEBUG << s;
+      }
+    }
+    m_doc->replaceBlock(coord.blockNo, oldBlock);
+    m_doc->insertBlock(coord.blockNo + 1, newBlock);
+    coord.blockNo++;
+    coord.offset = 0;
+    updateCursor(cursor, coord);
+    delete originalBlock;
+  }
+  std::pair<SizeType, SizeType> indexOfItem(Container* listNode) {
+    SizeType listIndex = 0;
+    SizeType itemIndex = 0;
+    for (auto child : listNode->children()) {
+      ASSERT(child->type() == NodeType::ol_item || child->type() == NodeType::ul_item ||
+             child->type() == NodeType::checkbox_item);
+      auto item = (Container*)child;
+      if (textNode->parent() == child) {
+        itemIndex = item->indexOf(textNode);
+        break;
+      }
+      listIndex++;
+    }
+    return {listIndex, itemIndex};
+  }
+  void splitListNode(Container* listNode, Container* originalItem, Container* oldItem, Container* newItem,
+                     SizeType listIndex, SizeType itemIndex) {
+    ASSERT(oldItem != nullptr);
+    ASSERT(newItem != nullptr);
+    for (int i = 0; i < itemIndex; ++i) {
+      ASSERT(i < originalItem->children().size());
+      oldItem->appendChild(originalItem->children()[i]);
+    }
+    oldItem->appendChild(leftTextNode);
+    newItem->appendChild(rightTextNode);
+    for (SizeType i = itemIndex + 1; i < originalItem->children().size(); ++i) {
+      ASSERT(i < originalItem->children().size());
+      newItem->appendChild(originalItem->children()[i]);
+    }
+    listNode->setChild(listIndex, oldItem);
+    listNode->insertChild(listIndex + 1, newItem);
+    renderBlock(coord.blockNo);
+    coord.lineNo++;
+    coord.offset = 0;
+    updateCursor(cursor, coord);
+    delete originalItem;
+  }
+
+ private:
+  void renderBlock(SizeType blockNo) { m_doc->renderBlock(blockNo); }
+  void updateCursor(Cursor& cursor, const CursorCoord& coord) { m_doc->updateCursor(cursor, coord); }
+
+ private:
+  Document* m_doc;
+  Cursor& cursor;
+  CursorCoord coord;
+  Text* textNode;
+  int leftOffset;
+  Text* leftTextNode;
+  Text* rightTextNode;
+};
 Document::Document(const String& str, sptr<RenderSetting> setting) : parser::Document(str), m_setting(setting) {
   for (auto node : m_root->children()) {
     const Block& block = Render::render(node, m_setting, this);
@@ -614,165 +790,9 @@ void Document::insertReturn(Cursor& cursor) {
     updateCursor(cursor, coord);
     return;
   }
-#if 0
-  ASSERT(coord.cellNo >= 0 && coord.cellNo < line.size());
-  auto cell = line[coord.cellNo];
-  if (!cell->isTextCell()) return;
-  auto textCell = (TextCell*)cell;
-  auto textNode = textCell->text();
-  SizeType totalOffset = 0;
-  for (int i = 0; i < coord.cellNo; ++i) {
-    totalOffset += line[i]->length();
-  }
-  auto leftOffset = coord.offset - totalOffset;
-  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_root->children().size());
-  auto node = m_root->children()[coord.blockNo];
-#endif
-  auto [textNode, leftOffset] = line.textAt(coord.offset);
-  // 从当前光标的位置，把结点切分为同样的两个子结点
-  auto [leftTextNode, rightTextNode] = textNode->split(leftOffset);
-  Container* originalBlock = nullptr;
-  Container* oldBlock = nullptr;
-  Container* newBlock = nullptr;
-  auto node = textNode->parent();
-  while (node->parent() != m_root.get()) {
-    node = node->parent();
-  }
-  if (node->type() == NodeType::header) {
-    auto header = (Header*)node;
-    originalBlock = (Header*)node;
-    oldBlock = new Header(header->level());
-    // 如果光标位于标题的行尾，则新建的block是段落
-    // 否则还是标题
-    if (rightTextNode->toString(this).isEmpty()) {
-      newBlock = new Paragraph();
-    } else {
-      newBlock = new Header(header->level());
-    }
-  } else if (node->type() == NodeType::paragraph) {
-    // 段落按回车可以触发升级到代码块
-    originalBlock = (Paragraph*)node;
-    String prefix = line.left(coord.offset, this);
-    if (prefix.startsWith("```")) {
-      leftTextNode->remove(0, 3);
-      oldBlock = new CodeBlock(leftTextNode);
-      if (rightTextNode->empty()) {
-        replaceBlock(coord.blockNo, oldBlock);
-        coord.offset = 0;
-        updateCursor(cursor, coord);
-        delete originalBlock;
-        return;
-      }
-      newBlock = new Paragraph();
-    } else {
-      oldBlock = new Paragraph();
-      newBlock = new Paragraph();
-    }
-  } else if (node->type() == NodeType::ol || node->type() == NodeType::ul || node->type() == NodeType::checkbox) {
-    // 有序列表或无序列表
-    auto listNode = node2container(node);
-    SizeType listIndex = 0;
-    SizeType itemIndex = 0;
-    for (auto child : listNode->children()) {
-      ASSERT(child->type() == NodeType::ol_item || child->type() == NodeType::ul_item ||
-             child->type() == NodeType::checkbox_item);
-      auto item = (Container*)child;
-      if (textNode->parent() == child) {
-        itemIndex = item->indexOf(textNode);
-        break;
-      }
-      listIndex++;
-    }
-    // 考虑文本为空时，降级为段落的情况
-
-    auto originalItem = (Container*)listNode->children()[listIndex];
-    Container* oldItem = nullptr;
-    Container* newItem = nullptr;
-    if (node->type() == NodeType::ol) {
-      oldItem = new OrderedListItem();
-      newItem = new OrderedListItem();
-    } else if (node->type() == NodeType::ul) {
-      oldItem = new UnorderedListItem();
-      newItem = new UnorderedListItem();
-    } else if (node->type() == NodeType::checkbox) {
-      auto oldItemTmp = new CheckboxItem();
-      auto originalItemTmp = (CheckboxItem*)originalItem;
-      oldItemTmp->setChecked(originalItemTmp->isChecked());
-      oldItem = oldItemTmp;
-      newItem = new CheckboxItem();
-    }
-    ASSERT(oldItem != nullptr && newItem != nullptr);
-    for (int i = 0; i < itemIndex; ++i) {
-      ASSERT(i < originalItem->children().size());
-      oldItem->appendChild(originalItem->children()[i]);
-    }
-    oldItem->appendChild(leftTextNode);
-    newItem->appendChild(rightTextNode);
-    for (SizeType i = itemIndex + 1; i < originalItem->children().size(); ++i) {
-      ASSERT(i < originalItem->children().size());
-      newItem->appendChild(originalItem->children()[i]);
-    }
-    listNode->setChild(listIndex, oldItem);
-    listNode->insertChild(listIndex + 1, newItem);
-    renderBlock(coord.blockNo);
-    coord.lineNo++;
-    coord.offset = 0;
-    updateCursor(cursor, coord);
-    delete originalItem;
-    return;
-  } else if (node->type() == NodeType::code_block) {
-    auto codeBlockNode = node2container(node);
-    codeBlockNode->removeChildAt(coord.lineNo);
-    codeBlockNode->insertChild(coord.lineNo, leftTextNode);
-    codeBlockNode->insertChild(coord.lineNo + 1, rightTextNode);
-    renderBlock(coord.blockNo);
-    coord.lineNo++;
-    coord.offset = 0;
-    updateCursor(cursor, coord);
-    return;
-  } else {
-    DEBUG << "not support now";
-    ASSERT(false && "not support now");
-    return;
-  }
-  ASSERT(originalBlock != nullptr);
-  ASSERT(oldBlock != nullptr);
-  ASSERT(newBlock != nullptr);
-  // 需要找到子结点的下标
-  ASSERT(textNode->parent() == originalBlock);
-  int childIndex = 0;
-  while (childIndex < originalBlock->size()) {
-    if (originalBlock->childAt(childIndex) == textNode) {
-      break;
-    }
-    childIndex++;
-  }
-  for (int i = 0; i < childIndex; ++i) {
-    oldBlock->appendChild(originalBlock->children()[i]);
-  }
-  if (!leftTextNode->empty()) {
-    oldBlock->appendChild(leftTextNode);
-  }
-  if (!rightTextNode->empty()) {
-    newBlock->appendChild(rightTextNode);
-  }
-  for (SizeType i = childIndex + 1; i < originalBlock->children().size(); ++i) {
-    DEBUG << i;
-    NodePtr& child = originalBlock->children()[i];
-    newBlock->appendChild(child);
-    DEBUG << child->type();
-    if (child->type() == NodeType::text) {
-      auto textNode = (Text*)child;
-      auto s = textNode->toString(this);
-      DEBUG << s;
-    }
-  }
-  replaceBlock(coord.blockNo, oldBlock);
-  insertBlock(coord.blockNo + 1, newBlock);
-  coord.blockNo++;
-  coord.offset = 0;
-  updateCursor(cursor, coord);
-  delete originalBlock;
+  InsertReturnVisitor visitor(cursor, this);
+  auto node = m_root->childAt(cursor.coord().blockNo);
+  node->accept(&visitor);
 }
 void Document::replaceBlock(SizeType blockNo, parser::Node* node) {
   ASSERT(blockNo >= 0 && blockNo < m_root->children().size());
