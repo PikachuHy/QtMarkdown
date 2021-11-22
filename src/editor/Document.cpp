@@ -12,10 +12,32 @@
 using namespace md::parser;
 using namespace md::render;
 namespace md::editor {
-class InsertReturnVisitor
-    : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock> {
+class DocumentOperationVisitor {
  public:
-  InsertReturnVisitor(Cursor& cursor, Document* doc) : cursor(cursor), m_doc(doc) {
+  DocumentOperationVisitor(Cursor& cursor, Document* doc) : cursor(cursor), m_doc(doc) {
+    coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+  }
+
+ protected:
+  void renderBlock(SizeType blockNo) { m_doc->renderBlock(blockNo); }
+  void updateCursor(Cursor& cursor, const CursorCoord& coord) { m_doc->updateCursor(cursor, coord); }
+  void insertBlock(SizeType blockNo, parser::Node* node) { m_doc->insertBlock(blockNo, node); }
+  void removeBlock(SizeType blockNo) { m_doc->removeBlock(blockNo); }
+  void replaceBlock(SizeType blockNo, parser::Node* node) { m_doc->replaceBlock(blockNo, node); }
+  void mergeBlock(SizeType blockNo1, SizeType blockNo2) { m_doc->mergeBlock(blockNo1, blockNo2); }
+  void moveCursorToLeft(Cursor& cursor) { m_doc->moveCursorToLeft(cursor); }
+
+ protected:
+  Document* m_doc;
+  Cursor& cursor;
+  CursorCoord coord;
+};
+class InsertReturnVisitor
+    : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock>,
+      public DocumentOperationVisitor {
+ public:
+  InsertReturnVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) {
     coord = cursor.coord();
     ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
     auto block = m_doc->m_blocks[coord.blockNo];
@@ -176,17 +198,175 @@ class InsertReturnVisitor
   }
 
  private:
-  void renderBlock(SizeType blockNo) { m_doc->renderBlock(blockNo); }
-  void updateCursor(Cursor& cursor, const CursorCoord& coord) { m_doc->updateCursor(cursor, coord); }
-
- private:
-  Document* m_doc;
-  Cursor& cursor;
-  CursorCoord coord;
   Text* textNode;
   int leftOffset;
   Text* leftTextNode;
   Text* rightTextNode;
+};
+class RemoveTextVisitor
+    : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock>,
+      public DocumentOperationVisitor {
+ public:
+  RemoveTextVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) {}
+  void visit(Paragraph* node) override {
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty() && block.logicalLineAt(0).length() == 0) {
+      // 删除当前block，光标左移动
+      moveCursorToLeft(cursor);
+      coord = cursor.coord();
+      removeBlock(coord.blockNo);
+      return;
+    }
+    // 考虑段首按删除的情况
+    if (coord.lineNo == 0) {
+      if (coord.blockNo > 0) {
+        // 合并当前block和前一个block
+        // 新坐标为前一个block的最后一行，最后一列
+        auto prevBlock = m_doc->m_blocks[coord.blockNo - 1];
+        coord.lineNo = prevBlock.countOfLogicalLine() - 1;
+        coord.offset = prevBlock.logicalLineAt(prevBlock.countOfLogicalLine() - 1).length();
+        mergeBlock(coord.blockNo - 1, coord.blockNo);
+        coord.blockNo--;
+        updateCursor(cursor, coord);
+        return;
+      } else {
+        auto [textNode, leftOffset] = line.textAt(coord.offset);
+        removeTextInNode(textNode, leftOffset);
+        if (textNode->empty()) {
+          node->removeChild(textNode);
+        }
+        endRemoveText();
+      }
+    } else {
+      auto [textNode, leftOffset] = line.textAt(coord.offset);
+      removeTextInNode(textNode, leftOffset);
+      if (textNode->empty()) {
+        node->removeChild(textNode);
+      }
+      endRemoveText();
+    }
+  }
+  void visit(Header* node) override {
+    auto& line = curLine();
+    if (line.empty() || coord.lineNo == 0) {
+      DEBUG << "degrade header to paragraph";
+      auto paragraphNode = new Paragraph();
+      paragraphNode->setChildren(node->children());
+      replaceBlock(coord.blockNo, paragraphNode);
+      delete node;
+    } else {
+      auto [textNode, leftOffset] = line.textAt(coord.offset);
+      removeTextInNode(textNode, leftOffset);
+      endRemoveText();
+    }
+  }
+  void visit(OrderedList* node) override { removeTextInListNode(node); }
+  void visit(UnorderedList* node) override { removeTextInListNode(node); }
+  void visit(CheckboxList* node) override { removeTextInListNode(node); }
+  void visit(CodeBlock* node) override {
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      if (coord.lineNo > 0) {
+        ASSERT(coord.lineNo > 0);
+        coord.offset = block.logicalLineAt(coord.lineNo - 1).length();
+        auto text1 = node->childAt(coord.lineNo - 1);
+        ASSERT(text1->type() == NodeType::text);
+        auto text1Node = (Text*)text1;
+        auto text2 = node->childAt(coord.lineNo);
+        ASSERT(text2->type() == NodeType::text);
+        auto text2Node = (Text*)text2;
+        text1Node->merge(*text2Node);
+        node->removeChildAt(coord.lineNo);
+        coord.lineNo--;
+        cursor.setCoord(coord);
+        renderBlock(coord.blockNo);
+        updateCursor(cursor, coord);
+        return;
+      }
+    } else {
+      auto [textNode, leftOffset] = line.textAt(coord.offset);
+      removeTextInNode(textNode, leftOffset);
+      endRemoveText();
+    }
+  }
+
+ private:
+  const LogicalLine& curLine() {
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    return block.logicalLineAt(coord.lineNo);
+  }
+  void removeTextInListNode(Container* node) {
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      replaceBlock(coord.blockNo, new Paragraph());
+      delete node;
+    } else if (coord.offset == 0) {
+      auto olNode = node;
+      ASSERT(coord.lineNo >= 0 && coord.lineNo < olNode->children().size());
+      auto olItem = (Container*)olNode->childAt(coord.lineNo);
+      // 合并这两个ol item
+      if (coord.lineNo == 0) {
+        // 如果是第一个ol item，降级为paragraph
+        auto paragraph = new Paragraph();
+        paragraph->appendChildren(olItem->children());
+        insertBlock(coord.blockNo, paragraph);
+        olNode->removeChildAt(0);
+        if (olNode->empty()) {
+          removeBlock(coord.blockNo + 1);
+        } else {
+          renderBlock(coord.blockNo + 1);
+        }
+        updateCursor(cursor, coord);
+        return;
+      } else {
+        // 其他情况就是合并两个ol item
+        ASSERT(coord.lineNo > 0);
+        coord.offset = block.logicalLineAt(coord.lineNo - 1).length();
+        auto prevItem = (Container*)olNode->childAt(coord.lineNo - 1);
+        auto curItem = (Container*)olNode->childAt(coord.lineNo);
+        prevItem->appendChildren(curItem->children());
+        olNode->removeChildAt(coord.lineNo);
+        coord.lineNo--;
+        cursor.setCoord(coord);
+        renderBlock(coord.blockNo);
+        delete curItem;
+        updateCursor(cursor, coord);
+        return;
+      }
+    } else {
+      auto [textNode, leftOffset] = line.textAt(coord.offset);
+      removeTextInNode(textNode, leftOffset);
+      endRemoveText();
+    }
+  }
+  void removeTextInNode(Text* textNode, SizeType leftOffset) {
+    if (leftOffset - 1 > 0) {
+      auto s = textNode->toString(m_doc);
+      auto ch = s[leftOffset - 2].unicode();
+      // 如果是emoji的开始标志，两个都要删除
+      if (ch == 0xd83d || ch == 0xd83c) {
+        textNode->remove(leftOffset - 2, 2);
+        coord.offset -= 2;
+      } else {
+        textNode->remove(leftOffset - 1, 1);
+        coord.offset--;
+      }
+    } else {
+      textNode->remove(leftOffset - 1, 1);
+      coord.offset--;
+    }
+  }
+  void endRemoveText() {
+    renderBlock(coord.blockNo);
+    updateCursor(cursor, coord);
+  }
 };
 Document::Document(const String& str, sptr<RenderSetting> setting) : parser::Document(str), m_setting(setting) {
   for (auto node : m_root->children()) {
@@ -579,202 +759,9 @@ void Document::insertText(Cursor& cursor, const String& text) {
   updateCursor(cursor, coord);
 }
 void Document::removeText(Cursor& cursor) {
-  auto coord = cursor.coord();
-  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
-  ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-  auto& line = block.logicalLineAt(coord.lineNo);
-  if (line.empty()) {
-    if (block.countOfLogicalLine() == 1 && coord.lineNo == 0) {
-      auto blockNo = coord.blockNo;
-      auto node = m_root->children()[blockNo];
-      if (node->type() == NodeType::header) {
-        DEBUG << "degrade header to paragraph";
-        auto header = (Header*)node;
-        replaceBlock(coord.blockNo, new Paragraph());
-        delete header;
-      } else if (node->type() == NodeType::ul || node->type() == NodeType::ol || node->type() == NodeType::checkbox) {
-        auto listNode = node2container(node);
-        ASSERT(listNode->size() == 1);
-        replaceBlock(coord.blockNo, new Paragraph());
-        delete listNode;
-      } else {
-#if 0
-        // 删除当前block，光标左移动
-        moveCursorToLeft(cursor);
-        removeBlock(blockNo);
-        return;
-#endif
-        ASSERT(block.countOfLogicalLine() > 0);
-        if (block.logicalLineAt(0).length() == 0) {
-          // 删除当前block，光标左移动
-          moveCursorToLeft(cursor);
-          coord = cursor.coord();
-          removeBlock(blockNo);
-        }
-        updateCursor(cursor, coord);
-        return;
-      }
-    }
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_root->children().size());
-    auto node = m_root->children()[coord.blockNo];
-    if (node->type() == NodeType::ol || node->type() == NodeType::ul || node->type() == NodeType::checkbox) {
-      auto olNode = node2container(node);
-      ASSERT(coord.lineNo >= 0 && coord.lineNo < olNode->children().size());
-      auto olItem = olNode->children()[coord.lineNo];
-      // 合并这两个ol item
-      if (coord.lineNo == 0) {
-        // 如果是第一个ol item，降级为paragraph
-        auto olItemNode = node2container(olItem);
-        auto paragraph = new Paragraph();
-        paragraph->appendChildren(olItemNode->children());
-        insertBlock(coord.blockNo, paragraph);
-        olNode->removeChildAt(0);
-        renderBlock(coord.blockNo + 1);
-        updateCursor(cursor, coord);
-        return;
-      } else {
-        // 其他情况就是合并两个ol item
-        ASSERT(coord.lineNo > 0);
-        coord.offset = block.logicalLineAt(coord.lineNo - 1).length();
-        auto prevItem = olNode->children()[coord.lineNo - 1];
-        auto curItem = olNode->children()[coord.lineNo];
-        auto prevItemNode = node2container(prevItem);
-        auto curItemNode = node2container(curItem);
-        prevItemNode->appendChildren(curItemNode->children());
-        olNode->removeChildAt(coord.lineNo);
-        coord.lineNo--;
-        cursor.setCoord(coord);
-        renderBlock(coord.blockNo);
-        delete curItemNode;
-        updateCursor(cursor, coord);
-        return;
-      }
-    } else if (node->type() == NodeType::code_block) {
-      auto codeBlockNode = node2container(node);
-      if (coord.lineNo > 0) {
-        ASSERT(coord.lineNo > 0);
-        coord.offset = block.logicalLineAt(coord.lineNo - 1).length();
-        auto text1 = codeBlockNode->childAt(coord.lineNo - 1);
-        ASSERT(text1->type() == NodeType::text);
-        auto text1Node = (Text*)text1;
-        auto text2 = codeBlockNode->childAt(coord.lineNo);
-        ASSERT(text2->type() == NodeType::text);
-        auto text2Node = (Text*)text2;
-        text1Node->merge(*text2Node);
-        codeBlockNode->removeChildAt(coord.lineNo);
-        coord.lineNo--;
-        cursor.setCoord(coord);
-        renderBlock(coord.blockNo);
-        updateCursor(cursor, coord);
-        return;
-      }
-    }
-    DEBUG << "line is empty";
-    updateCursor(cursor, coord);
-    return;
-  }
-  auto [textNode, leftOffset] = line.textAt(coord.offset);
-  if (leftOffset <= 0) {
-    // 在行首删除，
-    // 如果是标题，降级为段落
-    auto parentNode = textNode->parent();
-    ASSERT(parentNode != nullptr);
-    if (parentNode->type() == NodeType::header) {
-      auto ppNode = parentNode->parent();
-      ASSERT(ppNode == m_root.get() && "node hierarchy error");
-      auto header = (Header*)parentNode;
-      auto newParagraph = new Paragraph();
-      newParagraph->setChildren(header->children());
-      replaceBlock(coord.blockNo, newParagraph);
-      updateCursor(cursor, cursor.coord());
-      delete header;
-      DEBUG << "degrade header to paragraph";
-      updateCursor(cursor, coord);
-      return;
-    }
-    auto node = parentNode->parent();
-    if (node->parent() == m_root.get()) {
-      if (node->type() == NodeType::ol || node->type() == NodeType::ul || node->type() == NodeType::checkbox) {
-        auto olNode = node2container(node);
-        ASSERT(coord.lineNo >= 0 && coord.lineNo < olNode->children().size());
-        auto olItem = olNode->children()[coord.lineNo];
-        // 合并这两个ol item
-        if (coord.lineNo == 0) {
-          // 如果是第一个ol item，降级为paragraph
-          auto olItemNode = node2container(olItem);
-          auto paragraph = new Paragraph();
-          paragraph->appendChildren(olItemNode->children());
-          insertBlock(coord.blockNo, paragraph);
-          olNode->removeChildAt(0);
-          if (olNode->empty()) {
-            removeBlock(coord.blockNo + 1);
-          } else {
-            renderBlock(coord.blockNo + 1);
-          }
-          updateCursor(cursor, coord);
-          return;
-        } else {
-          // 其他情况就是合并两个ol item
-          ASSERT(coord.lineNo > 0);
-          coord.offset = block.logicalLineAt(coord.lineNo - 1).length();
-          auto prevItem = olNode->children()[coord.lineNo - 1];
-          auto curItem = olNode->children()[coord.lineNo];
-          auto prevItemNode = node2container(prevItem);
-          auto curItemNode = node2container(curItem);
-          prevItemNode->appendChildren(curItemNode->children());
-          olNode->removeChildAt(coord.lineNo);
-          coord.lineNo--;
-          cursor.setCoord(coord);
-          renderBlock(coord.blockNo);
-          delete curItemNode;
-          updateCursor(cursor, coord);
-          return;
-        }
-      }
-    }
-    // 考虑段首按删除的情况
-    if (coord.lineNo == 0) {
-      if (coord.blockNo > 0) {
-        // 合并当前block和前一个block
-        // 新坐标为前一个block的最后一行，最后一列
-        auto prevBlock = m_blocks[coord.blockNo - 1];
-        coord.lineNo = prevBlock.countOfLogicalLine() - 1;
-        coord.offset = prevBlock.logicalLineAt(prevBlock.countOfLogicalLine() - 1).length();
-        mergeBlock(coord.blockNo - 1, coord.blockNo);
-        coord.blockNo--;
-        updateCursor(cursor, coord);
-        return;
-      }
-    }
-    DEBUG << "no text to remove";
-    ASSERT(false || "maybe not support now");
-    return;
-  }
-  if (leftOffset - 1 > 0) {
-    auto s = textNode->toString(this);
-    auto ch = s[leftOffset - 2].unicode();
-    // 如果是emoji的开始标志，两个都要删除
-    if (ch == 0xd83d || ch == 0xd83c) {
-      textNode->remove(leftOffset - 2, 2);
-      coord.offset -= 2;
-    } else {
-      textNode->remove(leftOffset - 1, 1);
-      coord.offset--;
-    }
-  } else {
-    textNode->remove(leftOffset - 1, 1);
-    coord.offset--;
-  }
-  if (textNode->empty()) {
-    auto p = node2container(textNode->parent());
-    // 段落里面的空Text删除掉
-    if (p->type() == NodeType::paragraph) {
-      p->removeChild(textNode);
-    }
-  }
-  renderBlock(coord.blockNo);
-  updateCursor(cursor, coord);
+  RemoveTextVisitor visitor(cursor, this);
+  auto node = m_root->childAt(cursor.coord().blockNo);
+  node->accept(&visitor);
 }
 void Document::insertReturn(Cursor& cursor) {
   auto coord = cursor.coord();
