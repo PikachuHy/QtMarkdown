@@ -70,7 +70,6 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   sptr<Document> m_doc;
   sptr<Cursor> m_cursor;
   sptr<render::RenderSetting> m_renderSetting;
-  bool m_showCursor;
   bool m_holdCtrl;
   bool m_preediting = false;
   int m_preeditLength;

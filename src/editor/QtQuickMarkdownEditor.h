@@ -52,6 +52,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   std::shared_ptr<md::editor::Editor> m_editor;
   QTimer m_cursorTimer;
   bool m_isNewDoc;
+  bool m_showCursor;
 };
 }  // namespace md::editor
 #endif  // QTMARKDOWN_QTQUICKMARKDOWNEDITOR_H

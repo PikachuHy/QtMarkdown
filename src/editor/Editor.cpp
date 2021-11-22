@@ -325,21 +325,18 @@ int Editor::height() const {
   return h + m_renderSetting->docMargin.top() + m_renderSetting->docMargin.bottom();
 }
 void Editor::drawCursor(QPoint offset, Painter &painter) {
-  if (m_showCursor) {
-    auto pos = m_cursor->pos();
-    pos += offset;
-    painter.save();
-    painter.setPen(Qt::red);
-    auto x = pos.x();
-    auto y = pos.y();
-    auto h = m_cursor->height();
-    auto delta = 2;
-    painter.drawLine(x - delta, y, x + delta, y);
-    painter.drawLine(x, y, x, y + h);
-    painter.drawLine(x - delta, y + h, x + delta, y + h);
-    painter.restore();
-  }
-  m_showCursor = !m_showCursor;
+  auto pos = m_cursor->pos();
+  pos += offset;
+  painter.save();
+  painter.setPen(Qt::red);
+  auto x = pos.x();
+  auto y = pos.y();
+  auto h = m_cursor->height();
+  auto delta = 2;
+  painter.drawLine(x - delta, y, x + delta, y);
+  painter.drawLine(x, y, x, y + h);
+  painter.drawLine(x - delta, y + h, x + delta, y + h);
+  painter.restore();
 }
 void Editor::keyPressEvent(KeyEvent *event) {
   if (event->key() == Qt::Key_Tab) {

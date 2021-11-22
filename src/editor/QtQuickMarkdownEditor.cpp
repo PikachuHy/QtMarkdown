@@ -29,13 +29,16 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
   setAcceptedMouseButtons(Qt::AllButtons);
   setFlag(ItemAcceptsInputMethod, true);
   m_cursorTimer.start(500);
-  connect(&m_cursorTimer, &QTimer::timeout, [this]() { this->update(); });
+  connect(&m_cursorTimer, &QTimer::timeout, [this]() {
+    m_showCursor = !m_showCursor;
+    this->update();
+  });
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
   m_editor->drawDoc(QPoint(0, 0), *painter);
   setImplicitHeight(m_editor->height());
-  if (hasActiveFocus()) {
+  if (hasActiveFocus() && m_showCursor) {
     m_editor->drawCursor(QPoint(0, 0), *painter);
   }
   emit cursorCoordChanged(m_editor->cursorCoord());
@@ -54,7 +57,12 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
 }
 void QtQuickMarkdownEditor::setPath(const QString &path) {}
 void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
-  if ((event->modifiers() & Qt::Modifier::CTRL) && event->key() == Qt::Key_S) {
+  int key = event->key();
+  // 移动光标时避免闪烁
+  if (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down) {
+    m_showCursor = true;
+  }
+  if ((event->modifiers() & Qt::Modifier::CTRL) && key == Qt::Key_S) {
     if (m_isNewDoc) {
       emit docSave();
     } else {
@@ -65,7 +73,7 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
         DEBUG << "save fail";
       }
     }
-  } else if ((event->modifiers() & Qt::Modifier::CTRL) && event->key() == Qt::Key_V) {
+  } else if ((event->modifiers() & Qt::Modifier::CTRL) && key == Qt::Key_V) {
     auto s = QGuiApplication::clipboard()->text();
     if (!s.isEmpty()) {
       m_editor->insertText(s);
