@@ -65,6 +65,7 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void setLinkClickedCallback(std::function<void(String)> cb) { m_linkClickedCallback = std::move(cb); }
   void setImageClickedCallback(std::function<void(String)> cb) { m_imageClickedCallback = std::move(cb); }
   void setCopyCodeBtnClickedCallback(std::function<void(String)> cb) { m_copyCodeBtnClickedCallback = std::move(cb); }
+  void setCheckBoxClickedCallback(std::function<void()> cb) { m_checkBoxClickedCallback = std::move(cb); }
 
  private:
  private:
@@ -78,6 +79,7 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   std::function<void(String)> m_linkClickedCallback;
   std::function<void(String)> m_imageClickedCallback;
   std::function<void(String)> m_copyCodeBtnClickedCallback;
+  std::function<void()> m_checkBoxClickedCallback;
   friend class MousePressVisitor;
 };
 }  // namespace md::editor

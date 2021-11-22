@@ -42,7 +42,8 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
  protected:
   void inputMethodEvent(QInputMethodEvent *event) override;
  signals:
-  void docSave();
+  void docSave(bool isNew);
+  void contentChanged();
   void cursorCoordChanged(QString str);
   void sourceChanged(QString old);
   void imageClicked(QString path);

@@ -25,6 +25,7 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
     DEBUG << code;
     QGuiApplication::clipboard()->setText(code);
   });
+  m_editor->setCheckBoxClickedCallback([this]() { emit contentChanged(); });
   setAcceptHoverEvents(true);
   setAcceptedMouseButtons(Qt::AllButtons);
   setFlag(ItemAcceptsInputMethod, true);
@@ -64,11 +65,12 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   }
   if ((event->modifiers() & Qt::Modifier::CTRL) && key == Qt::Key_S) {
     if (m_isNewDoc) {
-      emit docSave();
+      emit docSave(m_isNewDoc);
     } else {
       bool ok = m_editor->saveToFile(m_source);
       if (ok) {
         DEBUG << "save success";
+        emit docSave(m_isNewDoc);
       } else {
         DEBUG << "save fail";
       }
@@ -80,8 +82,10 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
     } else {
       m_editor->keyPressEvent(event);
     }
+    emit contentChanged();
   } else {
     m_editor->keyPressEvent(event);
+    emit contentChanged();
   }
   this->update();
   setImplicitWidth(m_editor->width());

@@ -42,6 +42,7 @@ Window {
                              text: modelData.path + '  "' + modelData.title + '"'
                              onTriggered: {
                                  md.source = "file://" + modelData.path
+                                 root.title = md.title
                              }
                          }
                          // 这两句是必须的，不然菜单就没有内容
@@ -92,11 +93,16 @@ Window {
                         console.log('save document to', fileUrl)
                         md.saveToFile(fileUrl)
                         var s = fileUrl.toString()
-                        var title = s.substring(s.lastIndexOf('/') + 1)
-                        if (!title.endsWith('.md')) {
-                            title += ".md"
+                        if (md.title.length === 0) {
+                            var title = s.substring(s.lastIndexOf('/') + 1)
+                            if (!title.endsWith('.md')) {
+                                title += ".md"
+                            }
+                            root.title = title
+                        } else {
+                            root.title = md.title
                         }
-                        root.title = title
+
                     }
     }
 
@@ -113,8 +119,13 @@ Window {
             width: parent.width
             implicitHeight: parent.height
             source: ":/test.md"
-            onDocSave: {
-                saveFileDialog.open()
+            onDocSave: (isNew) => {
+                           if (isNew) {
+                               saveFileDialog.open()
+                           } else {
+                               root.title = md.title
+                           }
+
             }
             onCursorCoordChanged: (coord) => {
                                       cursorText.text = coord
@@ -138,8 +149,12 @@ Window {
                 }
 
             }
+            onContentChanged: {
+                root.title = md.title + "*"
+            }
+
             Component.onCompleted: {
-                root.title = source.substring(source.lastIndexOf('/') + 1)
+                root.title = md.title
             }
         }
     }

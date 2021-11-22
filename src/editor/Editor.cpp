@@ -183,6 +183,7 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
   void visit(CheckboxItem *node) override {
     node->setChecked(!node->isChecked());
     m_doc.renderBlock(m_blockNo);
+    m_editor.m_checkBoxClickedCallback();
     m_handled = true;
   }
   void visit(Image *node) override {
@@ -219,8 +220,9 @@ Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
   m_linkClickedCallback = [](String s) { DEBUG << "click link" << s; };
-  m_imageClickedCallback = [](String s) { DEBUG << "click link" << s; };
-  m_copyCodeBtnClickedCallback = [](String s) { DEBUG << "click link" << s; };
+  m_imageClickedCallback = [](String s) { DEBUG << "click image" << s; };
+  m_copyCodeBtnClickedCallback = [](String s) { DEBUG << "click copy code btn" << s; };
+  m_checkBoxClickedCallback = []() { DEBUG << "click check box"; };
 }
 void Editor::loadText(const String &text) {
   m_doc = std::make_shared<Document>(text, m_renderSetting);
