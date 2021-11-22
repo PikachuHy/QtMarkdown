@@ -228,7 +228,7 @@ void Editor::loadText(const String &text) {
   m_doc->updateCursor(*m_cursor, m_cursor->coord());
   DEBUG << "load text done";
 }
-void Editor::loadFile(const String &path) {
+std::pair<bool, String> Editor::loadFile(const String &path) {
   DEBUG << path;
   String notePath = path;
   String prefix = "file://";
@@ -238,14 +238,15 @@ void Editor::loadFile(const String &path) {
   QFile file(notePath);
   if (!file.exists()) {
     DEBUG << "file not exist:" << notePath;
-    return;
+    return {false, ""};
   }
   if (!file.open(QIODevice::ReadOnly)) {
     DEBUG << "file open fail:" << notePath;
-    return;
+    return {false, ""};
   }
   auto mdText = file.readAll();
   loadText(mdText);
+  return {true, this->title()};
 }
 
 bool Editor::saveToFile(const String &path) {
@@ -465,5 +466,19 @@ void Editor::commitString(String str) {
   m_doc->insertText(*m_cursor, str);
   m_preediting = false;
   m_preeditLength = 0;
+}
+String Editor::title() {
+  if (m_doc->m_root->empty()) return "";
+  auto node = m_doc->m_root->childAt(0);
+  if (node->type() != NodeType::header) return "";
+  auto header = (Header *)node;
+  if (header->level() != 1) return "";
+  String s;
+  for (auto child : header->children()) {
+    if (child->type() != NodeType::text) continue;
+    auto textNode = (Text *)child;
+    s += textNode->toString(m_doc.get());
+  }
+  return s;
 }
 }  // namespace md::editor

@@ -139,4 +139,5 @@ void QtQuickMarkdownEditor::saveToFile(const QString &path) {
     DEBUG << "save fail";
   }
 }
+QString QtQuickMarkdownEditor::title() { return m_editor->title(); }
 }  // namespace md::editor

@@ -43,7 +43,8 @@ class QTMARKDOWNSHARED_EXPORT Editor {
  public:
   Editor();
   void loadText(const String& text);
-  void loadFile(const String& path);
+  std::pair<bool, String> loadFile(const String& path);
+  String title();
   bool saveToFile(const String& path);
   void drawDoc(Point offset, Painter& painter);
   void drawCursor(Point offset, Painter& painter);

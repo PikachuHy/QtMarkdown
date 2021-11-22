@@ -12,6 +12,9 @@ if (QT_VERSION_MAJOR EQUAL 6)
             )
     qt_add_executable(QtQuickMarkdownEditorExample
             MANUAL_FINALIZATION
+            Settings.cpp Settings.h
+            Controller.cpp Controller.h
+            RecentFile.cpp RecentFile.h
             QtQuickMarkdownEditorExample.cpp
             qml.qrc
             )

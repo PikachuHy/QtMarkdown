@@ -3,6 +3,7 @@ import QtQuick.Window 2.15
 import QtMarkdown 1.0
 import QtQuick.Controls 2.15
 import Qt.labs.platform
+import Controller
 
 Window {
     id: root
@@ -29,6 +30,42 @@ Window {
                     fileDialog.open()
                 }
             }
+            Menu {
+                     id: recentFilesSubMenu
+                     title: qsTr("Recent Files")
+                     enabled: recentFilesInstantiator.count > 0
+
+                     Instantiator {
+                         id: recentFilesInstantiator
+                         model: controller.recentOpenFiles()
+                         delegate: MenuItem {
+                             text: modelData.path + '  "' + modelData.title + '"'
+                             onTriggered: {
+                                 md.source = "file://" + modelData.path
+                             }
+                         }
+                         // 这两句是必须的，不然菜单就没有内容
+                         onObjectAdded: (index, object) => recentFilesSubMenu.insertItem(index, object)
+                         onObjectRemoved: (index, object) => recentFilesSubMenu.removeItem(object)
+                         function menuItemText(s) {
+                             var arr = s.split(":")
+                             console.log(arr)
+                             if (arr.length === 0) return ""
+                             if (arr.length === 1) return arr[0]
+                             return arr[0] + '  "' + arr[1] + '"'
+                         }
+                     }
+
+                     MenuSeparator {}
+
+                     MenuItem {
+                         text: qsTr("Clear Recent Files")
+                         onTriggered: {
+                             controller.clearRecentFiles()
+                             recentFilesInstantiator.model = controller.recentOpenFiles()
+                         }
+                     }
+            }
         }
     }
     FileDialog {
@@ -40,6 +77,11 @@ Window {
                         md.source = fileUrl
                         var s = fileUrl.toString()
                         root.title = s.substring(s.lastIndexOf('/') + 1)
+                        var prefix = "file://"
+                        console.log(s)
+                        var path = s.substring(prefix.length)
+                        controller.addRecentOpenFile(path, md.title)
+                        recentFilesInstantiator.model = controller.recentOpenFiles()
                     }
     }
     FileDialog {
@@ -138,6 +180,10 @@ Window {
             }
         }
     }
+    Controller {
+        id: controller
+    }
+
     Component.onCompleted: function () {
         console.log(md.width, md.height)
         console.log(sv.width, sv.height)

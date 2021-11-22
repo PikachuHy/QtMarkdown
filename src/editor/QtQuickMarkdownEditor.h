@@ -14,6 +14,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   Q_PROPERTY(QString text READ text WRITE setText)
   Q_PROPERTY(QString source READ source WRITE setSource)
   Q_PROPERTY(QString path READ path WRITE setPath)
+  Q_PROPERTY(QString title READ title)
   QML_ELEMENT
   QML_NAMED_ELEMENT(QtQuickMarkdownEditor)
  public:
@@ -25,6 +26,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void setSource(const QString &source);
   [[nodiscard]] QString path() const { return m_path; };
   void setPath(const QString &path);
+  QString title();
   Q_INVOKABLE void newDoc();
   Q_INVOKABLE void saveToFile(const QString &path);
 
