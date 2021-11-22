@@ -48,6 +48,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   friend class DocumentOperationVisitor;
   friend class InsertReturnVisitor;
   friend class RemoveTextVisitor;
+  friend class InsertTextVisitor;
 };
 }  // namespace md::editor
 

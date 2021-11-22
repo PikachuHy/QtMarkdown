@@ -368,6 +368,295 @@ class RemoveTextVisitor
     updateCursor(cursor, coord);
   }
 };
+
+class InsertTextVisitor
+    : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock>,
+      public DocumentOperationVisitor {
+ public:
+  InsertTextVisitor(Cursor& cursor, Document* doc, String text) : DocumentOperationVisitor(cursor, doc), text(text) {
+    textToInsert = text;
+    if (text == "(") {
+      textToInsert = "()";
+    } else if (text == "[") {
+      textToInsert = "[]";
+    } else if (text == "{") {
+      textToInsert = "{}";
+    }
+  }
+  void visit(Paragraph* node) override {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      auto offset = m_doc->m_addBuffer.size();
+      auto length = textToInsert.size();
+      m_doc->m_addBuffer.append(textToInsert);
+      Text* newTextNode = new Text(PieceTableItem::add, offset, length);
+      coord.offset += text.size();
+      node->appendChild(newTextNode);
+      renderBlock(coord.blockNo);
+      updateCursor(cursor, coord);
+      return;
+    }
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    auto parentNode = textNode->parent();
+    ASSERT(parentNode != nullptr);
+    auto ppNode = parentNode->parent();
+    ASSERT(ppNode == m_doc->m_root.get() && "node hierarchy error");
+    if (text == " ") {
+      if (coord.offset <= 6) {
+        auto prefix = line.left(coord.offset, m_doc);
+        if (!prefix.isEmpty() && prefix.count('#') == prefix.size()) {
+          // 说明是header
+          // 将段落转换为标题
+          auto header = new Header(prefix.size());
+          header->appendChildren(node->children());
+          textNode->remove(0, prefix.size());
+          if (textNode->empty()) {
+            // 如果变成空文本了，删除这个结点
+            ASSERT(textNode->parent() == header);
+            header->removeChildAt(0);
+          }
+          replaceBlock(coord.blockNo, header);
+          delete node;
+          coord.offset = 0;
+          updateCursor(cursor, coord);
+          return;
+        } else if (prefix == "-") {
+          // 说明是无序列表
+          // 将段落转换为无序列表
+          auto ul = new UnorderedList();
+          auto ulItem = new UnorderedListItem();
+          ul->appendChild(ulItem);
+          ulItem->appendChildren(node->children());
+          textNode->remove(0, 1);
+          if (textNode->empty()) {
+            // 如果变成空文本了，删除这个结点
+            ASSERT(textNode->parent() == ulItem);
+            ulItem->removeChildAt(0);
+          }
+          replaceBlock(coord.blockNo, ul);
+          delete node;
+          coord.offset = 0;
+          updateCursor(cursor, coord);
+          return;
+        } else if (prefix == "1.") {
+          // 说明是有序列表
+          // 将段落转换为有序列表
+          auto ol = new OrderedList();
+          auto olItem = new OrderedListItem();
+          ol->appendChild(olItem);
+          olItem->appendChildren(node->children());
+          textNode->remove(0, 2);
+          if (textNode->empty()) {
+            // 如果变成空文本了，删除这个结点
+            ASSERT(textNode->parent() == olItem);
+            olItem->removeChildAt(0);
+          }
+          replaceBlock(coord.blockNo, ol);
+          delete node;
+          coord.offset = 0;
+          updateCursor(cursor, coord);
+          return;
+        }
+      } else {
+        // 大于6的就不可能变成标题了
+      }
+    }
+    insertTextInNode(textNode, leftOffset);
+  }
+  void visit(Header* node) override {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      auto offset = m_doc->m_addBuffer.size();
+      auto length = textToInsert.size();
+      m_doc->m_addBuffer.append(textToInsert);
+      Text* newTextNode = new Text(PieceTableItem::add, offset, length);
+      coord.offset += text.size();
+      node->appendChild(newTextNode);
+      renderBlock(coord.blockNo);
+      updateCursor(cursor, coord);
+      return;
+    }
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    insertTextInNode(textNode, leftOffset);
+  }
+  void visit(OrderedList* node) override {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+
+    if (line.empty()) {
+      insertTextInEmptyList(node);
+    }
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    insertTextInNode(textNode, leftOffset);
+  }
+  void visit(UnorderedList* node) override {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      insertTextInEmptyList(node);
+      return;
+    }
+
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    auto parentNode = textNode->parent();
+    ASSERT(parentNode != nullptr);
+    auto ppNode = parentNode->parent();
+    ASSERT(ppNode == node && "node hierarchy error");
+    String s = line.left(coord.offset, m_doc);
+    auto prefix = s.left(coord.offset);
+    auto listItem = (UnorderedListItem*)node->childAt(coord.lineNo);
+    if (prefix == "[ ]" || prefix == "[x]") {
+      // 转换为checkbox
+      // 需要考虑是在第一个，中间，还是最后一个，三种情况
+      auto checkbox = new CheckboxList();
+      auto checkboxItem = new CheckboxItem();
+      checkboxItem->setChecked(prefix == "[x]");
+      checkbox->appendChild(checkboxItem);
+      SizeType leftLength = 3;
+      for (auto& child : listItem->children()) {
+        if (child->type() == NodeType::text) {
+          auto textNode = (Text*)child;
+          auto s = textNode->toString(m_doc);
+          if (s.length() <= leftLength) {
+            leftLength -= s.length();
+            continue;
+          } else {
+            if (leftLength != 0) {
+              textNode->remove(0, leftLength);
+            }
+            leftLength = 0;
+          }
+        }
+        checkboxItem->appendChild(child);
+      }
+      if (coord.lineNo == 0) {
+        insertBlock(coord.blockNo, checkbox);
+        node->removeChildAt(coord.lineNo);
+        if (node->children().empty()) {
+          removeBlock(coord.blockNo + 1);
+        } else {
+          // 如果还有结点，需要重新渲染
+          renderBlock(coord.blockNo + 1);
+        }
+      } else if (coord.lineNo == block.countOfLogicalLine()) {
+        insertBlock(coord.blockNo + 1, checkbox);
+        node->removeChildAt(coord.lineNo);
+      } else {
+        auto ul = new UnorderedList();
+        for (auto i = coord.lineNo + 1; i < node->size(); ++i) {
+          ul->appendChild(node->childAt(i));
+        }
+        insertBlock(coord.blockNo + 1, ul);
+        for (auto i = node->size() - 1; i >= coord.lineNo; --i) {
+          node->removeChildAt(i);
+        }
+        insertBlock(coord.blockNo + 1, checkbox);
+        renderBlock(coord.blockNo);
+        coord.blockNo++;
+        coord.lineNo = 0;
+      }
+      coord.offset = 0;
+      updateCursor(cursor, coord);
+      return;
+    }
+  }
+  void visit(CheckboxList* node) override {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      insertTextInEmptyList(node);
+      return;
+    }
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    insertTextInNode(textNode, leftOffset);
+  }
+  void visit(CodeBlock* node) override {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      auto offset = m_doc->m_addBuffer.size();
+      auto length = textToInsert.size();
+      m_doc->m_addBuffer.append(textToInsert);
+      Text* newTextNode = new Text(PieceTableItem::add, offset, length);
+      if (node->size() > coord.lineNo) {
+        node->removeChildAt(coord.lineNo);
+      }
+      node->insertChild(coord.lineNo, newTextNode);
+      coord.offset += text.size();
+      renderBlock(coord.blockNo);
+      updateCursor(cursor, coord);
+      return;
+    }
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    insertTextInNode(textNode, leftOffset);
+  }
+
+ private:
+  void insertTextInNode() {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    insertTextInNode(textNode, leftOffset);
+  }
+  void insertTextInNode(Text* textNode, int leftOffset) {
+    if (text == ")" || text == "]" || text == "}") {
+      auto s = textNode->toString(m_doc);
+      ASSERT(leftOffset >= 0 && leftOffset < s.size());
+      auto ch = s[leftOffset];
+      if (ch == text) {
+        coord.offset++;
+        updateCursor(cursor, coord);
+        return;
+      }
+    }
+    PieceTableItem item{PieceTableItem::add, m_doc->m_addBuffer.size(), textToInsert.size()};
+    m_doc->m_addBuffer.append(textToInsert);
+    textNode->insert(leftOffset, item);
+    renderBlock(coord.blockNo);
+    coord.offset += text.size();
+    updateCursor(cursor, coord);
+  }
+  void insertTextInEmptyList(Container* node) {
+    auto offset = m_doc->m_addBuffer.size();
+    auto length = textToInsert.size();
+    m_doc->m_addBuffer.append(textToInsert);
+    Text* newTextNode = new Text(PieceTableItem::add, offset, length);
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < node->size());
+    auto listItem = (Container*)node->childAt(coord.lineNo);
+    listItem->appendChild(newTextNode);
+    coord.offset += text.size();
+    renderBlock(coord.blockNo);
+    updateCursor(cursor, coord);
+  }
+
+ private:
+  String text;
+  String textToInsert;
+};
+
 Document::Document(const String& str, sptr<RenderSetting> setting) : parser::Document(str), m_setting(setting) {
   for (auto node : m_root->children()) {
     const Block& block = Render::render(node, m_setting, this);
@@ -563,200 +852,9 @@ void Document::moveCursorToPos(Cursor& cursor, Point pos) {
 }
 void Document::insertText(Cursor& cursor, const String& text) {
   if (text.isEmpty()) return;
-  String textToInsert = text;
-  if (text == "(") {
-    textToInsert = "()";
-  } else if (text == "[") {
-    textToInsert = "[]";
-  } else if (text == "{") {
-    textToInsert = "{}";
-  }
-  // 找到Text结点
-  // 找到当前Cell相对Text结点的偏移量
-  // 修改Text结点的PieceTable
-  auto coord = cursor.coord();
-  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
-  ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-  auto& line = block.logicalLineAt(coord.lineNo);
-  // 对cell个数为0的情况特殊处理
-  // 新建的文档（空文本）为这个情况
-  if (line.empty()) {
-    auto node = m_root->children()[coord.blockNo];
-    auto c = node2container(node);
-    auto offset = m_addBuffer.size();
-    auto length = textToInsert.size();
-    m_addBuffer.append(textToInsert);
-    Text* newTextNode = new Text(PieceTableItem::add, offset, length);
-    // ol特殊处理
-    if (node->type() == NodeType::ol || node->type() == NodeType::ul || node->type() == NodeType::checkbox) {
-      auto listNode = node2container(node);
-      ASSERT(coord.lineNo >= 0 && coord.lineNo < listNode->children().size());
-      auto listItem = listNode->children()[coord.lineNo];
-      auto listItemNode = node2container(listItem);
-      listItemNode->appendChild(newTextNode);
-    } else if (node->type() == NodeType::code_block) {
-      if (c->size() > coord.lineNo) {
-        c->removeChildAt(coord.lineNo);
-      }
-      c->insertChild(coord.lineNo, newTextNode);
-    } else {
-      c->appendChild(newTextNode);
-    }
-    coord.offset += text.size();
-    renderBlock(coord.blockNo);
-    updateCursor(cursor, coord);
-    return;
-  }
-  auto [textNode, leftOffset] = line.textAt(coord.offset);
-  // 对按空格特殊处理
-  // 如果是 # + 空格
-  if (text == " ") {
-    auto parentNode = textNode->parent();
-    ASSERT(parentNode != nullptr);
-    if (parentNode->type() == NodeType::paragraph) {
-      auto ppNode = parentNode->parent();
-      ASSERT(ppNode == m_root.get() && "node hierarchy error");
-      auto paragraphNode = (Paragraph*)parentNode;
-      if (coord.offset <= 6) {
-        auto prefix = line.left(coord.offset, this);
-        if (!prefix.isEmpty() && prefix.count('#') == prefix.size()) {
-          // 说明是header
-          // 将段落转换为标题
-          auto header = new Header(prefix.size());
-          header->appendChildren(paragraphNode->children());
-          textNode->remove(0, prefix.size());
-          if (textNode->empty()) {
-            // 如果变成空文本了，删除这个结点
-            ASSERT(textNode->parent() == header);
-            header->removeChildAt(0);
-          }
-          replaceBlock(coord.blockNo, header);
-          delete paragraphNode;
-          coord.offset = 0;
-          updateCursor(cursor, coord);
-          return;
-        } else if (prefix == "-") {
-          // 说明是无序列表
-          // 将段落转换为无序列表
-          auto ul = new UnorderedList();
-          auto ulItem = new UnorderedListItem();
-          ul->appendChild(ulItem);
-          ulItem->appendChildren(paragraphNode->children());
-          textNode->remove(0, 1);
-          if (textNode->empty()) {
-            // 如果变成空文本了，删除这个结点
-            ASSERT(textNode->parent() == ulItem);
-            ulItem->removeChildAt(0);
-          }
-          replaceBlock(coord.blockNo, ul);
-          delete paragraphNode;
-          coord.offset = 0;
-          updateCursor(cursor, coord);
-          return;
-        } else if (prefix == "1.") {
-          // 说明是有序列表
-          // 将段落转换为有序列表
-          auto ol = new OrderedList();
-          auto olItem = new OrderedListItem();
-          ol->appendChild(olItem);
-          olItem->appendChildren(paragraphNode->children());
-          textNode->remove(0, 2);
-          if (textNode->empty()) {
-            // 如果变成空文本了，删除这个结点
-            ASSERT(textNode->parent() == olItem);
-            olItem->removeChildAt(0);
-          }
-          replaceBlock(coord.blockNo, ol);
-          delete paragraphNode;
-          coord.offset = 0;
-          updateCursor(cursor, coord);
-          return;
-        }
-      } else {
-        // 大于6的就不可能变成标题了
-      }
-    } else if (parentNode->type() == NodeType::ul_item) {
-      auto ppNode = parentNode->parent();
-      ASSERT(ppNode->parent() == m_root.get() && "node hierarchy error");
-      // 无序列表，行首输入[ ]空格，需要将无序列表转成checkbox
-      auto listNode = node2container(ppNode);
-      auto listItem = listNode->childAt(coord.lineNo);
-      auto listItemNode = node2container(listItem);
-      String s = line.left(coord.offset, this);
-      auto prefix = s.left(coord.offset);
-      if (prefix == "[ ]" || prefix == "[x]") {
-        // 转换为checkbox
-        // 需要考虑是在第一个，中间，还是最后一个，三种情况
-        auto checkbox = new CheckboxList();
-        auto checkboxItem = new CheckboxItem();
-        checkboxItem->setChecked(prefix == "[x]");
-        checkbox->appendChild(checkboxItem);
-        SizeType leftLength = 3;
-        for (auto node : listItemNode->children()) {
-          if (node->type() == NodeType::text) {
-            auto textNode = (Text*)node;
-            auto s = textNode->toString(this);
-            if (s.length() <= leftLength) {
-              leftLength -= s.length();
-              continue;
-            } else {
-              if (leftLength != 0) {
-                textNode->remove(0, leftLength);
-              }
-              leftLength = 0;
-            }
-          }
-          checkboxItem->appendChild(node);
-        }
-        if (coord.lineNo == 0) {
-          insertBlock(coord.blockNo, checkbox);
-          listNode->removeChildAt(coord.lineNo);
-          if (listNode->children().empty()) {
-            removeBlock(coord.blockNo + 1);
-          } else {
-            // 如果还有结点，需要重新渲染
-            renderBlock(coord.blockNo + 1);
-          }
-        } else if (coord.lineNo == block.countOfLogicalLine()) {
-          insertBlock(coord.blockNo + 1, checkbox);
-          listNode->removeChildAt(coord.lineNo);
-        } else {
-          auto ul = new UnorderedList();
-          for (auto i = coord.lineNo + 1; i < listNode->children().size(); ++i) {
-            ul->appendChild(listNode->childAt(i));
-          }
-          insertBlock(coord.blockNo + 1, ul);
-          for (auto i = listNode->children().size() - 1; i >= coord.lineNo; --i) {
-            listNode->removeChildAt(i);
-          }
-          insertBlock(coord.blockNo + 1, checkbox);
-          renderBlock(coord.blockNo);
-          coord.blockNo++;
-          coord.lineNo = 0;
-        }
-        coord.offset = 0;
-        updateCursor(cursor, coord);
-        return;
-      }
-    }
-  }
-  if (text == ")" || text == "]" || text == "}") {
-    auto s = textNode->toString(this);
-    ASSERT(leftOffset >= 0 && leftOffset < s.size());
-    auto ch = s[leftOffset];
-    if (ch == text) {
-      coord.offset++;
-      updateCursor(cursor, coord);
-      return;
-    }
-  }
-  PieceTableItem item{PieceTableItem::add, m_addBuffer.size(), textToInsert.size()};
-  m_addBuffer.append(textToInsert);
-  textNode->insert(leftOffset, item);
-  renderBlock(coord.blockNo);
-  coord.offset += text.size();
-  updateCursor(cursor, coord);
+  InsertTextVisitor visitor(cursor, this, text);
+  auto node = m_root->childAt(cursor.coord().blockNo);
+  node->accept(&visitor);
 }
 void Document::removeText(Cursor& cursor) {
   RemoveTextVisitor visitor(cursor, this);
