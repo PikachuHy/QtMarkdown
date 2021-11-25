@@ -16,15 +16,15 @@ struct CursorCoord;
 class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::enable_shared_from_this<Document> {
  public:
   explicit Document(const String& str, sptr<render::RenderSetting> setting);
-  void moveCursorToRight(Cursor& cursor);
-  void moveCursorToLeft(Cursor& cursor);
-  void moveCursorToBol(Cursor& cursor);
-  void moveCursorToEol(Cursor& cursor);
-  void moveCursorToUp(Cursor& cursor);
-  void moveCursorToDown(Cursor& cursor);
-  void moveCursorToPos(Cursor& cursor, Point pos);
-  void moveCursorToBeginOfDocument(Cursor& cursor);
-  void moveCursorToEndOfDocument(Cursor& cursor);
+  CursorCoord moveCursorToRight(CursorCoord coord);
+  CursorCoord moveCursorToLeft(CursorCoord coord);
+  CursorCoord moveCursorToBol(CursorCoord coord);
+  std::pair<CursorCoord, int> moveCursorToEol(CursorCoord coord);
+  CursorCoord moveCursorToUp(CursorCoord coord, Point pos);
+  CursorCoord moveCursorToDown(CursorCoord coord, Point pos);
+  CursorCoord moveCursorToPos(Point pos);
+  CursorCoord moveCursorToBeginOfDocument();
+  CursorCoord moveCursorToEndOfDocument();
   void insertText(Cursor& cursor, const String& text);
   void removeText(Cursor& cursor);
   void insertReturn(Cursor& cursor);
@@ -39,6 +39,8 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
  private:
   parser::Container* node2container(parser::Node* node);
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
+  std::pair<Point, int> mapToScreen(const CursorCoord& coord);
+  bool isBol(const CursorCoord& coord) const;
 
  private:
   render::BlockList m_blocks;

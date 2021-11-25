@@ -27,6 +27,7 @@ class QTMARKDOWNSHARED_EXPORT QtWidgetMarkdownEditor : public QAbstractScrollAre
   void inputMethodEvent(QInputMethodEvent* event) override;
   void mousePressEvent(QMouseEvent* event) override;
   void mouseMoveEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
 
  private:
   std::shared_ptr<md::editor::Editor> m_editor;

@@ -9,4 +9,5 @@ namespace md::editor {
 void Cursor::setCoord(CursorCoord coord) {
   m_coord = coord;
 }
+
 }  // namespace md::editor

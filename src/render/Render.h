@@ -34,6 +34,7 @@ class QTMARKDOWNSHARED_EXPORT VisualLine {
   SizeType length() const;
   bool hasCell(Cell* cell) const;
   std::pair<Cell*, int> cellAtX(int x, DocPtr doc) const;
+  Point pos() const { return m_pos; }
 
  private:
   std::vector<Cell*> m_cells;
@@ -63,6 +64,11 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   std::pair<SizeType, int> moveToEol(SizeType offset, DocPtr) const;
   auto empty() const { return m_cells.empty(); }
   SizeType offsetAt(Point pos, DocPtr doc, int lineSpacing) const;
+  int visualLineAt(SizeType offset, DocPtr doc) const;
+  VisualLine& visualLineAt(int index);
+  const VisualLine& visualLineAt(int index) const;
+  auto countOfVisualLine() const { return m_lines.size(); }
+  bool isBol(SizeType offset, const DocPtr doc) const;
 
  private:
   SizeType totalOffset(Cell* cell, SizeType delta) const;

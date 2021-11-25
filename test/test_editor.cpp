@@ -71,7 +71,8 @@ TEST(ParagraphEditTest, EmptyParagraphInsertTextAndRemoveText) {
   ASSERT_EQ(doc->m_root->size(), 1);
   editor.insertText("a");
   editor.insertText("c");
-  doc->moveCursorToLeft(cursor);
+  auto coord = doc->moveCursorToLeft(cursor.coord());
+  doc->updateCursor(cursor, coord);
   editor.insertText("b");
   {
     auto p = doc->m_root->childAt(0);
@@ -138,7 +139,8 @@ a😊b
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
-  doc->moveCursorToEndOfDocument(cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 4);
   {
     auto& line = blocks[0].logicalLineAt(0);
@@ -163,6 +165,45 @@ a😊b
     ASSERT_EQ(line.length(), 0);
   }
 }
+TEST(ParagraphEditTest, RemoveText) {
+  Editor editor;
+  QString s;
+  editor.loadText(R"(
+6
+
+ab
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 2);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  coord = doc->moveCursorToLeft(coord);
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 2);
+}
+
+TEST(ParagraphEditTest, RemoveText2) {
+  Editor editor;
+  QString s;
+  editor.loadText(R"(
+a[b](c)d
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+}
 
 TEST(ParagraphEditTest, RemoveEmoji2) {
   Editor editor;
@@ -173,7 +214,8 @@ a [666](www.baidu.com) b 😊
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
-  doc->moveCursorToEndOfDocument(cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   {
     auto& line = blocks[0].logicalLineAt(0);
     ASSERT_EQ(line.length(), 10);
@@ -190,9 +232,11 @@ TEST(ParagraphEditTest, UpgradeToHeader) {
   editor.loadText("#");
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   editor.insertText(" ");
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
@@ -206,9 +250,11 @@ TEST(ParagraphEditTest, UpgradeToUl) {
   editor.loadText("-");
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   editor.insertText(" ");
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
@@ -229,7 +275,9 @@ TEST(ParagraphEditTest, UpgradeToCodeBlock) {
   auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+
   doc->insertReturn(cursor);
   {
     ASSERT_EQ(blocks.size(), 1);
@@ -248,10 +296,14 @@ TEST(ParagraphEditTest, UpgradeToCodeBlockWithOtherText) {
   auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  doc->moveCursorToBol(cursor);
-  doc->moveCursorToRight(cursor);
-  doc->moveCursorToRight(cursor);
-  doc->moveCursorToRight(cursor);
+  auto coord = doc->moveCursorToBol(cursor.coord());
+  doc->updateCursor(cursor, coord);
+  coord = doc->moveCursorToRight(cursor.coord());
+  doc->updateCursor(cursor, coord);
+  coord = doc->moveCursorToRight(cursor.coord());
+  doc->updateCursor(cursor, coord);
+  coord = doc->moveCursorToRight(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 3);
   doc->insertReturn(cursor);
   ASSERT_EQ(blocks.size(), 2);
@@ -279,9 +331,11 @@ TEST(UlEditTest, DegradeToParagraph) {
   editor.loadText("- ");
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   doc->removeText(*editor.m_cursor);
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
@@ -295,9 +349,11 @@ TEST(UlEditTest, UpgradeToCheckbox) {
   editor.loadText("- ");
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   editor.insertText("[ ]");
   editor.insertText(" ");
   ASSERT_EQ(blocks.size(), 1);
@@ -338,7 +394,8 @@ TEST(UlEditTest, InsertReturn) {
     auto& line = blocks[0].logicalLineAt(0);
     ASSERT_EQ(line.length(), 4);
   }
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   doc->insertReturn(cursor);
   {
     ASSERT_EQ(blocks.size(), 1);
@@ -365,11 +422,13 @@ TEST(CheckboxEditTest, DegradeToParagraph) {
   editor.loadText("- [ ] ");
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
   ASSERT_EQ(blocks[0].countOfLogicalLine(), 1);
   ASSERT_EQ(blocks[0].logicalLineAt(0).m_cells.size(), 0);
-  doc->moveCursorToEndOfDocument(*editor.m_cursor);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
   doc->removeText(*editor.m_cursor);
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
@@ -388,7 +447,8 @@ TEST(CheckboxEditTest, DegradeToParagraph2) {
   ASSERT_EQ(doc->m_root->size(), 1);
   ASSERT_EQ(blocks[0].countOfLogicalLine(), 1);
   ASSERT_EQ(blocks[0].logicalLineAt(0).m_cells.size(), 1);
-  doc->moveCursorToBeginOfDocument(cursor);
+  auto coord = doc->moveCursorToBeginOfDocument();
+  doc->updateCursor(cursor, coord);
   doc->removeText(*editor.m_cursor);
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
@@ -534,17 +594,24 @@ a😊b
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
   ASSERT_EQ(cursor.coord().offset, 0);
-  doc->moveCursorToRight(cursor);
+  CursorCoord coord;
+  coord = doc->moveCursorToRight(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 1);
-  doc->moveCursorToRight(cursor);
+  coord = doc->moveCursorToRight(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 3);
-  doc->moveCursorToRight(cursor);
+  coord = doc->moveCursorToRight(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 4);
-  doc->moveCursorToLeft(cursor);
+  coord = doc->moveCursorToLeft(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 3);
-  doc->moveCursorToLeft(cursor);
+  coord = doc->moveCursorToLeft(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 1);
-  doc->moveCursorToLeft(cursor);
+  coord = doc->moveCursorToLeft(cursor.coord());
+  doc->updateCursor(cursor, coord);
   ASSERT_EQ(cursor.coord().offset, 0);
 }
 TEST(PreeditTest, ShowPreedit) {

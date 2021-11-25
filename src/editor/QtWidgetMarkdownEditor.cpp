@@ -75,6 +75,7 @@ void QtWidgetMarkdownEditor::loadFile(QString path) {
 }
 void QtWidgetMarkdownEditor::paintEvent(QPaintEvent *event) {
   QPainter painter(viewport());
+  m_editor->drawSelection(m_offset, painter);
   m_editor->drawDoc(m_offset, painter);
   if (hasFocus()) {
     m_editor->drawCursor(m_offset, painter);
@@ -123,7 +124,9 @@ void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
   QPoint pos(event->position().x(), event->position().y());
   CursorShape shape = m_editor->cursorShape(m_offset, pos);
   setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
+  m_editor->mouseMoveEvent(m_offset, event);
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::reload() {}
+void QtWidgetMarkdownEditor::mouseReleaseEvent(QMouseEvent *event) { m_editor->mouseReleaseEvent(m_offset, event); }
 }  // namespace md::editor

@@ -7,7 +7,7 @@ import Controller
 
 Window {
     id: root
-    width: 1000
+    width: 1100
     height: 600
     visible: true
     title: qsTr("Markdown Editor Qt Quick Demo")
@@ -108,9 +108,9 @@ Window {
 
     Flickable {
         id: sv
-        width: parent.width - 200
+        width: parent.width - 300
         height: parent.height
-        contentWidth: parent.width - 200
+        contentWidth: parent.width - 300
         // contentHeight: md.height < parent.height ? parent.height : md.height
         QtQuickMarkdownEditor {
             id: md

@@ -26,7 +26,10 @@ class DocumentOperationVisitor {
   void removeBlock(SizeType blockNo) { m_doc->removeBlock(blockNo); }
   void replaceBlock(SizeType blockNo, parser::Node* node) { m_doc->replaceBlock(blockNo, node); }
   void mergeBlock(SizeType blockNo1, SizeType blockNo2) { m_doc->mergeBlock(blockNo1, blockNo2); }
-  void moveCursorToLeft(Cursor& cursor) { m_doc->moveCursorToLeft(cursor); }
+  void moveCursorToLeft(Cursor& cursor) {
+    auto coord = m_doc->moveCursorToLeft(cursor.coord());
+    m_doc->updateCursor(cursor, coord);
+  }
 
  protected:
   Document* m_doc;
@@ -221,7 +224,7 @@ class RemoveTextVisitor
     }
     // 考虑段首按删除的情况
     if (coord.lineNo == 0) {
-      if (coord.blockNo > 0) {
+      if (coord.offset == 0 && coord.blockNo > 0) {
         // 合并当前block和前一个block
         // 新坐标为前一个block的最后一行，最后一列
         auto prevBlock = m_doc->m_blocks[coord.blockNo - 1];
@@ -234,8 +237,24 @@ class RemoveTextVisitor
       } else {
         auto [textNode, leftOffset] = line.textAt(coord.offset);
         removeTextInNode(textNode, leftOffset);
+        // TODO: 处理深层次的空结点
         if (textNode->empty()) {
-          node->removeChild(textNode);
+          if (textNode->parent() == node) {
+            node->removeChild(textNode);
+          } else {
+            auto p = textNode->parent();
+            if (p->type() == NodeType::link) {
+              if (p->parent() == node) {
+                node->removeChild(p);
+              } else {
+                DEBUG << p->parent()->type();
+                ASSERT(false && "too deep hierarchy");
+              }
+            } else {
+              DEBUG << p->type();
+              ASSERT(false && "un support now");
+            }
+          }
         }
         endRemoveText();
       }
@@ -666,6 +685,12 @@ Document::Document(const String& str, sptr<RenderSetting> setting) : parser::Doc
 void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos) {
   cursor.setCoord(coord);
   if (!updatePos) return;
+  auto [pos, h] = mapToScreen(coord);
+  cursor.setPos(pos);
+  cursor.setHeight(h);
+}
+
+std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   int y = m_setting->docMargin.top();
   for (int blockNo = 0; blockNo < coord.blockNo; ++blockNo) {
     y += m_blocks[blockNo].height();
@@ -678,11 +703,9 @@ void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updat
   if (h == line.height()) {
     h -= m_setting->lineSpacing;
   }
-  cursor.setPos(pos + Point(0, y));
-  cursor.setHeight(h);
+  return {pos + Point(0, y), h};
 }
-void Document::moveCursorToRight(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToRight(CursorCoord coord) {
   auto block = m_blocks[coord.blockNo];
   auto& line = block.logicalLineAt(coord.lineNo);
   SizeType totalOffset = line.length();
@@ -709,10 +732,9 @@ void Document::moveCursorToRight(Cursor& cursor) {
       }
     }
   }
-  updateCursor(cursor, coord);
+  return coord;
 }
-void Document::moveCursorToLeft(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToLeft(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   auto block = m_blocks[coord.blockNo];
   if (coord.offset > 0) {
@@ -738,15 +760,14 @@ void Document::moveCursorToLeft(Cursor& cursor) {
     // do nothing
     DEBUG << "do nothing";
   }
-  updateCursor(cursor, coord);
+  return coord;
 }
-void Document::moveCursorToUp(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToUp(CursorCoord coord, Point pos) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   auto block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  int x = cursor.pos().x();
+  int x = pos.x();
   if (line.canMoveUp(coord.offset, this)) {
     coord.offset = line.moveUp(coord.offset, x, this);
   } else {
@@ -763,15 +784,14 @@ void Document::moveCursorToUp(Cursor& cursor) {
       coord.offset = 0;
     }
   }
-  updateCursor(cursor, coord);
+  return coord;
 }
-void Document::moveCursorToDown(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToDown(CursorCoord coord, Point pos) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   auto block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  int x = cursor.pos().x();
+  int x = pos.x();
   if (line.canMoveDown(coord.offset, this)) {
     DEBUG << "move down";
     coord.offset = line.moveDown(coord.offset, x, this);
@@ -787,20 +807,19 @@ void Document::moveCursorToDown(Cursor& cursor) {
       coord.offset = line.length();
     }
   }
-  updateCursor(cursor, coord);
+  return coord;
 }
-void Document::moveCursorToPos(Cursor& cursor, Point pos) {
+CursorCoord Document::moveCursorToPos(Point pos) {
   // 先找到哪个block
   SizeType blockNo = 0;
   int y = m_setting->docMargin.top();
   // 如果是点在文档上方的空白，也放到第一个位置
   if (pos.y() <= y) {
-    auto coord = cursor.coord();
+    CursorCoord coord;
     coord.blockNo = 0;
     coord.lineNo = 0;
     coord.offset = 0;
-    updateCursor(cursor, coord);
-    return;
+    return coord;
   }
   bool findBlock = false;
   while (blockNo < m_blocks.size()) {
@@ -814,19 +833,17 @@ void Document::moveCursorToPos(Cursor& cursor, Point pos) {
   }
   if (!findBlock) {
     // 如果是在内容范围之外，直接去到最后一行，最后一列
-    moveCursorToEndOfDocument(cursor);
-    return;
+    return moveCursorToEndOfDocument();
   }
   // 找到block以后，遍历每一个逻辑行
   auto block = m_blocks[blockNo];
   if (block.countOfLogicalLine() == 0) {
     // 如果没有逻辑行，就是0，0，0
-    auto coord = cursor.coord();
+    CursorCoord coord;
     coord.blockNo = blockNo;
     coord.lineNo = 0;
     coord.offset = 0;
-    updateCursor(cursor, coord);
-    return;
+    return coord;
   }
   auto node = m_root->childAt(blockNo);
   if (node->type() == NodeType::ul) {
@@ -839,16 +856,16 @@ void Document::moveCursorToPos(Cursor& cursor, Point pos) {
   for (int lineNo = 0; lineNo < block.countOfLogicalLine(); ++lineNo) {
     auto& line = block.logicalLineAt(lineNo);
     if (y <= pos.y() && pos.y() <= y + line.height()) {
-      auto coord = cursor.coord();
+      CursorCoord coord;
       coord.blockNo = blockNo;
       coord.lineNo = lineNo;
       coord.offset = line.offsetAt(Point(pos.x(), pos.y() - oldY), this, m_setting->lineSpacing);
-      updateCursor(cursor, coord);
-      return;
+      return coord;
     }
     y += line.height();
   }
   DEBUG << "not handle";
+  ASSERT(false && "not handle");
 }
 void Document::insertText(Cursor& cursor, const String& text) {
   if (text.isEmpty()) return;
@@ -952,25 +969,22 @@ parser::Container* Document::node2container(parser::Node* node) {
   ASSERT(false && "node convert not support");
   return nullptr;
 }
-void Document::moveCursorToBol(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToBol(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   auto block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   coord.offset = line.moveToBol(coord.offset, this);
-  updateCursor(cursor, coord);
+  return coord;
 }
-void Document::moveCursorToEol(Cursor& cursor) {
-  auto coord = cursor.coord();
+std::pair<CursorCoord, int> Document::moveCursorToEol(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   auto block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   auto [offset, x] = line.moveToEol(coord.offset, this);
   coord.offset = offset;
-  cursor.setX(x);
-  updateCursor(cursor, coord, false);
+  return {coord, x};
 }
 void Document::removeBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_blocks.size());
@@ -981,21 +995,28 @@ void Document::removeBlock(SizeType blockNo) {
   m_blocks.erase(m_blocks.begin() + blockNo);
   m_root->children().erase(m_root->children().begin() + blockNo);
 }
-void Document::moveCursorToEndOfDocument(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToEndOfDocument() {
+  CursorCoord coord;
   ASSERT(!m_blocks.empty());
   coord.blockNo = m_blocks.size() - 1;
   auto block = m_blocks[coord.blockNo];
   ASSERT(block.countOfLogicalLine() > 0);
   coord.lineNo = block.countOfLogicalLine() - 1;
   coord.offset = block.logicalLineAt(coord.lineNo).length();
-  updateCursor(cursor, coord);
+  return coord;
 }
-void Document::moveCursorToBeginOfDocument(Cursor& cursor) {
-  auto coord = cursor.coord();
+CursorCoord Document::moveCursorToBeginOfDocument() {
+  CursorCoord coord;
   coord.blockNo = 0;
   coord.lineNo = 0;
   coord.offset = 0;
-  updateCursor(cursor, coord);
+  return coord;
+}
+bool Document::isBol(const CursorCoord& coord) const {
+  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
+  const auto& block = m_blocks[coord.blockNo];
+  ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+  const auto& line = block.logicalLineAt(coord.lineNo);
+  return line.isBol(coord.offset, (DocPtr)this);
 }
 }  // namespace md::editor

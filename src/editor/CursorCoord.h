@@ -14,6 +14,12 @@ struct CursorCoord {
   SizeType lineNo = 0;
   // 逻辑行里到列
   SizeType offset = 0;
+  bool operator<(const CursorCoord& rhs) const;
+  bool operator>(const CursorCoord& rhs) const;
+  bool operator<=(const CursorCoord& rhs) const;
+  bool operator>=(const CursorCoord& rhs) const;
+  bool operator==(const CursorCoord& rhs) const;
+  bool operator!=(const CursorCoord& rhs) const;
 };
 QDebug operator<<(QDebug debug, const CursorCoord& c);
 }  // namespace md::editor

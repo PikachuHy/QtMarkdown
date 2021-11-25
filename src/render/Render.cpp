@@ -822,29 +822,25 @@ bool LogicalLine::canMoveUp(SizeType offset, DocPtr doc) const {
 }
 SizeType LogicalLine::moveDown(SizeType offset, int x, DocPtr doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
-  DEBUG << offset << x;
-  auto totalSize = 0;
-  for (int i = 0; i < m_lines.size(); ++i) {
-    if (totalSize <= offset && offset < totalSize + m_lines[i].length()) {
-      ASSERT(i + 1 < m_lines.size());
-      DEBUG << i;
-      auto &line = m_lines[i + 1];
+  auto totalOffset = 0;
+  for (int visualLineNo = 0; visualLineNo < m_lines.size(); ++visualLineNo) {
+    if (totalOffset <= offset && offset < totalOffset + m_lines[visualLineNo].length()) {
+      ASSERT(visualLineNo + 1 < m_lines.size());
+      auto &line = m_lines[visualLineNo + 1];
       auto [cell, delta] = line.cellAtX(x, doc);
-      DEBUG << delta;
       return this->totalOffset(cell, delta);
     }
+    totalOffset += m_lines[visualLineNo].length();
   }
   return this->length();
 }
 SizeType LogicalLine::moveUp(SizeType offset, int x, DocPtr doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
-  DEBUG << offset;
   auto totalOffset = 0;
   for (int i = 0; i < m_lines.size(); ++i) {
     if (totalOffset <= offset && offset < totalOffset + m_lines[i].length()) {
       ASSERT(i - 1 >= 0);
       auto &line = m_lines[i - 1];
-      DEBUG << i - 1 << x;
       auto [cell, delta] = line.cellAtX(x, doc);
       return this->totalOffset(cell, delta);
     }
@@ -949,6 +945,34 @@ SizeType LogicalLine::offsetAt(Point pos, DocPtr doc, int lineSpacing) const {
   DEBUG << this->left(this->length(), doc);
   DEBUG << pos << m_pos << this->width() << this->height();
   ASSERT(false && "no pos in line");
+}
+int LogicalLine::visualLineAt(SizeType offset, DocPtr doc) const {
+  ASSERT(offset >= 0 && offset <= this->length());
+  SizeType totalOffset = 0;
+  for (int i = 0; i < m_lines.size(); ++i) {
+    if (totalOffset <= offset && offset <= totalOffset + m_lines[i].length()) {
+      return i;
+    }
+    totalOffset += m_lines[i].length();
+  }
+  return m_lines.size() - 1;
+}
+VisualLine &LogicalLine::visualLineAt(int index) {
+  ASSERT(index >= 0 && index < m_lines.size());
+  return m_lines[index];
+}
+const VisualLine &LogicalLine::visualLineAt(int index) const {
+  ASSERT(index >= 0 && index < m_lines.size());
+  return m_lines[index];
+}
+bool LogicalLine::isBol(SizeType offset, const DocPtr doc) const {
+  if (offset == 0) return true;
+  SizeType totalOffset = 0;
+  for (const auto &line : m_lines) {
+    if (totalOffset == offset) return true;
+    totalOffset += line.length();
+  }
+  return false;
 }
 void Block::appendInstruction(Instruction *instruction) {
   ASSERT(instruction != nullptr);

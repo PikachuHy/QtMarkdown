@@ -37,6 +37,7 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
+  m_editor->drawSelection(QPoint(0, 0), *painter);
   m_editor->drawDoc(QPoint(0, 0), *painter);
   setImplicitHeight(m_editor->height());
   if (hasActiveFocus() && m_showCursor) {
@@ -144,4 +145,8 @@ void QtQuickMarkdownEditor::saveToFile(const QString &path) {
   }
 }
 QString QtQuickMarkdownEditor::title() { return m_editor->title(); }
+void QtQuickMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
+  return m_editor->mouseMoveEvent(Point(0, 0), event);
+  this->update();
+}
 }  // namespace md::editor
