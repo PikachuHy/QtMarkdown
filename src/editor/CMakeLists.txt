@@ -1,6 +1,7 @@
 add_library(QtMarkdownEditorCore SHARED
         Editor.cpp Editor.h
         Document.cpp Document.h
+        Command.cpp Command.h
         CursorCoord.cpp CursorCoord.h
         Cursor.cpp Cursor.h)
 target_compile_definitions(QtMarkdownEditorCore PRIVATE -DQtMarkdown_LIBRARY)

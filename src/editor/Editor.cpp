@@ -367,6 +367,11 @@ void Editor::keyPressEvent(KeyEvent *event) {
     this->selectAll();
     return;
   }
+  if (key == Qt::Key_Z && m_holdCtrl) {
+    DEBUG << "undo";
+    this->m_doc->undo(*m_cursor);
+    return;
+  }
   if (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down) {
     if (m_hasSelection && !m_holdShift) {
       auto coord = m_selectionRange->caret.coord();

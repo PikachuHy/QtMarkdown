@@ -88,9 +88,9 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   sptr<Cursor> m_cursor;
   sptr<render::RenderSetting> m_renderSetting;
   std::vector<InstructionPtr> m_selectionInstructions;
-  bool m_holdCtrl;
-  bool m_holdShift;
-  bool m_mousePressing;
+  bool m_holdCtrl = false;
+  bool m_holdShift = false;
+  bool m_mousePressing = false;
   bool m_preediting = false;
   int m_preeditLength;
   Point m_preeditPos;

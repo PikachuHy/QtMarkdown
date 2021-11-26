@@ -165,46 +165,6 @@ a😊b
     ASSERT_EQ(line.length(), 0);
   }
 }
-TEST(ParagraphEditTest, RemoveText) {
-  Editor editor;
-  QString s;
-  editor.loadText(R"(
-6
-
-ab
-)");
-  auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
-  ASSERT_EQ(blocks.size(), 2);
-  auto coord = doc->moveCursorToEndOfDocument();
-  doc->updateCursor(cursor, coord);
-  coord = doc->moveCursorToLeft(coord);
-  doc->updateCursor(cursor, coord);
-  doc->removeText(cursor);
-  ASSERT_EQ(blocks.size(), 2);
-}
-
-TEST(ParagraphEditTest, RemoveText2) {
-  Editor editor;
-  QString s;
-  editor.loadText(R"(
-a[b](c)d
-)");
-  auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
-  ASSERT_EQ(blocks.size(), 1);
-  auto coord = doc->moveCursorToEndOfDocument();
-  doc->updateCursor(cursor, coord);
-  doc->removeText(cursor);
-  ASSERT_EQ(blocks.size(), 1);
-  doc->removeText(cursor);
-  ASSERT_EQ(blocks.size(), 1);
-  doc->removeText(cursor);
-  ASSERT_EQ(blocks.size(), 1);
-}
-
 TEST(ParagraphEditTest, RemoveEmoji2) {
   Editor editor;
   QString s;
@@ -227,6 +187,46 @@ a [666](www.baidu.com) b 😊
   }
 }
 
+TEST(ParagraphEditTest, RemoveText) {
+  Editor editor;
+  QString s;
+  editor.loadText(R"(
+6
+
+ab
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 2);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  coord = doc->moveCursorToLeft(coord);
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 2);
+}
+
+TEST(ParagraphEditTest, RemoveEmptyLink) {
+  Editor editor;
+  QString s;
+  editor.loadText(R"(
+a[b](c)d
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+}
+
 TEST(ParagraphEditTest, UpgradeToHeader) {
   Editor editor;
   editor.loadText("#");
@@ -244,6 +244,75 @@ TEST(ParagraphEditTest, UpgradeToHeader) {
   ASSERT_EQ(node->type(), NodeType::header);
   auto headerNode = (md::parser::Header*)node;
   ASSERT_EQ(headerNode->size(), 0);
+}
+
+TEST(ParagraphEditTest, UpgradeToHeaderAndDegradeToParagraphAndRemoveText) {
+  Editor editor;
+  QString s;
+  editor.loadText(R"(
+a
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  doc->insertText(cursor, "#");
+  ASSERT_EQ(blocks.size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("#a"));
+  }
+  doc->insertText(cursor, " ");
+  ASSERT_EQ(blocks.size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::header);
+    auto headerNode = (md::parser::Header*)node;
+    ASSERT_EQ(headerNode->size(), 1);
+    auto child = headerNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("a"));
+    CursorCoord _coord;
+    _coord.blockNo = 0;
+    _coord.lineNo = 0;
+    _coord.offset = 0;
+    ASSERT_EQ(cursor.coord(), _coord);
+  }
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("a"));
+  }
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("a"));
+  }
 }
 TEST(ParagraphEditTest, UpgradeToUl) {
   Editor editor;
@@ -669,6 +738,76 @@ c
   ASSERT_EQ(coord.blockNo, 0);
   ASSERT_EQ(coord.lineNo, 0);
   ASSERT_EQ(coord.offset, 1);
+}
+TEST(UndoTest, InsertReturn) {
+  Editor editor;
+  editor.loadText(R"(
+ab
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  {
+    auto coord = doc->moveCursorToEndOfDocument();
+    doc->updateCursor(cursor, coord);
+    coord = doc->moveCursorToLeft(coord);
+    doc->updateCursor(cursor, coord);
+  }
+  doc->insertReturn(cursor);
+  ASSERT_EQ(blocks.size(), 2);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("a"));
+  }
+  {
+    auto node = doc->m_root->childAt(1);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("b"));
+  }
+  doc->undo(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("ab"));
+  }
+  {
+    auto coord = doc->moveCursorToEndOfDocument();
+    doc->updateCursor(cursor, coord);
+  }
+  doc->insertReturn(cursor);
+  doc->undo(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 1);
+    auto child = paragraphNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("ab"));
+  }
 }
 int main(int argc, char** argv) {
   // 必须加这一句

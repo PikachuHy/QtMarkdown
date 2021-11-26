@@ -11,6 +11,7 @@
 #include "render/Render.h"
 
 namespace md::editor {
+class CommandStack;
 class Cursor;
 struct CursorCoord;
 class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::enable_shared_from_this<Document> {
@@ -36,6 +37,9 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   void removeBlock(SizeType blockNo);
   void mergeBlock(SizeType blockNo1, SizeType blockNo2);
 
+  void undo(Cursor& cursor);
+  void redo(Cursor& cursor);
+
  private:
   parser::Container* node2container(parser::Node* node);
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
@@ -45,12 +49,16 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
  private:
   render::BlockList m_blocks;
   sptr<render::RenderSetting> m_setting;
+  sptr<CommandStack> m_commandStack;
   friend class Editor;
   friend class EditorTest;
   friend class DocumentOperationVisitor;
   friend class InsertReturnVisitor;
   friend class RemoveTextVisitor;
   friend class InsertTextVisitor;
+  friend class InsertTextCommand;
+  friend class RemoveTextCommand;
+  friend class InsertReturnCommand;
 };
 }  // namespace md::editor
 
