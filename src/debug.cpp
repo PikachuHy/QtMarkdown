@@ -1,18 +1,20 @@
 //
 // Created by PikachuHy on 2021/11/9.
 //
+#ifndef _MSC_VER
 #include <cxxabi.h>
 #include <libunwind.h>
-
+#endif
 #include <cstdio>
 #include <cstdlib>
 //#define BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED
 //#define _GNU_SOURCE
 #include <boost/stacktrace.hpp>
 #include <iostream>
-void backtrace() {
+#include "debug.h"
+void Backtrace::backtrace() {
   std::cout << boost::stacktrace::stacktrace();
-#if 1
+#ifndef _MSC_VER
   unw_cursor_t cursor;
   unw_context_t context;
 

@@ -4,13 +4,17 @@
 
 #ifndef QTMARKDOWN_DEBUG_H
 #define QTMARKDOWN_DEBUG_H
+#include "QtMarkdown_global.h"
 #include <QDebug>
 // clang-format off
 // 只有文件名
 //#define DEBUG qDebug().noquote() << "[debug]" << __FUNCTION__ << QString(__FILE_NAME__) + QString(":") + QString::number(__LINE__)
 // 文件绝对路径
 #define DEBUG qDebug().noquote() << "[debug]" << __FUNCTION__ << QString(__FILE__) + QString(":") + QString::number(__LINE__)
-void backtrace();
+class QTMARKDOWNSHARED_EXPORT Backtrace {
+public:
+static void backtrace();
+};
 
 #if !defined(ASSERT)
 #  if defined(QT_NO_DEBUG) && !defined(QT_FORCE_ASSERTS)
@@ -20,7 +24,7 @@ void backtrace();
 #    define ASSERT(cond) \
 do {\
 if ((cond)) {} else {    \
-backtrace();                         \
+Backtrace::backtrace();                         \
 qDebug().noquote() << "[assert]" << #cond << __FUNCTION__ << QString(__FILE__) + QString(":") + QString::number(__LINE__);\
 qt_assert(#cond, __FILE__, __LINE__);\
 }\
