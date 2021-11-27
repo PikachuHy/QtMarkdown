@@ -1,17 +1,18 @@
 //
 // Created by PikachuHy on 2021/11/9.
 //
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
+#include "debug.h"
+#if BUILD_WITH_BOOST
 #ifndef _MSC_VER
 #include <cxxabi.h>
 #include <libunwind.h>
 #endif
-#include <cstdio>
-#include <cstdlib>
 //#define BOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED
 //#define _GNU_SOURCE
 #include <boost/stacktrace.hpp>
-#include <iostream>
-#include "debug.h"
 void Backtrace::backtrace() {
   std::cout << boost::stacktrace::stacktrace();
 #ifndef _MSC_VER
@@ -47,3 +48,6 @@ void Backtrace::backtrace() {
   }
 #endif
 }
+#else
+void Backtrace::backtrace() {}
+#endif
