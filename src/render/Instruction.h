@@ -8,7 +8,7 @@
 #include <QRect>
 #include <utility>
 #include <vector>
-
+#include "QtMarkdown_global.h"
 #include "mddef.h"
 #include "parser/PieceTable.h"
 #include "Cell.h"
@@ -18,11 +18,11 @@ class Text;
 namespace md::render {
 class RenderPrivate;
 // 基本绘图指令
-class Instruction {
+class QTMARKDOWNSHARED_EXPORT Instruction {
  public:
   virtual void run(Painter& painter, Point offset, DocPtr doc) const = 0;
 };
-class TextInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT TextInstruction : public Instruction {
  public:
   TextInstruction(TextCell* cell) : m_cell(cell) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
@@ -32,7 +32,7 @@ class TextInstruction : public Instruction {
   TextCell* m_cell;
 };
 
-class StaticTextInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT StaticTextInstruction : public Instruction {
  public:
   StaticTextInstruction(StaticTextCell* cell) : m_cell(cell) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
@@ -40,7 +40,7 @@ class StaticTextInstruction : public Instruction {
  private:
   StaticTextCell* m_cell;
 };
-class ImageInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT ImageInstruction : public Instruction {
  public:
   ImageInstruction(ImageCell* cell) : m_cell(cell) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
@@ -48,7 +48,7 @@ class ImageInstruction : public Instruction {
  private:
   ImageCell* m_cell;
 };
-class StaticImageInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT StaticImageInstruction : public Instruction {
  public:
   StaticImageInstruction(String path, Point pos, Size size) : m_path(std::move(path)), m_pos(pos), m_size(size) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
@@ -58,7 +58,7 @@ class StaticImageInstruction : public Instruction {
   Point m_pos;
   Size m_size;
 };
-class FillRectInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT FillRectInstruction : public Instruction {
  public:
   explicit FillRectInstruction(Point point, Size size, Color color) : m_point(point), m_size(size), m_color(color) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
@@ -68,7 +68,7 @@ class FillRectInstruction : public Instruction {
   Size m_size;
   Color m_color;
 };
-class EllipseInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT EllipseInstruction : public Instruction {
  public:
   explicit EllipseInstruction(Point point, Size size, Color color) : m_point(point), m_size(size), m_color(color) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
@@ -78,7 +78,7 @@ class EllipseInstruction : public Instruction {
   Size m_size;
   Color m_color;
 };
-class LatexInstruction : public Instruction {
+class QTMARKDOWNSHARED_EXPORT LatexInstruction : public Instruction {
  public:
   LatexInstruction(Point pos, Size size, String latex, int fontSize)
       : m_pos(pos), m_size(size), m_latex(std::move(latex)), m_fontSize(fontSize) {}

@@ -10,6 +10,9 @@ using md::editor::QtWidgetMarkdownEditor;
 int main(int argc, char *argv[]) {
   QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::Floor);
   QApplication a(argc, argv);
+  QApplication::setOrganizationName("PikachuHy");
+  QApplication::setOrganizationDomain("pikachu.net.cn");
+  QApplication::setApplicationName("QtMarkdownEditor");
   QtWidgetMarkdownEditor w;
   w.resize(800, 600);
   w.loadFile(":/test.md");
