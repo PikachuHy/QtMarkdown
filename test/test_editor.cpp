@@ -712,6 +712,42 @@ TEST(PreeditTest, ShowPreedit) {
   ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 3);
 }
 
+TEST(PreeditTest, ShowPreedit2) {
+  Editor editor;
+  editor.loadText(R"(
+# a
+)");
+
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  CursorCoord coord;
+  coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  ASSERT_EQ(cursor.coord().offset, 0);
+  ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 0);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::header);
+    auto header = (md::parser::Header*)node;
+    ASSERT_EQ(header->size(), 0);
+  }
+  editor.setPreedit("a");
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::header);
+    auto header = (md::parser::Header*)node;
+    ASSERT_EQ(header->size(), 1);
+    ASSERT_EQ(header->childAt(0)->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)header->childAt(0);
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("a"));
+  }
+}
+
 TEST(MultiBlockEditTest, RemoveEmptyParagraph) {
   Editor editor;
   editor.loadText(R"(

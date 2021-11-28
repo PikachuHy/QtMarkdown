@@ -272,8 +272,10 @@ class RemoveTextVisitor
     }
   }
   void visit(Header* node) override {
-    auto& line = curLine();
-    if (line.empty() || coord.lineNo == 0) {
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    const auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty() || (coord.lineNo == 0 && coord.offset == 0)) {
       DEBUG << "degrade header to paragraph";
       auto paragraphNode = new Paragraph();
       paragraphNode->setChildren(node->children());
@@ -283,6 +285,13 @@ class RemoveTextVisitor
     } else {
       auto [textNode, leftOffset] = line.textAt(coord.offset);
       removeTextInNode(textNode, leftOffset);
+      if (textNode->empty()) {
+        if (textNode->parent() == node) {
+          node->removeChild(textNode);
+        } else {
+          DEBUG << "unhandled empty text node";
+        }
+      }
       endRemoveText();
     }
   }
@@ -319,11 +328,6 @@ class RemoveTextVisitor
   }
 
  private:
-  const LogicalLine& curLine() {
-    auto block = m_doc->m_blocks[coord.blockNo];
-    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-    return block.logicalLineAt(coord.lineNo);
-  }
   void removeTextInListNode(Container* node) {
     auto block = m_doc->m_blocks[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());

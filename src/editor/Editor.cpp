@@ -539,6 +539,12 @@ String Editor::cursorCoord() const {
   else
     s += "NO";
   s += "\n";
+  s += QString("Pre Editing: ");
+  if (m_preediting)
+    s += "YES";
+  else
+    s += "NO";
+  s += "\n";
   if (m_hasSelection) {
     s += QString("Selection Range: ");
     auto [begin, end] = m_selectionRange->range();
@@ -578,9 +584,14 @@ void Editor::setPreedit(String str) {
   } else {
     m_preeditPos = m_cursor->pos();
   }
-  m_preediting = true;
-  m_preeditLength = str.length();
-  m_doc->insertText(*m_cursor, str);
+  if (str.isEmpty()) {
+    m_preediting = false;
+    m_preeditLength = 0;
+  } else {
+    m_preediting = true;
+    m_preeditLength = str.length();
+    m_doc->insertText(*m_cursor, str);
+  }
 }
 void Editor::commitString(String str) {
   if (m_preediting) {

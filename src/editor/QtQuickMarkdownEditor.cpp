@@ -121,12 +121,11 @@ QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) con
 }
 void QtQuickMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
   auto str = event->commitString();
-  if (!str.isEmpty()) {
-    m_editor->commitString(str);
-  }
-  auto preeditStr = event->preeditString();
-  if (!preeditStr.isEmpty()) {
+  if (str.isEmpty()) {
+    auto preeditStr = event->preeditString();
     m_editor->setPreedit(preeditStr);
+  } else {
+    m_editor->commitString(str);
   }
   this->update();
 }
