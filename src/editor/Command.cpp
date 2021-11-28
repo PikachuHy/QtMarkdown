@@ -660,6 +660,7 @@ class InsertTextVisitor
       updateCursor(cursor, coord);
       return;
     }
+    insertTextInNode(textNode, leftOffset);
   }
   void visit(CheckboxList* node) override {
     auto coord = cursor.coord();

@@ -413,6 +413,38 @@ TEST(UlEditTest, DegradeToParagraph) {
   auto paragraphNode = (md::parser::Paragraph*)node;
   ASSERT_EQ(paragraphNode->size(), 0);
 }
+TEST(UlEditTest, InsertSpace) {
+  Editor editor;
+  editor.loadText("- []");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  coord = doc->moveCursorToLeft(coord);
+  doc->updateCursor(cursor, coord);
+  doc->insertText(cursor, " ");
+
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::ul);
+    auto ulNode = (md::parser::UnorderedList*)node;
+    ASSERT_EQ(ulNode->size(), 1);
+    auto ulItem = ulNode->childAt(0);
+    ASSERT_EQ(ulItem->type(), md::parser::NodeType::ul_item);
+    auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
+    ASSERT_EQ(ulItemNode->size(), 1);
+    auto child = ulItemNode->childAt(0);
+    ASSERT_EQ(child->type(), NodeType::text);
+    auto textNode = (md::parser::Text*)child;
+    auto s = textNode->toString(doc.get());
+    ASSERT_EQ(s, QString("[ ]"));
+  }
+}
 TEST(UlEditTest, UpgradeToCheckbox) {
   Editor editor;
   editor.loadText("- ");
