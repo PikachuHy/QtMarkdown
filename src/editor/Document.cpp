@@ -342,4 +342,15 @@ bool Document::isBol(const CursorCoord& coord) const {
 }
 void Document::undo(Cursor& cursor) { m_commandStack->undo(cursor); }
 void Document::redo(Cursor& cursor) {}
+void Document::upgradeToHeader(const Cursor& cursor, int level) {
+  ASSERT(level >= 1 && level <= 6);
+  auto coord = cursor.coord();
+  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_root->size());
+  auto node = m_root->childAt(coord.blockNo);
+  if (node->type() != NodeType::paragraph) return;
+  auto paragraphNode = (Paragraph*)node;
+  auto header = new Header(level);
+  header->setChildren(paragraphNode->children());
+  replaceBlock(coord.blockNo, header);
+}
 }  // namespace md::editor

@@ -40,6 +40,8 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   void undo(Cursor& cursor);
   void redo(Cursor& cursor);
 
+  void upgradeToHeader(const Cursor& cursor, int level);
+
  private:
   parser::Container* node2container(parser::Node* node);
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);

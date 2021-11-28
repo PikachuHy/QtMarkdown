@@ -372,6 +372,28 @@ void Editor::keyPressEvent(KeyEvent *event) {
     this->m_doc->undo(*m_cursor);
     return;
   }
+  if (m_holdCtrl) {
+    if (key == Qt::Key_1) {
+      m_doc->upgradeToHeader(*m_cursor, 1);
+    }
+    if (key == Qt::Key_2) {
+      m_doc->upgradeToHeader(*m_cursor, 2);
+    }
+    if (key == Qt::Key_3) {
+      m_doc->upgradeToHeader(*m_cursor, 3);
+    }
+    if (key == Qt::Key_4) {
+      m_doc->upgradeToHeader(*m_cursor, 4);
+    }
+    if (key == Qt::Key_5) {
+      m_doc->upgradeToHeader(*m_cursor, 5);
+    }
+    if (key == Qt::Key_6) {
+      m_doc->upgradeToHeader(*m_cursor, 6);
+    }
+    m_doc->updateCursor(*m_cursor, m_cursor->coord());
+    return;
+  }
   if (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down) {
     if (m_hasSelection && !m_holdShift) {
       auto coord = m_selectionRange->caret.coord();
