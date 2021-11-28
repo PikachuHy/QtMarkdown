@@ -526,6 +526,44 @@ TEST(CheckboxEditTest, DegradeToParagraph2) {
   auto paragraphNode = (md::parser::Paragraph*)node;
   ASSERT_EQ(paragraphNode->size(), 1);
 }
+
+TEST(CheckboxEditTest, EmptyCheckBoxInsertReturn) {
+  Editor editor;
+  editor.loadText(R"(
+- [ ] a
+- [ ] b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), md::parser::NodeType::checkbox);
+  }
+  CursorCoord coord;
+  coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), md::parser::NodeType::checkbox);
+  }
+  doc->insertReturn(cursor);
+  ASSERT_EQ(blocks.size(), 2);
+  ASSERT_EQ(doc->m_root->size(), 2);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), md::parser::NodeType::checkbox);
+  }
+  {
+    auto node = doc->m_root->childAt(1);
+    ASSERT_EQ(node->type(), md::parser::NodeType::paragraph);
+  }
+}
 TEST(EditorTest, HeaderReturn) {
   Editor editor;
   editor.loadText("");

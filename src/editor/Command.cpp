@@ -39,25 +39,22 @@ class InsertReturnVisitor
     : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock>,
       public DocumentOperationVisitor {
  public:
-  InsertReturnVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) {
-    coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    auto block = m_doc->m_blocks[coord.blockNo];
-    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-    auto& line = block.logicalLineAt(coord.lineNo);
-    auto textAndOffset = line.textAt(coord.offset);
-    this->textNode = textAndOffset.first;
-    this->leftOffset = textAndOffset.second;
-    auto leftRightText = textNode->split(leftOffset);
-    this->leftTextNode = leftRightText.first;
-    this->rightTextNode = leftRightText.second;
-  }
+  InsertReturnVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) { coord = cursor.coord(); }
   void visit(Paragraph* node) override {
     ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
     auto block = m_doc->m_blocks[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
-
+    if (line.empty()) {
+      auto newBlock = new Paragraph();
+      m_doc->insertBlock(coord.blockNo + 1, newBlock);
+      coord.blockNo++;
+      coord.lineNo = 0;
+      coord.offset = 0;
+      m_doc->updateCursor(cursor, coord);
+      return;
+    }
+    beginInsertReturn();
     Container* oldBlock = nullptr;
     Container* newBlock = nullptr;
     String prefix = line.left(coord.offset, m_doc);
@@ -79,6 +76,7 @@ class InsertReturnVisitor
     splitNode(node, oldBlock, newBlock);
   }
   void visit(Header* node) override {
+    beginInsertReturn();
     auto oldBlock = new Header(node->level());
     Container* newBlock;
     if (rightTextNode->toString(m_doc).isEmpty()) {
@@ -89,6 +87,13 @@ class InsertReturnVisitor
     splitNode(node, oldBlock, newBlock);
   }
   void visit(OrderedList* node) override {
+    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      splitListNode(node, new OrderedList(), new OrderedList());
+      return;
+    }
+    beginInsertReturn();
     auto [listIndex, itemIndex] = indexOfItem(node);
     auto originalItem = (OrderedListItem*)node->childAt(listIndex);
     auto oldItem = new OrderedListItem();
@@ -96,6 +101,13 @@ class InsertReturnVisitor
     splitListNode(node, originalItem, oldItem, newItem, listIndex, itemIndex);
   }
   void visit(UnorderedList* node) override {
+    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      splitListNode(node, new UnorderedList(), new UnorderedList());
+      return;
+    }
+    beginInsertReturn();
     auto [listIndex, itemIndex] = indexOfItem(node);
     auto originalItem = (UnorderedListItem*)node->childAt(listIndex);
     auto oldItem = new UnorderedListItem();
@@ -103,6 +115,13 @@ class InsertReturnVisitor
     splitListNode(node, originalItem, oldItem, newItem, listIndex, itemIndex);
   }
   void visit(CheckboxList* node) override {
+    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      splitListNode(node, new CheckboxList(), new CheckboxList());
+      return;
+    }
+    beginInsertReturn();
     auto [listIndex, itemIndex] = indexOfItem(node);
     auto originalItem = (CheckboxItem*)node->childAt(listIndex);
     auto oldItem = new CheckboxItem();
@@ -111,6 +130,7 @@ class InsertReturnVisitor
     splitListNode(node, originalItem, oldItem, newItem, listIndex, itemIndex);
   }
   void visit(CodeBlock* node) override {
+    beginInsertReturn();
     node->removeChildAt(coord.lineNo);
     node->insertChild(coord.lineNo, leftTextNode);
     node->insertChild(coord.lineNo + 1, rightTextNode);
@@ -121,6 +141,18 @@ class InsertReturnVisitor
   }
 
  private:
+  void beginInsertReturn() {
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    auto block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+    auto textAndOffset = line.textAt(coord.offset);
+    this->textNode = textAndOffset.first;
+    this->leftOffset = textAndOffset.second;
+    auto leftRightText = textNode->split(leftOffset);
+    this->leftTextNode = leftRightText.first;
+    this->rightTextNode = leftRightText.second;
+  }
   void splitNode(Container* originalBlock, Container* oldBlock, Container* newBlock) {
     ASSERT(originalBlock != nullptr);
     ASSERT(oldBlock != nullptr);
@@ -197,6 +229,34 @@ class InsertReturnVisitor
     coord.offset = 0;
     updateCursor(cursor, coord);
     delete originalItem;
+  }
+  void splitListNode(Container* originalListNode, Container* oldListNode, Container* newListNode) {
+    for (int i = 0; i < coord.lineNo; ++i) {
+      oldListNode->appendChild(originalListNode->childAt(i));
+    }
+    for (auto i = coord.lineNo + 1; i < originalListNode->size(); ++i) {
+      newListNode->appendChild(originalListNode->childAt(i));
+    }
+    auto index = coord.blockNo;
+    m_doc->removeBlock(index);
+    if (oldListNode->empty()) {
+      delete oldListNode;
+    } else {
+      m_doc->insertBlock(index, oldListNode);
+      index++;
+    }
+    m_doc->insertBlock(index, new Paragraph());
+    auto coord = cursor.coord();
+    coord.blockNo = index;
+    coord.lineNo = 0;
+    coord.offset = 0;
+    m_doc->updateCursor(cursor, coord);
+    index++;
+    if (newListNode->empty()) {
+      delete newListNode;
+    } else {
+      m_doc->insertBlock(index, newListNode);
+    }
   }
 
  private:
@@ -371,6 +431,12 @@ class RemoveTextVisitor
     } else {
       auto [textNode, leftOffset] = line.textAt(coord.offset);
       removeTextInNode(textNode, leftOffset);
+      if (textNode->empty()) {
+        auto p = textNode->parent();
+        ASSERT(p != nullptr);
+        auto c = (Container*)p;
+        c->removeChild(textNode);
+      }
       endRemoveText();
     }
   }
@@ -731,16 +797,19 @@ void InsertReturnCommand::execute(Cursor& cursor) {
   auto coord = m_coord;
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
   auto block = m_doc->m_blocks[coord.blockNo];
+#if 0
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   if (line.empty()) {
     auto newBlock = new Paragraph();
     m_doc->insertBlock(coord.blockNo + 1, newBlock);
     coord.blockNo++;
+    coord.lineNo = 0;
     coord.offset = 0;
     m_doc->updateCursor(cursor, coord);
     return;
   }
+#endif
   InsertReturnVisitor visitor(cursor, m_doc);
   auto node = m_doc->m_root->childAt(cursor.coord().blockNo);
   node->accept(&visitor);

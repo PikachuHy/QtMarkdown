@@ -313,10 +313,6 @@ std::pair<CursorCoord, int> Document::moveCursorToEol(CursorCoord coord) {
 }
 void Document::removeBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_blocks.size());
-  if (m_blocks.size() == 1) {
-    // 如果只剩一个block，就保留
-    return;
-  }
   m_blocks.erase(m_blocks.begin() + blockNo);
   m_root->children().erase(m_root->children().begin() + blockNo);
 }
