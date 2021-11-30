@@ -209,7 +209,7 @@ class RenderPrivate
       }
     }
     endBlock();
-    auto w = m_block.width();
+    auto w = m_setting->contentMaxWidth();
     auto h = m_block.height() - m_setting->lineSpacing;
     auto instruction = new FillRectInstruction(Point(x - 3, y - 3), Size(w + 6, h + 6), QColor(249, 249, 249));
     m_block.insertInstruction(indexToInsertFillRect, instruction);
