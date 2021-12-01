@@ -42,6 +42,13 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
 
  protected:
   void inputMethodEvent(QInputMethodEvent *event) override;
+
+ private:
+  void markContentChanged();
+  QString tmpPath();
+  void save();
+ private slots:
+  void tmpSave();
  signals:
   void docSave(bool isNew);
   void contentChanged();
@@ -55,6 +62,8 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   QString m_path;
   std::shared_ptr<md::editor::Editor> m_editor;
   QTimer m_cursorTimer;
+  QTimer m_tmpSaveTimer;
+  bool m_contentChanged;
   bool m_isNewDoc;
   bool m_showCursor;
 };

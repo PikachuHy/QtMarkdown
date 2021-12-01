@@ -8,6 +8,7 @@
 #include <QGuiApplication>
 #include <QDesktopServices>
 #include <QClipboard>
+#include <QFile>
 
 #include "debug.h"
 namespace md::editor {
@@ -25,7 +26,7 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
     DEBUG << code;
     QGuiApplication::clipboard()->setText(code);
   });
-  m_editor->setCheckBoxClickedCallback([this]() { emit contentChanged(); });
+  m_editor->setCheckBoxClickedCallback([this]() { markContentChanged(); });
   setAcceptHoverEvents(true);
   setAcceptedMouseButtons(Qt::AllButtons);
   setFlag(ItemAcceptsInputMethod, true);
@@ -34,6 +35,8 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
     m_showCursor = !m_showCursor;
     this->update();
   });
+  m_tmpSaveTimer.start(30 * 1000);
+  connect(&m_tmpSaveTimer, &QTimer::timeout, this, &QtQuickMarkdownEditor::tmpSave);
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
@@ -52,7 +55,14 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   emit sourceChanged(m_source);
   m_source = source;
   m_isNewDoc = false;
-  m_editor->loadFile(source);
+  auto tmpPath = this->tmpPath();
+  DEBUG << tmpPath;
+  if (QFile(tmpPath).exists()) {
+    m_editor->loadFile(tmpPath);
+    markContentChanged();
+  } else {
+    m_editor->loadFile(source);
+  }
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
   emit implicitHeightChanged();
@@ -68,13 +78,7 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
     if (m_isNewDoc) {
       emit docSave(m_isNewDoc);
     } else {
-      bool ok = m_editor->saveToFile(m_source);
-      if (ok) {
-        DEBUG << "save success";
-        emit docSave(m_isNewDoc);
-      } else {
-        DEBUG << "save fail";
-      }
+      this->save();
     }
   } else if ((event->modifiers() & Qt::Modifier::CTRL) && key == Qt::Key_V) {
     auto s = QGuiApplication::clipboard()->text();
@@ -83,10 +87,10 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
     } else {
       m_editor->keyPressEvent(event);
     }
-    emit contentChanged();
+    markContentChanged();
   } else {
     m_editor->keyPressEvent(event);
-    emit contentChanged();
+    markContentChanged();
   }
   this->update();
   setImplicitWidth(m_editor->width());
@@ -139,6 +143,17 @@ void QtQuickMarkdownEditor::saveToFile(const QString &path) {
   bool ok = m_editor->saveToFile(m_source);
   if (ok) {
     DEBUG << "save success";
+    auto tmpPath = this->tmpPath();
+    QFile file(tmpPath);
+    if (file.exists()) {
+      ok = file.remove();
+      if (ok) {
+        DEBUG << "remove tmp file success";
+      } else {
+        DEBUG << "remove tmp file fail";
+      }
+    }
+    emit docSave(m_isNewDoc);
   } else {
     DEBUG << "save fail";
   }
@@ -148,4 +163,35 @@ void QtQuickMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
   return m_editor->mouseMoveEvent(Point(0, 0), event);
   this->update();
 }
+void QtQuickMarkdownEditor::tmpSave() {
+  // 新文档暂时不考虑
+  if (m_isNewDoc) return;
+  if (!m_contentChanged) return;
+  auto path = tmpPath();
+  // qrc的文件直接忽略
+  if (path.startsWith(":")) {
+    return;
+  }
+  auto ok = m_editor->saveToFile(path);
+  if (ok) {
+    DEBUG << "tmp save success";
+  } else {
+    DEBUG << "tmp save fail";
+  }
+}
+void QtQuickMarkdownEditor::markContentChanged() {
+  emit contentChanged();
+  m_contentChanged = true;
+}
+QString QtQuickMarkdownEditor::tmpPath() {
+  auto index = m_source.lastIndexOf("/");
+  auto name = m_source.mid(index + 1);
+  auto tmpPath = m_source.left(index) + "/~" + name;
+  QString prefix = "file://";
+  if (tmpPath.startsWith(prefix)) {
+    return tmpPath.mid(prefix.size());
+  }
+  return tmpPath;
+}
+void QtQuickMarkdownEditor::save() { this->saveToFile(m_source); }
 }  // namespace md::editor
