@@ -47,6 +47,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void markContentChanged();
   QString tmpPath();
   void save();
+  QString url2path(QString url);
  private slots:
   void tmpSave();
  signals:

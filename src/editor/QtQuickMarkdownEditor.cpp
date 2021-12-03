@@ -140,7 +140,7 @@ void QtQuickMarkdownEditor::newDoc() {
 void QtQuickMarkdownEditor::saveToFile(const QString &path) {
   m_source = path;
   m_isNewDoc = false;
-  bool ok = m_editor->saveToFile(m_source);
+  bool ok = m_editor->saveToFile(url2path(m_source));
   if (ok) {
     DEBUG << "save success";
     auto tmpPath = this->tmpPath();
@@ -189,9 +189,27 @@ QString QtQuickMarkdownEditor::tmpPath() {
   auto tmpPath = m_source.left(index) + "/~" + name;
   QString prefix = "file://";
   if (tmpPath.startsWith(prefix)) {
-    return tmpPath.mid(prefix.size());
+    return url2path(tmpPath);
   }
   return tmpPath;
 }
-void QtQuickMarkdownEditor::save() { this->saveToFile(m_source); }
+void QtQuickMarkdownEditor::save() { this->saveToFile(url2path(m_source)); }
+QString QtQuickMarkdownEditor::url2path(QString url) {
+  String path = url;
+  String prefix = "file://";
+  if (url.startsWith(prefix)) {
+#ifdef Q_OS_WIN
+    for (char ch = 'C'; ch <= 'Z'; ch++) {
+      String diskPrefix = prefix + "/" + ch + ":";
+      if (url.startsWith(diskPrefix)) {
+        path = url.mid(prefix.size() + 1);
+        return path;
+      }
+    }
+#else
+#endif
+    return path.mid(prefix.size());
+  }
+  return path;
+}
 }  // namespace md::editor

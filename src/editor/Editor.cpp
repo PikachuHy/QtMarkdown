@@ -9,6 +9,7 @@
 #include <QMouseEvent>
 #include <QStringList>
 #include <memory>
+#include <vector>
 
 #include "Cursor.h"
 #include "debug.h"
@@ -253,10 +254,6 @@ std::pair<bool, String> Editor::loadFile(const String &path) {
 
 bool Editor::saveToFile(const String &path) {
   String notePath = path;
-  String prefix = "file://";
-  if (path.startsWith(prefix)) {
-    notePath = path.mid(prefix.size());
-  }
   if (!notePath.endsWith(".md")) {
     notePath += ".md";
   }
