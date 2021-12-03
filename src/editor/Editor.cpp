@@ -266,7 +266,7 @@ bool Editor::saveToFile(const String &path) {
   SimpleMarkdownVisitor visitor(m_doc.get());
   m_doc->accept(&visitor);
   auto mdText = visitor.markdown();
-  file.write(mdText.toLocal8Bit());
+  file.write(mdText.toUtf8());
   file.close();
   return true;
 }
