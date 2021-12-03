@@ -531,7 +531,15 @@ void Editor::mousePressEvent(Point offset, MouseEvent *event) {
     generateSelectionInstruction();
   }
 }
-void Editor::insertText(String str) { m_doc->insertText(*m_cursor, str); }
+void Editor::insertText(String str) {
+  if (str.isEmpty()) return;
+  auto strs = str.split("\n");
+  for (int i = 0; i < strs.size() - 1; ++i) {
+    m_doc->insertText(*m_cursor, strs[i]);
+    m_doc->insertReturn(*m_cursor);
+  }
+  m_doc->insertText(*m_cursor, strs.back());
+}
 void Editor::reset() {
   m_cursor = std::make_shared<Cursor>();
   m_doc = std::make_shared<Document>("", m_renderSetting);
