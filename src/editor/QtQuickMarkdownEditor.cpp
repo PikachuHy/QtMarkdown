@@ -14,9 +14,9 @@
 namespace md::editor {
 QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPaintedItem(parent) {
   m_editor = std::make_shared<Editor>();
-  m_editor->setLinkClickedCallback([](QString url) {
+  m_editor->setLinkClickedCallback([this](QString url) {
     DEBUG << url;
-    QDesktopServices::openUrl(url);
+    emit linkClicked(url);
   });
   m_editor->setImageClickedCallback([this](QString path) {
     DEBUG << path;
@@ -24,7 +24,7 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
   });
   m_editor->setCopyCodeBtnClickedCallback([this](QString code) {
     DEBUG << code;
-    QGuiApplication::clipboard()->setText(code);
+    emit codeCopied(code);
   });
   m_editor->setCheckBoxClickedCallback([this]() { markContentChanged(); });
   setAcceptHoverEvents(true);
