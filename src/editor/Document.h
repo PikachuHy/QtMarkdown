@@ -42,13 +42,11 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
 
   void upgradeToHeader(const Cursor& cursor, int level);
 
- private:
   parser::Container* node2container(parser::Node* node);
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
   std::pair<Point, int> mapToScreen(const CursorCoord& coord);
   bool isBol(const CursorCoord& coord) const;
 
- private:
   render::BlockList m_blocks;
   sptr<render::RenderSetting> m_setting;
   sptr<CommandStack> m_commandStack;

@@ -4,3 +4,4 @@ CMakeLists.txt.user
 .DS_Store
 .vs
 out
+build

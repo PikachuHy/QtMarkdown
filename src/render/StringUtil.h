@@ -4,11 +4,12 @@
 
 #ifndef QTMARKDOWN_STRINGUTIL_H
 #define QTMARKDOWN_STRINGUTIL_H
+#include "QtMarkdown_global.h"
 #include <vector>
 
 #include "mddef.h"
 namespace md::render {
-class RenderString {
+class QTMARKDOWNSHARED_EXPORT RenderString {
  public:
   enum Type { Chinese, English, Emoji };
   RenderString(RenderString::Type type, SizeType offset, SizeType length)
@@ -17,7 +18,7 @@ class RenderString {
   SizeType offset;
   SizeType length;
 };
-class StringUtil {
+class QTMARKDOWNSHARED_EXPORT StringUtil {
  public:
   static std::vector<RenderString> split(const String& text);
 };

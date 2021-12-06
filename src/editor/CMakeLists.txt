@@ -1,10 +1,15 @@
-add_library(QtMarkdownEditorCore SHARED
+if (BUILD_STATIC)
+    add_library(QtMarkdownEditorCore STATIC)
+else()
+    add_library(QtMarkdownEditorCore SHARED)
+    target_compile_definitions(QtMarkdownEditorCore PRIVATE -DQtMarkdown_LIBRARY)
+endif ()
+target_sources(QtMarkdownEditorCore PRIVATE
         Editor.cpp Editor.h
         Document.cpp Document.h
         Command.cpp Command.h
         CursorCoord.cpp CursorCoord.h
         Cursor.cpp Cursor.h)
-target_compile_definitions(QtMarkdownEditorCore PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownEditorCore PUBLIC QtMarkdownRender)
 add_library(QtQuickMarkdownEditor SHARED
         QtQuickMarkdownEditor.cpp QtQuickMarkdownEditor.h

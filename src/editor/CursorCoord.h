@@ -4,10 +4,12 @@
 
 #ifndef QTMARKDOWN_CURSORCOORD_H
 #define QTMARKDOWN_CURSORCOORD_H
+#include "QtMarkdown_global.h"
 #include "CursorCoord.h"
 #include "mddef.h"
 namespace md::editor {
-struct CursorCoord {
+class QTMARKDOWNSHARED_EXPORT CursorCoord {
+ public:
   // Block 下标
   SizeType blockNo = 0;
   // 逻辑行 下标
@@ -21,7 +23,7 @@ struct CursorCoord {
   bool operator==(const CursorCoord& rhs) const;
   bool operator!=(const CursorCoord& rhs) const;
 };
-QDebug operator<<(QDebug debug, const CursorCoord& c);
+QTMARKDOWNSHARED_EXPORT QDebug operator<<(QDebug debug, const CursorCoord& c);
 }  // namespace md::editor
 
 #endif  // QTMARKDOWN_CURSORCOORD_H

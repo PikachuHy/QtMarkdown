@@ -4,7 +4,12 @@ if (BUILD_WITH_BOOST)
     find_package(Boost REQUIRED)
     add_definitions(-DBUILD_WITH_BOOST)
 endif ()
-add_library(QtMarkdownParser SHARED
+if (BUILD_STATIC)
+    add_library(QtMarkdownParser STATIC)
+else()
+    add_library(QtMarkdownParser SHARED)
+endif ()
+target_sources(QtMarkdownParser PRIVATE
         ../debug.cpp ../debug.h
         Document.cpp Document.h
         Token.cpp Token.h

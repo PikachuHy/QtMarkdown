@@ -4,13 +4,14 @@
 
 #ifndef QTMARKDOWN_COMMAND_H
 #define QTMARKDOWN_COMMAND_H
+#include "QtMarkdown_global.h"
 #include <vector>
 
 #include "CursorCoord.h"
 #include "Document.h"
 #include "mddef.h"
 namespace md::editor {
-class Command {
+class QTMARKDOWNSHARED_EXPORT Command {
  public:
   enum Type { insert_text, remove_text, insert_return };
   Command(Document* doc) : m_doc(doc) {}
@@ -22,7 +23,7 @@ class Command {
  protected:
   Document* m_doc;
 };
-class InsertTextCommand : public Command {
+class QTMARKDOWNSHARED_EXPORT InsertTextCommand : public Command {
  public:
   InsertTextCommand(Document* doc, CursorCoord coord, String text);
   [[nodiscard]] Type type() const override { return insert_text; }
@@ -40,7 +41,7 @@ class InsertTextCommand : public Command {
   String m_targetSkipChar;
   CursorCoord m_finishedCoord;
 };
-class RemoveTextCommand : public Command {
+class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
  public:
   RemoveTextCommand(Document* doc, CursorCoord coord) : Command(doc), m_coord(coord) {}
   [[nodiscard]] Type type() const override { return remove_text; }
@@ -51,7 +52,7 @@ class RemoveTextCommand : public Command {
  private:
   CursorCoord m_coord;
 };
-class InsertReturnCommand : public Command {
+class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
  public:
   InsertReturnCommand(Document* doc, CursorCoord coord) : Command(doc), m_coord(coord) {}
   [[nodiscard]] Type type() const override { return insert_return; }
@@ -63,7 +64,7 @@ class InsertReturnCommand : public Command {
   CursorCoord m_coord;
   CursorCoord m_finishedCoord;
 };
-class CommandStack {
+class QTMARKDOWNSHARED_EXPORT CommandStack {
  public:
   void push(Command* command);
   void undo(Cursor& cursor);

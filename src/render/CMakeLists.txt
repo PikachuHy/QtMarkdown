@@ -1,4 +1,9 @@
-add_library(QtMarkdownRender SHARED
+if (BUILD_STATIC)
+    add_library(QtMarkdownRender STATIC)
+else()
+    add_library(QtMarkdownRender SHARED)
+endif ()
+target_sources(QtMarkdownRender PRIVATE
         Element.cpp Element.h
         Cell.cpp Cell.h
         Render.cpp Render.h
