@@ -61,7 +61,7 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
     m_editor->loadFile(tmpPath);
     markContentChanged();
   } else {
-    m_editor->loadFile(source);
+    m_editor->loadFile(url2path(source));
   }
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
