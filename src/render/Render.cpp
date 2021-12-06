@@ -52,9 +52,13 @@ class TexRenderGuard {
  private:
   static void copy(const QString &src, const QString &dst) {
     auto dir = QFileInfo(dst).absoluteDir();
+    DEBUG << "dst:" << dir;
     if (!dir.exists()) {
       DEBUG << "mkdir" << dir.absolutePath();
-      dir.mkdir(dir.absolutePath());
+      bool ok = dir.mkpath(dir.absolutePath());
+      if (!ok) {
+        DEBUG << "mkdir fail";
+      }
     }
     if (QFile::exists(dst)) {
       // 计算缓存文件的md5
