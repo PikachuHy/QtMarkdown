@@ -118,7 +118,6 @@ Window {
             focus: true
             width: parent.width
             implicitHeight: parent.height
-            source: ":/test.md"
             onDocSave: (isNew) => {
                            if (isNew) {
                                saveFileDialog.open()
@@ -156,6 +155,9 @@ Window {
             Component.onCompleted: {
                 root.title = md.title
             }
+        }
+        Component.onCompleted: {
+            md.source = ":/test.md"
         }
     }
     Column {

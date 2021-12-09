@@ -189,6 +189,16 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
   }
   void visit(Image *node) override {
     auto path = node->src()->toString(&m_doc);
+#if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
+    if (!path.startsWith("/")) {
+      for (const auto& resPath: m_doc.m_setting->resPathList) {
+        QString newImgPath = resPath + "/" + path;
+        if (QFile(newImgPath).exists()) {
+          path = newImgPath;
+        }
+      }
+    }
+#endif
     m_editor.m_imageClickedCallback(path);
     m_handled = true;
   }
@@ -220,6 +230,9 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
 Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
+#ifdef Q_OS_ANDROID
+  m_renderSetting->docMargin.setLeft(0);
+#endif
   m_linkClickedCallback = [](String s) { DEBUG << "click link" << s; };
   m_imageClickedCallback = [](String s) { DEBUG << "click image" << s; };
   m_copyCodeBtnClickedCallback = [](String s) { DEBUG << "click copy code btn" << s; };
@@ -272,6 +285,7 @@ bool Editor::saveToFile(const String &path) {
 }
 void Editor::drawSelection(Point offset, Painter &painter) {
   if (!m_hasSelection) return;
+  DEBUG << "selection" << m_selectionInstructions.size();
   for (auto instruction : m_selectionInstructions) {
     instruction->run(painter, offset, m_doc.get());
   }
@@ -295,6 +309,8 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
     }
     offset.setY(offset.y() + h);
   }
+#ifdef Q_OS_ANDROID
+#else
   auto pos = m_cursor->pos();
   auto coord = m_cursor->coord();
   // 高亮当前Block
@@ -322,6 +338,7 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
   } else if (node->type() == NodeType::checkbox) {
     painter.drawText(typePos, "cb");
   }
+#endif
 }
 int Editor::width() const { return m_renderSetting->maxWidth; }
 int Editor::height() const {
@@ -494,11 +511,16 @@ Rect Editor::cursorRect() const {
   return Rect(pos, Size(5, h));
 }
 void Editor::mousePressEvent(Point offset, MouseEvent *event) {
+#ifdef Q_OS_ANDROID
+  // 安卓有press，但是没有release
+#else
   m_mousePressing = true;
+#endif
+
+  DEBUG << "shift" << m_holdShift << m_hasSelection;
   if (m_holdShift) {
     if (!m_hasSelection) {
       m_selectionRange = std::make_shared<SelectionRange>();
-      auto coord = m_cursor->coord();
       m_selectionRange->anchor = *m_cursor;
       m_hasSelection = true;
     }
@@ -579,7 +601,14 @@ String Editor::cursorCoord() const {
     s += QString("->");
     s += QString("(%1,%2,%3)").arg(end.coord().blockNo).arg(end.coord().lineNo).arg(end.coord().offset);
   }
-  return s;
+            return s;
+  }
+
+void Editor::setWidth(int w) {
+        m_renderSetting->maxWidth = w;
+}
+void Editor::setResPathList(StringList pathList) {
+    m_renderSetting->resPathList = pathList;
 }
 CursorShape Editor::cursorShape(Point offset, Point pos) {
   auto oldOffset = offset;
@@ -857,7 +886,9 @@ void Editor::mouseMoveEvent(Point offset, MouseEvent *event) {
   m_doc->updateCursor(m_selectionRange->caret, coord);
   generateSelectionInstruction();
 }
-void Editor::mouseReleaseEvent(Point offset, MouseEvent *event) { m_mousePressing = false; }
+void Editor::mouseReleaseEvent(Point offset, MouseEvent *event) {
+    m_mousePressing = false;
+}
 void Editor::removeSelection() {
   if (!m_hasSelection) return;
   auto selectionRange = m_selectionRange->range();

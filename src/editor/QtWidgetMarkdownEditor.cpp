@@ -121,7 +121,11 @@ void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
-  QPoint pos(event->position().x(), event->position().y());
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QPoint pos = event->pos();
+#else
+    QPoint pos(event->position().x(), event->position().y());
+#endif
   CursorShape shape = m_editor->cursorShape(m_offset, pos);
   setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
   m_editor->mouseMoveEvent(m_offset, event);

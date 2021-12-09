@@ -13,7 +13,6 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   Q_OBJECT
   Q_PROPERTY(QString text READ text WRITE setText)
   Q_PROPERTY(QString source READ source WRITE setSource)
-  Q_PROPERTY(QString path READ path WRITE setPath)
   Q_PROPERTY(QString title READ title)
   QML_ELEMENT
   QML_NAMED_ELEMENT(QtQuickMarkdownEditor)
@@ -24,8 +23,7 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void setText(const QString &text);
   [[nodiscard]] QString source() const { return m_source; };
   void setSource(const QString &source);
-  [[nodiscard]] QString path() const { return m_path; };
-  void setPath(const QString &path);
+  Q_INVOKABLE void addPath(const QString &path);
   QString title();
   Q_INVOKABLE void newDoc();
   Q_INVOKABLE void saveToFile(const QString &path);
@@ -39,8 +37,6 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
 
  public:
   [[nodiscard]] QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
-
- protected:
   void inputMethodEvent(QInputMethodEvent *event) override;
 
  private:
@@ -58,10 +54,11 @@ class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   void imageClicked(QString path);
   void linkClicked(QString url);
   void codeCopied(QString code);
+  void showInputMethod();
  private:
   QString m_text;
   QString m_source;
-  QString m_path;
+  QStringList m_resPathList;
   std::shared_ptr<md::editor::Editor> m_editor;
   QTimer m_cursorTimer;
   QTimer m_tmpSaveTimer;

@@ -308,7 +308,18 @@ class RenderPrivate
     Q_ASSERT(node != nullptr);
     beginVisualLine();
     QString imgPath = node->src()->toString(m_doc);
+#if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
+    if (!imgPath.startsWith("/")) {
+        for (const auto& resPath: m_setting->resPathList) {
+            QString newImgPath = resPath + "/" + imgPath;
+            if (QFile(newImgPath).exists()) {
+                imgPath = newImgPath;
+            }
+        }
+    }
+#endif
     QFile file(imgPath);
+
     if (!file.exists()) {
       qWarning() << "image not exist." << imgPath;
       return;
@@ -462,12 +473,15 @@ class RenderPrivate
   void visit(Lf *node) override {
     Q_ASSERT(node != nullptr);
     save();
+#ifdef Q_OS_ANDROID
+#else
     QString enterStr = QString("↲");
     auto font = curFont();
     font.setPixelSize(12);
     auto size = textSize(enterStr);
     auto cell = new StaticTextCell(enterStr, Point(m_curX, m_curY), size, Qt::blue, font);
     m_block.appendInstruction(new StaticTextInstruction(cell));
+#endif
     endLogicalLine();
     beginLogicalLine();
     restore();

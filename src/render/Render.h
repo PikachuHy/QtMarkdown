@@ -15,8 +15,14 @@ struct RenderSetting {
   int lineSpacing = 10;
   int maxWidth = 800;
   int latexFontSize = 20;
+#ifdef Q_OS_ANDROID
+  String zhTextFont = "Noto Sans CJK SC";
+//  String zhTextFont = "MI Lan Pro VF";
+#else
   String zhTextFont = "苹方-简";
+#endif
   String enTextFont = "Times New Roman";
+  StringList resPathList;
   std::array<int, 6> headerFontSize = {36, 28, 24, 20, 16, 14};
   QMargins docMargin = QMargins(100, 20, 20, 20);
   QMargins codeMargin = QMargins(10, 20, 20, 10);

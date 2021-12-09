@@ -71,7 +71,8 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void setImageClickedCallback(std::function<void(String)> cb) { m_imageClickedCallback = std::move(cb); }
   void setCopyCodeBtnClickedCallback(std::function<void(String)> cb) { m_copyCodeBtnClickedCallback = std::move(cb); }
   void setCheckBoxClickedCallback(std::function<void()> cb) { m_checkBoxClickedCallback = std::move(cb); }
-
+  void setWidth(int w);
+  void setResPathList(StringList pathList);
  private:
   void selectUp();
   void selectDown();

@@ -40,12 +40,17 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
+#ifdef Q_OS_ANDROID
+  m_editor->drawDoc(QPoint(0, 0), *painter);
+  setImplicitHeight(m_editor->height());
+#else
   m_editor->drawSelection(QPoint(0, 0), *painter);
   m_editor->drawDoc(QPoint(0, 0), *painter);
   setImplicitHeight(m_editor->height());
   if (hasActiveFocus() && m_showCursor) {
     m_editor->drawCursor(QPoint(0, 0), *painter);
   }
+#endif
   emit cursorCoordChanged(m_editor->cursorCoord());
   emit implicitHeightChanged();
 }
@@ -57,6 +62,8 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   m_isNewDoc = false;
   auto tmpPath = this->tmpPath();
   DEBUG << tmpPath;
+  m_editor->setWidth(this->width());
+  m_editor->setResPathList(m_resPathList);
   if (QFile(tmpPath).exists()) {
     m_editor->loadFile(tmpPath);
     markContentChanged();
@@ -67,7 +74,9 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   setImplicitHeight(m_editor->height());
   emit implicitHeightChanged();
 }
-void QtQuickMarkdownEditor::setPath(const QString &path) {}
+void QtQuickMarkdownEditor::addPath(const QString &path) {
+    m_resPathList.append(path);
+}
 void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   int key = event->key();
   // 移动光标时避免闪烁
@@ -97,7 +106,11 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   setImplicitHeight(m_editor->height());
 }
 void QtQuickMarkdownEditor::hoverMoveEvent(QHoverEvent *event) {
-  QPoint pos(event->position().x(), event->position().y());
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QPoint pos = event->pos();
+#else
+    QPoint pos(event->position().x(), event->position().y());
+#endif
   CursorShape shape = m_editor->cursorShape(QPoint(0, 0), pos);
   setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
 }
@@ -105,6 +118,7 @@ void QtQuickMarkdownEditor::mousePressEvent(QMouseEvent *event) {
   forceActiveFocus();
   m_editor->mousePressEvent(QPoint(0, 0), event);
   this->update();
+  emit showInputMethod();
 }
 void QtQuickMarkdownEditor::keyReleaseEvent(QKeyEvent *event) {
   m_editor->keyReleaseEvent(event);
