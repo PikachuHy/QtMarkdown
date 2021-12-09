@@ -608,31 +608,29 @@ TEST_CASE( "editor", "[editor]" ) {
   auto& cursor = *editor.m_cursor;
   ASSERT_EQ(blocks.size(), 1);
   ASSERT_EQ(doc->m_root->size(), 1);
-  SECTION( "insert header" ) {
-    editor.insertText("#");
-    editor.insertText(" ");
-    editor.insertText("asdfljsaf");
-    ASSERT_EQ(blocks.size(), 1);
-    ASSERT_EQ(doc->m_root->size(), 1);
-    {
-      auto node = doc->m_root->childAt(0);
-      ASSERT_EQ(node->type(), md::parser::NodeType::header);
-    }
+
+  editor.insertText("#");
+  editor.insertText(" ");
+  editor.insertText("asdfljsaf");
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), md::parser::NodeType::header);
   }
-  SECTION( "insert return" ) {
-    doc->insertReturn(cursor);
-    ASSERT_EQ(blocks.size(), 2);
-    ASSERT_EQ(doc->m_root->size(), 2);
-    {
-      auto node = doc->m_root->childAt(0);
-      ASSERT_EQ(node->type(), md::parser::NodeType::header);
-    }
-    {
-      auto node = doc->m_root->childAt(1);
-      ASSERT_EQ(node->type(), md::parser::NodeType::paragraph);
-      auto paragraphNode = (md::parser::Paragraph*)node;
-      ASSERT_EQ(paragraphNode->size(), 0);
-    }
+
+  doc->insertReturn(cursor);
+  ASSERT_EQ(blocks.size(), 2);
+  ASSERT_EQ(doc->m_root->size(), 2);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), md::parser::NodeType::header);
+  }
+  {
+    auto node = doc->m_root->childAt(1);
+    ASSERT_EQ(node->type(), md::parser::NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 0);
   }
 }
 TEST_CASE( "edit code block", "[code][block]" ) {
