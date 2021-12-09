@@ -21,14 +21,14 @@ void Text::insert(SizeType totalOffset, PieceTableItem item) {
       // 判断头和尾
       if (curOffset == totalOffset) {
         // 头
-        m_items.insert(i, item);
+        insertItem(i, item);
       } else if (curOffset + m_items[i].length == totalOffset) {
         // 尾
         // 判断是不是能合并
         if (item.bufferType == m_items[i].bufferType && m_items[i].offset + m_items[i].length == item.offset) {
           m_items[i].length += item.length;
         } else {
-          m_items.insert(i + 1, item);
+          insertItem(i+1, item);
         }
       } else {
         // 中间
@@ -37,8 +37,8 @@ void Text::insert(SizeType totalOffset, PieceTableItem item) {
         auto item2Length = m_items[i].length - oldLength;
         m_items[i].length = oldLength;
         PieceTableItem item2{m_items[i].bufferType, m_items[i].offset + m_items[i].length, item2Length};
-        m_items.insert(i + 1, item);
-        m_items.insert(i + 2, item2);
+        insertItem(i+1, item);
+        insertItem(i+2, item2);
       }
       return;
     }
@@ -54,14 +54,14 @@ void Text::remove(SizeType totalOffset, SizeType length) {
   ASSERT(i >= 0 && i < m_items.size());
   if (leftOffset + length > m_items[i].length) {
     auto leftLength = length - m_items[i].length;
-    m_items.removeAt(i);
+    removeItemAt(i);
     remove(totalOffset, leftLength);
   } else {
     // 然后这里也要判断是头 尾 还是中间
     if (curOffset == totalOffset) {
       // 如果刚好整个item需要删除
       if (curOffset + m_items[i].length == totalOffset + length) {
-        m_items.remove(i);
+        removeItemAt(i);
       } else {
         m_items[i].offset += length;
         m_items[i].length -= length;
@@ -74,7 +74,7 @@ void Text::remove(SizeType totalOffset, SizeType length) {
       auto item2Length = m_items[i].length - oldLength - length;
       m_items[i].length = oldLength;
       PieceTableItem item2{m_items[i].bufferType, m_items[i].offset + m_items[i].length + length, item2Length};
-      m_items.insert(i + 1, item2);
+      insertItem(i + 1, item2);
     }
   }
 }
@@ -101,25 +101,25 @@ std::pair<Text*, Text*> Text::split(SizeType totalOffset) {
   auto leftText = new Text();
   auto rightText = new Text();
   for (int i = 0; i < splitIndex; ++i) {
-    leftText->m_items.append(m_items[i]);
+    leftText->m_items.push_back(m_items[i]);
   }
   // splitIndex所在item要拆成两个，当然，也要考虑首尾的情况
   PieceTableItem& item = m_items[splitIndex];
   if (curOffset == totalOffset) {
-    rightText->m_items.append(item);
+    rightText->m_items.push_back(item);
   } else if (curOffset + item.length == totalOffset) {
-    leftText->m_items.append(item);
+    leftText->m_items.push_back(item);
   } else {
     // 拆
     auto oldLength = totalOffset - curOffset;
     auto item2Length = item.length - oldLength;
     item.length = oldLength;
-    leftText->m_items.append(item);
+    leftText->m_items.push_back(item);
     PieceTableItem item2{item.bufferType, item.offset + item.length, item2Length};
-    rightText->m_items.append(item2);
+    rightText->m_items.push_back(item2);
   }
   for (SizeType i = splitIndex + 1; i < m_items.size(); ++i) {
-    rightText->m_items.append(m_items[i]);
+    rightText->m_items.push_back(m_items[i]);
   }
   return {leftText, rightText};
 }
@@ -132,8 +132,15 @@ bool Text::empty() const {
 }
 void Text::merge(Text& text) {
   for (auto item : text.m_items) {
-    m_items.append(item);
+    m_items.push_back(item);
   }
+}
+void Text::insertItem(SizeType index, PieceTableItem item) {
+  m_items.insert(m_items.begin() + index, item);
+}
+void Text::removeItemAt(SizeType index) {
+    ASSERT(index >= 0 && index < m_items.size());
+    m_items.erase(m_items.begin() + index);
 }
 
 String LatexBlock::toString(DocPtr const& doc) const {

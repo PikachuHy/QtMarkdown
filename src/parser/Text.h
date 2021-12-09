@@ -8,6 +8,7 @@
 #include "PieceTable.h"
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
+  using PieceTableItemList = std::vector<PieceTableItem>;
  public:
   Text(SizeType offset, SizeType length) {
     m_type = NodeType::text;
@@ -29,9 +30,10 @@ class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
  private:
   Text() { m_type = NodeType::text; }
   [[nodiscard]] std::pair<SizeType, SizeType> findItem(SizeType totalOffset, bool includeRight = true) const;
-
+  void insertItem(SizeType index, PieceTableItem item);
+  void removeItemAt(SizeType index);
  private:
-  QList<PieceTableItem> m_items;
+  PieceTableItemList m_items;
 };
 class QTMARKDOWNSHARED_EXPORT LatexBlock : public ContainerVisitable<LatexBlock> {
  public:
