@@ -43,6 +43,14 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   void upgradeToHeader(const Cursor& cursor, int level);
 
   parser::Container* node2container(parser::Node* node);
+  // FIXME: 在win上使用编译的dll错误
+  /*
+   Command.cpp.obj : error LNK2019: 无法解析的外部符号
+   "public: void __cdecl md::editor::Document::updateCursor(class md::editor::Cursor &,class md::editor::CursorCoord
+   const &,bool)" (?updateCursor@Document@editor@md@@QEAAXAEAVCursor@23@AEBVCursorCoord@23@_N@Z)， 函数 "public: virtual
+   void __cdecl md::editor::InsertTextCommand::execute(class md::editor::Cursor &)"
+   (?execute@InsertTextCommand@editor@md@@UEAAXAEAVCursor@23@@Z) 中引用了该符号
+   */
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
   std::pair<Point, int> mapToScreen(const CursorCoord& coord);
   bool isBol(const CursorCoord& coord) const;

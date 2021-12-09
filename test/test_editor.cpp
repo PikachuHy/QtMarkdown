@@ -937,6 +937,9 @@ int main(int argc, char** argv) {
   // 必须加这一句
   // 不然调用字体(QFontMetric)时会崩溃
   QGuiApplication app(argc, argv);
-  int result = Catch::Session().run( argc, argv );
+#ifdef BUILD_STATIC
+  Q_INIT_RESOURCE(md);
+#endif
+  int result = Catch::Session().run(argc, argv);
   return result;
 }

@@ -25,7 +25,7 @@ class QTMARKDOWNSHARED_EXPORT Cursor {
   Point m_pos{};
   int m_h = 20;
 };
-class SelectionRange {
+class QTMARKDOWNSHARED_EXPORT SelectionRange {
  public:
   Cursor caret;
   Cursor anchor;

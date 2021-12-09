@@ -16,6 +16,9 @@ int main(int argc, char *argv[]) {
   QGuiApplication::setOrganizationName("PikachuHy");
   QGuiApplication::setOrganizationDomain("pikachu.net.cn");
   QGuiApplication::setApplicationName("QtMarkdownEditor");
+#ifdef BUILD_STATIC
+  Q_INIT_RESOURCE(md);
+#endif
 #ifdef Q_OS_WIN
   QQuickStyle::setStyle("Windows");
 #else

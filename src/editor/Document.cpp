@@ -27,7 +27,6 @@ void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updat
   cursor.setPos(pos);
   cursor.setHeight(h);
 }
-
 std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   int y = m_setting->docMargin.top();
   for (int blockNo = 0; blockNo < coord.blockNo; ++blockNo) {

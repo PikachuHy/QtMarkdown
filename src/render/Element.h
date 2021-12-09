@@ -4,12 +4,14 @@
 
 #ifndef QTMARKDOWN_ELEMENT_H
 #define QTMARKDOWN_ELEMENT_H
+#include "QtMarkdown_global.h"
 #include "mddef.h"
 namespace md::parser {
 class Node;
 }
 namespace md::render {
-struct Element {
+class QTMARKDOWNSHARED_EXPORT Element {
+ public:
   md::parser::Node* node;
   Point pos;
   Size size;

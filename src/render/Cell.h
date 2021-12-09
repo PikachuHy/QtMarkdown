@@ -4,13 +4,14 @@
 
 #ifndef QTMARKDOWN_CELL_H
 #define QTMARKDOWN_CELL_H
+#include "QtMarkdown_global.h"
 #include <utility>
 
 #include "mddef.h"
 #include "parser/Text.h"
 namespace md::render {
 
-class Cell {
+class QTMARKDOWNSHARED_EXPORT Cell {
  public:
   Cell(Point pos, Size size) : m_pos(pos), m_size(size) {}
   // 逻辑长度
@@ -30,7 +31,7 @@ class Cell {
   friend class VisualLine;
 };
 class TextInstruction;
-class TextCell : public Cell {
+class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
  public:
   TextCell(parser::Text* text, SizeType offset, SizeType length, Point pos, Size size, const Color& fg,
            const Font& font)
@@ -48,7 +49,7 @@ class TextCell : public Cell {
   friend class LogicalLine;
 };
 class StaticTextInstruction;
-class StaticTextCell : public Cell {
+class QTMARKDOWNSHARED_EXPORT StaticTextCell : public Cell {
  public:
   StaticTextCell(String text, Point pos, const Size& size, const Color& fg, const Font& font)
       : Cell(pos, size), m_text(std::move(text)), m_fg(fg), m_font(font) {}
@@ -62,7 +63,7 @@ class StaticTextCell : public Cell {
   friend class StaticTextInstruction;
 };
 class ImageInstruction;
-class ImageCell : public Cell {
+class QTMARKDOWNSHARED_EXPORT ImageCell : public Cell {
  public:
   ImageCell(parser::Image* node, String path, Point pos, Size size)
       : Cell(pos, size), m_node(node), m_path(std::move(path)) {}
