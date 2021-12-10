@@ -389,24 +389,34 @@ void Editor::keyPressEvent(KeyEvent *event) {
   if (m_holdCtrl) {
     if (key == Qt::Key_1) {
       m_doc->upgradeToHeader(*m_cursor, 1);
+      m_doc->updateCursor(*m_cursor, m_cursor->coord());
+      return;
     }
     if (key == Qt::Key_2) {
       m_doc->upgradeToHeader(*m_cursor, 2);
+      m_doc->updateCursor(*m_cursor, m_cursor->coord());
+      return;
     }
     if (key == Qt::Key_3) {
       m_doc->upgradeToHeader(*m_cursor, 3);
+      m_doc->updateCursor(*m_cursor, m_cursor->coord());
+      return;
     }
     if (key == Qt::Key_4) {
       m_doc->upgradeToHeader(*m_cursor, 4);
+      m_doc->updateCursor(*m_cursor, m_cursor->coord());
+      return;
     }
     if (key == Qt::Key_5) {
       m_doc->upgradeToHeader(*m_cursor, 5);
+      m_doc->updateCursor(*m_cursor, m_cursor->coord());
+      return;
     }
     if (key == Qt::Key_6) {
       m_doc->upgradeToHeader(*m_cursor, 6);
+      m_doc->updateCursor(*m_cursor, m_cursor->coord());
+      return;
     }
-    m_doc->updateCursor(*m_cursor, m_cursor->coord());
-    return;
   }
   if (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down) {
     if (m_hasSelection && !m_holdShift) {
@@ -424,9 +434,8 @@ void Editor::keyPressEvent(KeyEvent *event) {
         }
       } else {
         if (m_holdCtrl) {
-          auto [coord, x] = m_doc->moveCursorToEol(m_cursor->coord());
-          m_cursor->setX(x);
-          m_doc->updateCursor(*m_cursor, coord, false);
+          auto coord = m_doc->moveCursorToBol(m_cursor->coord());
+          m_doc->updateCursor(*m_cursor, coord, true);
         } else {
           auto coord = m_doc->moveCursorToLeft(m_cursor->coord());
           m_doc->updateCursor(*m_cursor, coord);
