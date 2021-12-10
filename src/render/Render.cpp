@@ -137,21 +137,60 @@ class RenderPrivate
     for (auto s : stringList) {
       SizeType startIndex = s.offset;
       while (!currentLineCanDrawText(str.mid(startIndex, s.length))) {
-        auto count = countOfThisLineCanDraw(str.mid(startIndex, s.length));
-        if (count == 0) {
-          moveToNewLine();
-          continue;
-        }
-        if (count + 1 < s.length) {
-          auto ts = str.mid(startIndex + count, 1);
-          // 如果是中文的逗号或者句号结尾，就少画一个中文字，把符号画到下一行。
-          if (ts == "，" || ts == "。") {
-            count--;
+        // 如果是英文的话，先按空格分割，然后如果还画不下，去下一行
+        // 如果一行都画不下，就暴力分割
+        if (s.type == RenderString::English) {
+          String enStr = str.mid(s.offset, s.length);
+          auto enStrList = enStr.split(" ");
+          for (int i = 0; i < enStrList.size(); ++i) {
+            auto enSubStr = enStrList[i];
+            if (currentLineCanDrawText(enSubStr)) {
+              auto count = enSubStr.size() ;
+              if (i < enStrList.size() - 1) {
+                // 加一个空格
+                count ++;
+              }
+              drawText(node, str, s, startIndex, count);
+              startIndex += count;
+              continue;
+            }
+
+            if (textSize(enSubStr).width() + m_setting->docMargin.left() < m_setting->contentMaxWidth()) {
+              moveToNewLine();
+              // 抵消后面都i++
+              i--;
+              continue;
+            }
+            auto count = countOfThisLineCanDraw(str.mid(startIndex, s.length));
+            DEBUG << count;
+            if (count == 0) {
+              moveToNewLine();
+              continue;
+            }
+            drawText(node, str, s, startIndex, count);
+            startIndex += count;
+            // 画不下，就强制加一个连字符
+            auto cell = new StaticTextCell("-", Point(m_curX, m_curY), textSize("-"), Qt::black, curFont());
+            m_block.appendInstruction(new StaticTextInstruction(cell));
+            moveToNewLine();
           }
+        } else {
+          auto count = countOfThisLineCanDraw(str.mid(startIndex, s.length));
+          if (count == 0) {
+            moveToNewLine();
+            continue;
+          }
+          if (count + 1 < s.length) {
+            auto ts = str.mid(startIndex + count, 1);
+            // 如果是中文的逗号或者句号结尾，就少画一个中文字，把符号画到下一行。
+            if (ts == "，" || ts == "。") {
+              count--;
+            }
+          }
+          drawText(node, str, s, startIndex, count);
+          startIndex += count;
+          moveToNewLine();
         }
-        drawText(node, str, s, startIndex, count);
-        startIndex += count;
-        moveToNewLine();
       }
       auto lastLength = s.length + s.offset - startIndex;
       if (lastLength > 0) {
