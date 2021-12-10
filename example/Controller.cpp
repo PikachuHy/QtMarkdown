@@ -24,7 +24,7 @@ QList<QObject*> Controller::recentOpenFiles() const {
     if (path.isEmpty()) continue;
     list.emplace_back(new RecentFile(path, title));
   }
-  return list;
+  return QList(list.rbegin(), list.rend());
 }
 void Controller::addRecentOpenFile(QString path, QString title) {
   QStringList files = Settings::instance()->recentOpenFiles;
