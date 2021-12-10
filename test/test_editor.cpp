@@ -931,6 +931,58 @@ ab
     }
   }
 }
+
+TEST_CASE( "insert return", "[p]") {
+  Editor editor;
+  editor.loadText(R"(
+a
+b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  {
+    auto coord = doc->moveCursorToEndOfDocument();
+    doc->updateCursor(cursor, coord);
+  }
+  {
+    auto coord = cursor.coord();
+    REQUIRE(coord.blockNo == 0);
+    REQUIRE(coord.lineNo == 1);
+    REQUIRE(coord.offset == 1);
+  }
+  doc->insertReturn(cursor);
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 3);
+    {
+      auto child = paragraphNode->childAt(0);
+      ASSERT_EQ(child->type(), NodeType::text);
+      auto textNode = (md::parser::Text*)child;
+      auto s = textNode->toString(doc.get());
+      ASSERT_EQ(s, QString("a"));
+    }
+    {
+      auto child = paragraphNode->childAt(1);
+      ASSERT_EQ(child->type(), NodeType::lf);
+    }
+    {
+      auto child = paragraphNode->childAt(2);
+      ASSERT_EQ(child->type(), NodeType::text);
+      auto textNode = (md::parser::Text*)child;
+      auto s = textNode->toString(doc.get());
+      ASSERT_EQ(s, QString("b"));
+    }
+  }
+  {
+    auto node = doc->m_root->childAt(1);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto paragraphNode = (md::parser::Paragraph*)node;
+    ASSERT_EQ(paragraphNode->size(), 0);
+  }
+}
 int main(int argc, char** argv) {
   // 必须加这一句
   // 不然调用字体(QFontMetric)时会崩溃

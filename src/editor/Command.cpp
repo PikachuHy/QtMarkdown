@@ -189,6 +189,7 @@ class InsertReturnVisitor
     m_doc->replaceBlock(coord.blockNo, oldBlock);
     m_doc->insertBlock(coord.blockNo + 1, newBlock);
     coord.blockNo++;
+    coord.lineNo = 0;
     coord.offset = 0;
     updateCursor(cursor, coord);
     delete originalBlock;
