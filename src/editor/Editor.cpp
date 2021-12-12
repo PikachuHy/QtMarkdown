@@ -33,6 +33,7 @@ class SimpleMarkdownVisitor
       it->accept(this);
     }
     m_md += "\n";
+    m_md += "\n";
   }
   void visit(Text *node) override { m_md += node->toString(m_doc); }
   void visit(ItalicText *node) override {
@@ -92,6 +93,7 @@ class SimpleMarkdownVisitor
     }
     m_md += "```";
     m_md += "\n";
+    m_md += "\n";
   }
   void visit(InlineCode *node) override {
     m_md += "`";
@@ -105,6 +107,7 @@ class SimpleMarkdownVisitor
     for (auto it : node->children()) {
       it->accept(this);
     }
+    m_md += "\n";
     m_md += "\n";
   }
   void visit(CheckboxList *node) override {
