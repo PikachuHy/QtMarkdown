@@ -62,7 +62,10 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   m_isNewDoc = false;
   auto tmpPath = this->tmpPath();
   DEBUG << tmpPath;
-  m_editor->setWidth(this->width());
+  int w = this->width();
+  if (w != 0) {
+    m_editor->setWidth(this->width());
+  }
   m_editor->setResPathList(m_resPathList);
   if (QFile(tmpPath).exists()) {
     m_editor->loadFile(tmpPath);
