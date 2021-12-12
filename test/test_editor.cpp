@@ -519,6 +519,46 @@ TEST_CASE("edit unordered list", "[ul]") {
     }
   }
 }
+TEST_CASE("edit ordered list", "[ol]") {
+  SECTION("empty ol insert text") {
+    Editor editor;
+    editor.loadText("1. ");
+    auto doc = editor.document();
+    auto& blocks = doc->m_blocks;
+    auto& cursor = *editor.m_cursor;
+
+    ASSERT_EQ(blocks.size(), 1);
+    ASSERT_EQ(doc->m_root->size(), 1);
+    {
+      auto node = doc->m_root->childAt(0);
+      ASSERT_EQ(node->type(), NodeType::ol);
+      auto olNode = (md::parser::OrderedList*)node;
+      ASSERT_EQ(olNode->size(), 1);
+      auto child = olNode->childAt(0);
+      ASSERT_EQ(child->type(), NodeType::ol_item);
+      auto olItem = (md::parser::OrderedListItem*)child;
+      ASSERT_EQ(olItem->size(), 0);
+    }
+    doc->insertText(cursor, "a");
+    ASSERT_EQ(blocks.size(), 1);
+    ASSERT_EQ(doc->m_root->size(), 1);
+    {
+      auto node = doc->m_root->childAt(0);
+      ASSERT_EQ(node->type(), NodeType::ol);
+      auto olNode = (md::parser::OrderedList*)node;
+      ASSERT_EQ(olNode->size(), 1);
+      auto child = olNode->childAt(0);
+      ASSERT_EQ(child->type(), NodeType::ol_item);
+      auto olItem = (md::parser::OrderedListItem*)child;
+      ASSERT_EQ(olItem->size(), 1);
+      auto olChild = olItem->childAt(0);
+      ASSERT_EQ(olChild->type(), NodeType::text);
+      auto textNode = (md::parser::Text*)olChild;
+      auto s = textNode->toString(doc.get());
+      ASSERT_EQ(s, QString("a"));
+    }
+  }
+}
 TEST_CASE("edit check box", "[cb]") {
   SECTION("degrade to paragraph") {
     Editor editor;

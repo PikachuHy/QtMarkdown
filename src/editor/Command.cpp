@@ -600,6 +600,7 @@ class InsertTextVisitor
 
     if (line.empty()) {
       insertTextInEmptyList(node);
+      return;
     }
     auto [textNode, leftOffset] = line.textAt(coord.offset);
     insertTextInNode(textNode, leftOffset);
