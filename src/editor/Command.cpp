@@ -79,6 +79,15 @@ class InsertReturnVisitor
     beginInsertReturn();
     auto oldBlock = new Header(node->level());
     Container* newBlock;
+    if (!this->hasTextNode) {
+      newBlock = new Header(node->level());
+      m_doc->insertBlock(coord.blockNo + 1, newBlock);
+      coord.blockNo++;
+      coord.lineNo = 0;
+      coord.offset = 0;
+      updateCursor(cursor, coord);
+      return;
+    }
     if (rightTextNode->toString(m_doc).isEmpty()) {
       newBlock = new Paragraph();
     } else {
@@ -146,12 +155,18 @@ class InsertReturnVisitor
     auto block = m_doc->m_blocks[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
-    auto textAndOffset = line.textAt(coord.offset);
-    this->textNode = textAndOffset.first;
-    this->leftOffset = textAndOffset.second;
-    auto leftRightText = textNode->split(leftOffset);
-    this->leftTextNode = leftRightText.first;
-    this->rightTextNode = leftRightText.second;
+    if (line.hasTextAt(coord.offset)) {
+      this->hasTextNode = true;
+      auto textAndOffset = line.textAt(coord.offset);
+      this->textNode = textAndOffset.first;
+      this->leftOffset = textAndOffset.second;
+      auto leftRightText = textNode->split(leftOffset);
+      this->leftTextNode = leftRightText.first;
+      this->rightTextNode = leftRightText.second;
+    } else {
+      this->hasTextNode = false;
+      this->textNode = nullptr;
+    }
   }
   void splitNode(Container* originalBlock, Container* oldBlock, Container* newBlock) {
     ASSERT(originalBlock != nullptr);
@@ -261,6 +276,7 @@ class InsertReturnVisitor
   }
 
  private:
+  bool hasTextNode;
   Text* textNode;
   int leftOffset;
   Text* leftTextNode;

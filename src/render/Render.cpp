@@ -814,6 +814,21 @@ SizeType LogicalLine::length() const {
   }
   return length;
 }
+
+bool LogicalLine::hasTextAt(SizeType offset) const {
+  auto totalOffset = 0;
+  for (auto cell : m_cells) {
+    if (totalOffset <= offset && offset <= totalOffset + cell->length()) {
+      auto leftOffset = offset - totalOffset;
+      // 暂定所有的cell都是text cell
+      auto textCell = (TextCell *)cell;
+      ASSERT(textCell != nullptr);
+      return true;
+    }
+    totalOffset += cell->length();
+  }
+  return false;
+}
 std::pair<parser::Text *, int> LogicalLine::textAt(SizeType offset) const {
   auto totalOffset = 0;
   for (auto cell : m_cells) {

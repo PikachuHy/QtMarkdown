@@ -1,8 +1,9 @@
 //
 // Created by PikachuHy on 2021/11/13.
 //
-#include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_session.hpp>
+#include <catch2/catch_test_macros.hpp>
+
 #include "common.h"
 #define private public
 #define protected public
@@ -20,8 +21,8 @@ using namespace md::editor;
 using md::parser::NodeType;
 // 让GTest的QString输出更加友好
 void PrintTo(const QString& s, std::ostream* os) { *os << s.toStdString(); }
-TEST_CASE( "edit paragraph", "[p]" ) {
-  SECTION( "empty paragraph insert text" ) {
+TEST_CASE("edit paragraph", "[p]") {
+  SECTION("empty paragraph insert text") {
     Editor editor;
     editor.loadText("");
     editor.insertText("a");
@@ -40,7 +41,7 @@ TEST_CASE( "edit paragraph", "[p]" ) {
     auto s = textNode->toString(doc.get());
     ASSERT_EQ(s, "a");
   }
-  SECTION( "empty paragraph insert return" ) {
+  SECTION("empty paragraph insert return") {
     Editor editor;
     editor.loadText("");
     auto doc = editor.document();
@@ -63,7 +64,7 @@ TEST_CASE( "edit paragraph", "[p]" ) {
       ASSERT_EQ(paragraphNode->size(), 0);
     }
   }
-  SECTION( "empty paragraph insert text and remove text" ) {
+  SECTION("empty paragraph insert text and remove text") {
     Editor editor;
     editor.loadText("");
     auto doc = editor.document();
@@ -100,7 +101,7 @@ TEST_CASE( "edit paragraph", "[p]" ) {
       ASSERT_EQ(s, QString("ac"));
     }
   }
-  SECTION( "empty paragraph insert text and remove text" ) {
+  SECTION("empty paragraph insert text and remove text") {
     Editor editor;
     editor.loadText(R"(
 a
@@ -133,7 +134,7 @@ b
       ASSERT_EQ(s, QString("ab"));
     }
   }
-  SECTION( "remove emoji" ) {
+  SECTION("remove emoji") {
     Editor editor;
     editor.loadText(R"(
 a😊b
@@ -167,7 +168,7 @@ a😊b
       ASSERT_EQ(line.length(), 0);
     }
   }
-  SECTION( "remove emoji 2" ) {
+  SECTION("remove emoji 2") {
     Editor editor;
     QString s;
     editor.loadText(R"(
@@ -188,7 +189,7 @@ a [666](www.baidu.com) b 😊
       ASSERT_EQ(line.length(), 8);
     }
   }
-  SECTION( "remove text" ) {
+  SECTION("remove text") {
     Editor editor;
     QString s;
     editor.loadText(R"(
@@ -207,7 +208,7 @@ ab
     doc->removeText(cursor);
     ASSERT_EQ(blocks.size(), 2);
   }
-  SECTION( "remove empty link" ) {
+  SECTION("remove empty link") {
     Editor editor;
     QString s;
     editor.loadText(R"(
@@ -226,7 +227,7 @@ a[b](c)d
     doc->removeText(cursor);
     ASSERT_EQ(blocks.size(), 1);
   }
-  SECTION( "upgrade to header" ) {
+  SECTION("upgrade to header") {
     Editor editor;
     editor.loadText("#");
     auto doc = editor.document();
@@ -244,7 +245,7 @@ a[b](c)d
     auto headerNode = (md::parser::Header*)node;
     ASSERT_EQ(headerNode->size(), 0);
   }
-  SECTION( "upgrade to header and degrade to paragraph and remove text" ) {
+  SECTION("upgrade to header and degrade to paragraph and remove text") {
     Editor editor;
     QString s;
     editor.loadText(R"(
@@ -312,7 +313,7 @@ a
       ASSERT_EQ(s, QString("a"));
     }
   }
-  SECTION( "upgrade to ul" ) {
+  SECTION("upgrade to ul") {
     Editor editor;
     editor.loadText("-");
     auto doc = editor.document();
@@ -334,7 +335,7 @@ a
     auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
     ASSERT_EQ(ulItemNode->size(), 0);
   }
-  SECTION( "upgrade to code block" ) {
+  SECTION("upgrade to code block") {
     Editor editor;
     editor.loadText("```");
     auto doc = editor.document();
@@ -355,7 +356,7 @@ a
       ASSERT_EQ(codeBlockNode->size(), 0);
     }
   }
-  SECTION( "upgrade to code block with other text" ) {
+  SECTION("upgrade to code block with other text") {
     Editor editor;
     editor.loadText("```asdfasdf");
     auto doc = editor.document();
@@ -394,8 +395,8 @@ a
     }
   }
 }
-TEST_CASE( "edit unordered list", "[ul]" ) {
-  SECTION( "degrade to paragraph" ) {
+TEST_CASE("edit unordered list", "[ul]") {
+  SECTION("degrade to paragraph") {
     Editor editor;
     editor.loadText("- ");
     auto doc = editor.document();
@@ -413,8 +414,7 @@ TEST_CASE( "edit unordered list", "[ul]" ) {
     auto paragraphNode = (md::parser::Paragraph*)node;
     ASSERT_EQ(paragraphNode->size(), 0);
   }
-  SECTION( "insert space" ) {
-
+  SECTION("insert space") {
     Editor editor;
     editor.loadText("- []");
     auto doc = editor.document();
@@ -445,7 +445,7 @@ TEST_CASE( "edit unordered list", "[ul]" ) {
       ASSERT_EQ(s, QString("[ ]"));
     }
   }
-  SECTION( "upgrade to checkbox" ) {
+  SECTION("upgrade to checkbox") {
     Editor editor;
     editor.loadText("- ");
     auto doc = editor.document();
@@ -468,7 +468,7 @@ TEST_CASE( "edit unordered list", "[ul]" ) {
     auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
     ASSERT_EQ(ulItemNode->size(), 0);
   }
-  SECTION( "insert return" ) {
+  SECTION("insert return") {
     Editor editor;
     editor.loadText(R"(
 - GIF啊
@@ -519,8 +519,8 @@ TEST_CASE( "edit unordered list", "[ul]" ) {
     }
   }
 }
-TEST_CASE( "edit check box", "[cb]" ) {
-  SECTION( "degrade to paragraph" ) {
+TEST_CASE("edit check box", "[cb]") {
+  SECTION("degrade to paragraph") {
     Editor editor;
     editor.loadText("- [ ] ");
     auto doc = editor.document();
@@ -540,8 +540,7 @@ TEST_CASE( "edit check box", "[cb]" ) {
     auto paragraphNode = (md::parser::Paragraph*)node;
     ASSERT_EQ(paragraphNode->size(), 0);
   }
-  SECTION( "degrade to paragraph2" ) {
-
+  SECTION("degrade to paragraph2") {
     Editor editor;
     editor.loadText("- [ ] 666");
     auto doc = editor.document();
@@ -561,8 +560,7 @@ TEST_CASE( "edit check box", "[cb]" ) {
     auto paragraphNode = (md::parser::Paragraph*)node;
     ASSERT_EQ(paragraphNode->size(), 1);
   }
-  SECTION( "empty check box insert return" ) {
-
+  SECTION("empty check box insert return") {
     Editor editor;
     editor.loadText(R"(
 - [ ] a
@@ -600,7 +598,7 @@ TEST_CASE( "edit check box", "[cb]" ) {
     }
   }
 }
-TEST_CASE( "editor", "[editor]" ) {
+TEST_CASE("editor", "[editor]") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
@@ -633,8 +631,8 @@ TEST_CASE( "editor", "[editor]" ) {
     ASSERT_EQ(paragraphNode->size(), 0);
   }
 }
-TEST_CASE( "edit code block", "[code][block]" ) {
-  SECTION( "insert text" ) {
+TEST_CASE("edit code block", "[code][block]") {
+  SECTION("insert text") {
     Editor editor;
     editor.loadText(R"(
 ```
@@ -728,8 +726,7 @@ TEST_CASE( "edit code block", "[code][block]" ) {
     }
   }
 }
-TEST_CASE( "cursor move", "[cursor]" ) {
-
+TEST_CASE("cursor move", "[cursor]") {
   Editor editor;
   editor.loadText(R"(
 a😊b
@@ -761,8 +758,8 @@ a😊b
   ASSERT_EQ(cursor.coord().offset, 0);
 }
 
-TEST_CASE( "preedit", "[preedit]" ) {
-  SECTION( "show preedit" ) {
+TEST_CASE("preedit", "[preedit]") {
+  SECTION("show preedit") {
     Editor editor;
     editor.loadText(R"()");
     editor.setPreedit("a");
@@ -790,8 +787,7 @@ TEST_CASE( "preedit", "[preedit]" ) {
     ASSERT_EQ(paragraphNode->size(), 1);
     ASSERT_EQ(blocks[0].logicalLineAt(0).length(), 3);
   }
-  SECTION( "show preedit 2" ) {
-
+  SECTION("show preedit 2") {
     Editor editor;
     editor.loadText(R"(
 # a
@@ -828,8 +824,8 @@ TEST_CASE( "preedit", "[preedit]" ) {
   }
 }
 
-TEST_CASE( "editor", "[block]") {
-  SECTION( "show preedit" ) {
+TEST_CASE("editor", "[block]") {
+  SECTION("show preedit") {
     Editor editor;
     editor.loadText(R"(
 # a
@@ -858,8 +854,7 @@ c
   }
 }
 
-
-TEST_CASE( "undo", "[undo]") {
+TEST_CASE("undo", "[undo]") {
   SECTION("insert return") {
     Editor editor;
     editor.loadText(R"(
@@ -932,7 +927,7 @@ ab
   }
 }
 
-TEST_CASE( "insert return", "[p]") {
+TEST_CASE("insert return", "[p]") {
   Editor editor;
   editor.loadText(R"(
 a
@@ -982,6 +977,64 @@ b
     auto paragraphNode = (md::parser::Paragraph*)node;
     ASSERT_EQ(paragraphNode->size(), 0);
   }
+}
+
+TEST_CASE("empty header insert return", "[h]") {
+  Editor editor;
+  editor.loadText("# ");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+
+  ASSERT_EQ(blocks.size(), 1);
+  ASSERT_EQ(doc->m_root->size(), 1);
+
+  {
+    auto node = doc->m_root->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::header);
+    auto headerNode = (md::parser::Header*)node;
+    ASSERT_EQ(headerNode->level(), 1);
+    ASSERT_EQ(headerNode->size(), 0);
+  }
+
+  {
+    auto coord = doc->moveCursorToEndOfDocument();
+    doc->updateCursor(cursor, coord);
+  }
+  {
+    auto coord = cursor.coord();
+    REQUIRE(coord.blockNo == 0);
+    REQUIRE(coord.lineNo == 0);
+    REQUIRE(coord.offset == 0);
+  }
+
+  doc->insertReturn(cursor);
+
+  ASSERT_EQ(blocks.size(), 2);
+  ASSERT_EQ(doc->m_root->size(), 2);
+  {
+
+      {auto node = doc->m_root->childAt(0);
+  ASSERT_EQ(node->type(), NodeType::header);
+  auto headerNode = (md::parser::Header*)node;
+  ASSERT_EQ(headerNode->level(), 1);
+  ASSERT_EQ(headerNode->size(), 0);
+}
+
+{
+  auto node = doc->m_root->childAt(1);
+  ASSERT_EQ(node->type(), NodeType::header);
+  auto headerNode = (md::parser::Header*)node;
+  ASSERT_EQ(headerNode->level(), 1);
+  ASSERT_EQ(headerNode->size(), 0);
+}
+}
+{
+  auto coord = cursor.coord();
+  REQUIRE(coord.blockNo == 1);
+  REQUIRE(coord.lineNo == 0);
+  REQUIRE(coord.offset == 0);
+}
 }
 int main(int argc, char** argv) {
   // 必须加这一句
