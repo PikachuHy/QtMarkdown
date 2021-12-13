@@ -15,6 +15,7 @@ struct RenderSetting {
   int lineSpacing = 10;
   int maxWidth = 800;
   int latexFontSize = 20;
+  int paragraphIntent = 2;
 #ifdef Q_OS_ANDROID
   String zhTextFont = "Noto Sans CJK SC";
 //  String zhTextFont = "MI Lan Pro VF";

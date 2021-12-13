@@ -123,6 +123,7 @@ class RenderPrivate
     auto font = curFont();
     setFont(font);
     beginBlock();
+    m_curX += curFont().pixelSize() * m_setting->paragraphIntent;
     for (auto it : node->children()) {
       it->accept(this);
     }
