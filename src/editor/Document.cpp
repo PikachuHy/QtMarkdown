@@ -186,7 +186,6 @@ CursorCoord Document::moveCursorToPos(Point pos) {
   if (node->type() == NodeType::ul) {
     for (int i = 0; i < block.countOfLogicalLine(); ++i) {
       auto line = block.logicalLineAt(i);
-      DEBUG << line.height();
     }
   }
   auto oldY = y;

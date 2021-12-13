@@ -528,8 +528,6 @@ void Editor::mousePressEvent(Point offset, MouseEvent *event) {
 #else
   m_mousePressing = true;
 #endif
-
-  DEBUG << "shift" << m_holdShift << m_hasSelection;
   if (m_holdShift) {
     if (!m_hasSelection) {
       m_selectionRange = std::make_shared<SelectionRange>();
