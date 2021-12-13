@@ -15,10 +15,7 @@ using namespace md::render;
 namespace md::editor {
 Document::Document(const String& str, sptr<RenderSetting> setting)
     : parser::Document(str), m_setting(setting), m_commandStack(std::make_shared<CommandStack>()) {
-  for (auto node : m_root->children()) {
-    const Block& block = Render::render(node, m_setting, this);
-    m_blocks.push_back(block);
-  }
+  this->renderAllBlock();
 }
 void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos) {
   cursor.setCoord(coord);
@@ -218,6 +215,14 @@ void Document::insertReturn(Cursor& cursor) {
   auto command = new InsertReturnCommand(this, cursor.coord());
   command->execute(cursor);
   m_commandStack->push(command);
+}
+
+void Document::renderAllBlock() {
+  m_blocks.clear();
+  for (auto node : m_root->children()) {
+    const Block& block = Render::render(node, m_setting, this);
+    m_blocks.push_back(block);
+  }
 }
 void Document::replaceBlock(SizeType blockNo, parser::Node* node) {
   ASSERT(blockNo >= 0 && blockNo < m_root->children().size());

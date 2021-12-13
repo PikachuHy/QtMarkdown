@@ -37,6 +37,14 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
   });
   m_tmpSaveTimer.start(30 * 1000);
   connect(&m_tmpSaveTimer, &QTimer::timeout, this, &QtQuickMarkdownEditor::tmpSave);
+  connect(this, &QtQuickMarkdownEditor::widthChanged, this, [this]() {
+    int w = this->width();
+    if (w > 0) {
+      m_editor->setWidth(this->width());
+      this->m_editor->renderDocument();
+      this->update();
+    }
+  });
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
@@ -63,7 +71,7 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   auto tmpPath = this->tmpPath();
   DEBUG << tmpPath;
   int w = this->width();
-  if (w != 0) {
+  if (w > 0) {
     m_editor->setWidth(this->width());
   }
   m_editor->setResPathList(m_resPathList);

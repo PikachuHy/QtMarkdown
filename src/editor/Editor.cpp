@@ -265,6 +265,7 @@ std::pair<bool, String> Editor::loadFile(const String &path) {
   }
   auto mdText = file.readAll();
   loadText(mdText);
+  DEBUG << "load" << path << "done!!!";
   return {true, this->title()};
 }
 
@@ -611,14 +612,16 @@ String Editor::cursorCoord() const {
     s += QString("->");
     s += QString("(%1,%2,%3)").arg(end.coord().blockNo).arg(end.coord().lineNo).arg(end.coord().offset);
   }
-            return s;
-  }
-
-void Editor::setWidth(int w) {
-        m_renderSetting->maxWidth = w;
+  return s;
 }
-void Editor::setResPathList(StringList pathList) {
-    m_renderSetting->resPathList = pathList;
+
+void Editor::setWidth(int w) { m_renderSetting->maxWidth = w; }
+void Editor::setResPathList(StringList pathList) { m_renderSetting->resPathList = pathList; }
+
+void Editor::renderDocument() {
+  if (m_doc) {
+    m_doc->renderAllBlock();
+  }
 }
 CursorShape Editor::cursorShape(Point offset, Point pos) {
   auto oldOffset = offset;

@@ -31,6 +31,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   void insertReturn(Cursor& cursor);
   const render::BlockList& blocks() const { return m_blocks; };
 
+  void renderAllBlock();
   void replaceBlock(SizeType blockNo, parser::Node* node);
   void insertBlock(SizeType blockNo, parser::Node* node);
   void renderBlock(SizeType blockNo);

@@ -116,7 +116,7 @@ Window {
             id: md
             // 必须focus才能接收键盘输入
             focus: true
-            width: parent.width
+            width: sv.width
             implicitHeight: parent.height
             onDocSave: (isNew) => {
                            if (isNew) {
