@@ -508,12 +508,16 @@ class RenderPrivate
     int startY = m_curY;
     for (auto child : node->children()) {
       beginLogicalLine();
-      m_curX += m_setting->quoteMargin.left();
       child->accept(this);
       endLogicalLine();
     }
     int endY = m_curY;
-    auto instruction = new FillRectInstruction(Point(2, startY), Size(5, endY - startY), QColor(238, 238, 238));
+    if (endY > startY) {
+      endY -= m_setting->lineSpacing;
+    }
+    QColor bgColor(238, 238, 238);
+    Point pos(m_setting->docMargin.left() - m_setting->quoteMargin.left(), startY);
+    auto instruction = new FillRectInstruction(pos, Size(5, endY - startY), bgColor);
     m_block.appendInstruction(instruction);
     endBlock();
   }

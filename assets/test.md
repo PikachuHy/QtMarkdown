@@ -3,9 +3,8 @@
 ## 起源
 
 Markdown是[Daring Fireball](http://daringfireball.net/projects/markdown/syntax)的作者John
-Gruber发明，身为Blogger，可能他也觉得传统的HTML有些复杂吧，退一步来讲，若是一个毫无计算机基础
+Gruber发明，身为Blogger，可能他也觉得传统的HTML有些复杂吧，退一步来讲，若是一个毫无计算机基础的Blogger，根本也没必要去掌握那些复杂的标签语言知识。
 
-去掌握那些复杂的标签语言知识。
 
 ## 发展
 
@@ -53,6 +52,8 @@ Gruber发明，身为Blogger，可能他也觉得传统的HTML有些复杂吧，
 ## 引用
 
 > 区块引用
+
+> Markdown is a plain text format for writing structured documents, based on conventions for indicating formatting in email and usenet posts. It was developed by John Gruber (with help from Aaron Swartz) and released in 2004 in the form of a syntax description and a Perl script (Markdown.pl) for converting Markdown to HTML.
 
 ## 列表
 

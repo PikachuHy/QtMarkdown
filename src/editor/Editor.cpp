@@ -159,11 +159,12 @@ class SimpleMarkdownVisitor
   void visit(Hr *node) override { m_md += "---\n"; }
   void visit(Lf *node) override { m_md += "\n"; }
   void visit(QuoteBlock *node) override {
-    m_md += ">";
+    m_md += "> ";
     for (auto it : node->children()) {
       it->accept(this);
       m_md += "\n";
     }
+    m_md += "\n";
   }
   void visit(Table *node) override {}
   String markdown() { return m_md; }

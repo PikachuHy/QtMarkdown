@@ -567,6 +567,22 @@ class InsertTextVisitor
           coord.offset = 0;
           updateCursor(cursor, coord);
           return;
+        } else if (prefix == ">") {
+          // 说明是引用块
+          // 将段落转换为引用块
+          auto quoteBlock = new QuoteBlock();
+          quoteBlock->appendChildren(node->children());
+          textNode->remove(0, prefix.size());
+          if (textNode->empty()) {
+            // 如果变成空文本了，删除这个结点
+            ASSERT(textNode->parent() == quoteBlock);
+            quoteBlock->removeChildAt(0);
+          }
+          replaceBlock(coord.blockNo, quoteBlock);
+          delete node;
+          coord.offset = 0;
+          updateCursor(cursor, coord);
+          return;
         }
       } else {
         // 大于6的就不可能变成标题了
