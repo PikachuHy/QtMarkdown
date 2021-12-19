@@ -311,7 +311,7 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
     for (const auto &instruction : block) {
       instruction->run(painter, offset, m_doc.get());
     }
-    offset.setY(offset.y() + h);
+    offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
   }
 #ifdef Q_OS_ANDROID
 #else
@@ -320,6 +320,7 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
   // 高亮当前Block
   int h = m_renderSetting->docMargin.top();
   for (int i = 0; i < coord.blockNo; ++i) {
+    h += m_renderSetting->blockSpacing;
     h += m_doc->m_blocks[i].height();
   }
   auto block = m_doc->m_blocks[coord.blockNo];
@@ -349,6 +350,7 @@ int Editor::height() const {
   auto h = 0;
   for (const auto &instructionGroup : m_doc->m_blocks) {
     h += instructionGroup.height();
+    h += m_renderSetting->blockSpacing;
   }
   return h + m_renderSetting->docMargin.top() + m_renderSetting->docMargin.bottom();
 }
@@ -552,7 +554,7 @@ void Editor::mousePressEvent(Point offset, MouseEvent *event) {
         }
       }
     }
-    offset.setY(offset.y() + h);
+    offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
   }
   auto coord = m_doc->moveCursorToPos(event->pos());
   m_doc->updateCursor(*m_cursor, coord);
@@ -633,7 +635,7 @@ CursorShape Editor::cursorShape(Point offset, Point pos) {
         return PointingHandCursor;
       }
     }
-    offset.setY(offset.y() + h);
+    offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
   }
   return IBeamCursor;
 }

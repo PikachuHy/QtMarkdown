@@ -27,6 +27,7 @@ void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updat
 std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   int y = m_setting->docMargin.top();
   for (int blockNo = 0; blockNo < coord.blockNo; ++blockNo) {
+    y += m_setting->blockSpacing;
     y += m_blocks[blockNo].height();
   }
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
@@ -162,7 +163,7 @@ CursorCoord Document::moveCursorToPos(Point pos) {
       findBlock = true;
       break;
     }
-    y += h;
+    y += h + m_setting->blockSpacing;
     blockNo++;
   }
   if (!findBlock) {

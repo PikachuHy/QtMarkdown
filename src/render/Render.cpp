@@ -98,7 +98,7 @@ class RenderPrivate
   explicit RenderPrivate(Node *node, sptr<RenderSetting> setting, DocPtr doc)
       : m_block(node), m_setting(setting), m_doc(doc) {
     Q_ASSERT(doc != nullptr);
-    m_config.font.setPixelSize(16);
+    m_config.font.setPixelSize(16 + 2);
     m_config.pen = Qt::black;
     m_configs.push_back(m_config);
   }

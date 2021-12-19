@@ -83,6 +83,7 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   }
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
+  setHeight(m_editor->height());
   emit implicitHeightChanged();
 }
 void QtQuickMarkdownEditor::addPath(const QString &path) {
@@ -115,6 +116,7 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   this->update();
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
+  setHeight(m_editor->height());
 }
 void QtQuickMarkdownEditor::hoverMoveEvent(QHoverEvent *event) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)

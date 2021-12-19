@@ -12,6 +12,7 @@
 namespace md::render {
 struct RenderSetting {
   bool highlightCurrentLine = false;
+  int blockSpacing = 10;
   int lineSpacing = 10;
   int maxWidth = 800;
   int latexFontSize = 20;

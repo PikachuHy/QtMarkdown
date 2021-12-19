@@ -7,7 +7,7 @@ import Controller
 
 Window {
     id: root
-    width: 1100
+    width: 1500
     height: 600
     visible: true
     title: qsTr("Markdown Editor Qt Quick Demo")
