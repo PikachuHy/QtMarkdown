@@ -21,7 +21,7 @@ namespace md::editor {
 class SimpleMarkdownVisitor
     : public MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText, Image, Link, CodeBlock, InlineCode,
                              Paragraph, CheckboxList, CheckboxItem, UnorderedList, OrderedList, UnorderedListItem,
-                             OrderedListItem, Hr, QuoteBlock, Table, Lf> {
+                             OrderedListItem, Hr, QuoteBlock, Table, Lf, LatexBlock, InlineLatex> {
  public:
   explicit SimpleMarkdownVisitor(DocPtr doc) : m_doc(doc) {}
   void visit(Header *node) override {
@@ -167,6 +167,20 @@ class SimpleMarkdownVisitor
     m_md += "\n";
   }
   void visit(Table *node) override {}
+  void visit(LatexBlock *node) override {
+    m_md += "\n";
+    m_md += "$$\n";
+    for (auto it : node->children()) {
+      it->accept(this);
+    }
+    m_md += "$$\n";
+    m_md += "\n";
+  }
+  void visit(InlineLatex *node) override {
+    m_md += "$";
+    node->code()->accept(this);
+    m_md += "$";
+  }
   String markdown() { return m_md; }
 
  private:
@@ -343,6 +357,8 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
     painter.drawText(typePos, "ul");
   } else if (node->type() == NodeType::checkbox) {
     painter.drawText(typePos, "cb");
+  } else if (node->type() == NodeType::latex_block) {
+    painter.drawText(typePos, "latex");
   }
 #endif
 }

@@ -80,13 +80,12 @@ class QTMARKDOWNSHARED_EXPORT EllipseInstruction : public Instruction {
 };
 class QTMARKDOWNSHARED_EXPORT LatexInstruction : public Instruction {
  public:
-  LatexInstruction(Point pos, Size size, String latex, int fontSize)
-      : m_pos(pos), m_size(size), m_latex(std::move(latex)), m_fontSize(fontSize) {}
+  LatexInstruction(InlineLatexCell* cell, String latex, int fontSize)
+      : m_cell(cell), m_latex(std::move(latex)), m_fontSize(fontSize) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
 
  private:
-  Point m_pos;
-  Size m_size;
+  InlineLatexCell* m_cell;
   String m_latex;
   int m_fontSize;
 };

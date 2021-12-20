@@ -73,10 +73,11 @@ void EllipseInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
 }
 void LatexInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   painter.save();
-  auto rect = Rect(m_pos + offset, m_size);
+  auto rect = Rect(m_cell->m_pos + offset, m_cell->m_size);
   try {
     float textSize = m_fontSize;
-    auto render = tex::LaTeX::parse(m_latex.toStdString(), m_size.width(), textSize, textSize / 3.f, 0xff424242);
+    auto render =
+        tex::LaTeX::parse(m_latex.toStdString(), m_cell->m_size.width(), textSize, textSize / 3.f, 0xff424242);
     tex::Graphics2D_qt g2(&painter);
     render->draw(g2, rect.x(), rect.y());
     delete render;

@@ -75,5 +75,15 @@ class QTMARKDOWNSHARED_EXPORT ImageCell : public Cell {
   parser::Image* m_node;
   friend class ImageInstruction;
 };
+class LatexInstruction;
+class QTMARKDOWNSHARED_EXPORT InlineLatexCell : public Cell {
+ public:
+  InlineLatexCell(Point pos, Size size) : Cell(pos, size) {}
+  SizeType length() override { return 1; }
+  int width(SizeType length, DocPtr doc) const override;
+
+ private:
+  friend class LatexInstruction;
+};
 }  // namespace md::render
 #endif  // QTMARKDOWN_CELL_H

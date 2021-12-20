@@ -4,13 +4,34 @@
 
 #include <iostream>
 #include <catch2/catch_test_macros.hpp>
+
+#define private public
+#define protected public
 #include "parser/Document.h"
 #include "parser/Parser.h"
 #include "parser/Token.h"
+#include "parser/Text.h"
+#undef protected
+#undef private
+using namespace md;
 using namespace md::parser;
 #include "common.h"
-TEST_CASE( "parse paragraph", "[p]" ) {
-  SECTION( "only text one sharp" ) {
+#include "debug.h"
+
+#define ASSERT_TEXT(child, doc, textVal)    \
+  REQUIRE(child->type() == NodeType::text); \
+  auto textNode = (Text*)child;             \
+  auto str = textNode->toString(&doc);      \
+  REQUIRE(str == textVal);
+
+#define ASSERT_INLINE_LATEX(child, doc, textVal)    \
+  REQUIRE(child->type() == NodeType::inline_latex); \
+  auto node = (InlineLatex*)child;                  \
+  auto str = node->code()->toString(&doc);          \
+  REQUIRE(str == textVal);
+
+TEST_CASE("parse paragraph", "[p]") {
+  SECTION("only text one sharp") {
     auto nodes = Parser::parse("#");
     ASSERT_EQ(nodes->size(), 1);
     auto node = nodes->childAt(0);
@@ -277,6 +298,31 @@ TEST_CASE( "parse inline latex", "[inline][latex]" ) {
     ASSERT_EQ(il->type(), NodeType::inline_latex);
     auto after = p->children().at(2);
     ASSERT_EQ(after->type(), NodeType::text);
+  }
+  SECTION("text and inline latex") {
+    Document doc("是$(h_t, s_t) = f(x_t, h_{t-1}, s_{t-1})$。$t$");
+    auto nodes = doc.m_root;
+    ASSERT_EQ(nodes->size(), 1);
+    auto node = nodes->childAt(0);
+    ASSERT_EQ(node->type(), NodeType::paragraph);
+    auto p = (Paragraph*)node;
+    ASSERT_EQ(p->children().size(), 4);
+    {
+      auto child = p->childAt(0);
+      ASSERT_TEXT(child, doc, String("是"))
+    }
+    {
+      auto child = p->childAt(1);
+      ASSERT_INLINE_LATEX(child, doc, String("(h_t, s_t) = f(x_t, h_{t-1}, s_{t-1})"))
+    }
+    {
+      auto child = p->childAt(2);
+      ASSERT_TEXT(child, doc, String("。"))
+    }
+    {
+      auto child = p->childAt(3);
+      ASSERT_INLINE_LATEX(child, doc, String("t"))
+    }
   }
 }
 TEST_CASE( "parse semantic", "[italic][bold]" ) {

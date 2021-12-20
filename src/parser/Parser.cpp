@@ -314,15 +314,24 @@ class InlineLatexParser : public LineParser {
   [[nodiscard]] bool tryParse(const TokenList& tokens, int startIndex) const {
     if (startIndex + 2 >= tokens.size()) return false;
     if (!isDollar(tokens[startIndex])) return false;
-    // 规定行内公式的格式是 $ text $
-    if (!isText(tokens[startIndex + 1])) return false;
-    if (!isDollar(tokens[startIndex + 2])) return false;
-    return true;
+    for (int i = startIndex + 2; i < tokens.size(); ++i) {
+      if (isDollar(tokens[i])) return true;
+    }
+    return false;
   }
 
   [[nodiscard]] ParseResult _parse(const TokenList& tokens, int startIndex) const {
     auto& token = tokens[startIndex + 1];
-    return {true, 3, new InlineLatex(new Text(token.offset(), token.length()))};
+    int endIndex = startIndex + 1;
+    int length = 0;
+    while (endIndex < tokens.size()) {
+      if (isDollar(tokens[endIndex])) {
+        break;
+      }
+      length += tokens[endIndex].length();
+      endIndex++;
+    }
+    return {true, endIndex - startIndex + 1, new InlineLatex(new Text(token.offset(), length))};
   }
 };
 // 加粗和斜体解析器

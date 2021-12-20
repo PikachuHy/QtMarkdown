@@ -28,4 +28,8 @@ int ImageCell::width(SizeType length, DocPtr doc) const {
   if (length == 0) return 0;
   return m_size.width();
 }
+int InlineLatexCell::width(SizeType length, DocPtr doc) const {
+  if (length == 0) return 0;
+  return m_size.width();
+}
 }  // namespace md::render

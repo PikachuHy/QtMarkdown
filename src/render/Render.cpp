@@ -282,8 +282,10 @@ class RenderPrivate
       auto render =
           tex::LaTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
       const QPoint &point = Point(m_curX, m_curY);
-      const QSize &size = Size(render->getWidth(), render->getHeight());
-      auto instruction = new LatexInstruction(point, size, latex, textSize);
+      const QSize &size = Size(render->getWidth() + 2, render->getHeight());
+      auto cell = new InlineLatexCell(point, size);
+      appendVisualCell(cell);
+      auto instruction = new LatexInstruction(cell, latex, textSize);
       m_block.appendInstruction(instruction);
       m_curX += render->getWidth();
       delete render;
@@ -304,7 +306,9 @@ class RenderPrivate
           tex::LaTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
       const QPoint &point = Point((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY);
       const QSize &size = Size(m_setting->contentMaxWidth(), render->getHeight());
-      auto instruction = new LatexInstruction(point, size, latex, textSize);
+      auto cell = new InlineLatexCell(point, size);
+      appendVisualCell(cell);
+      auto instruction = new LatexInstruction(cell, latex, textSize);
       m_block.appendInstruction(instruction);
       m_curX += render->getWidth();
       delete render;
@@ -638,6 +642,7 @@ class RenderPrivate
       auto h = cell->height();
       maxH = std::max(maxH, h);
     }
+    line.m_h = maxH;
     for (auto cell : line.m_cells) {
       auto y = cell->m_pos.y();
       // 这里的对齐还是不好
