@@ -6,3 +6,4 @@ CMakeLists.txt.user
 out
 build
 deps
+example/quazip
