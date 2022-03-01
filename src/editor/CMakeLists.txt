@@ -11,19 +11,19 @@ target_sources(QtMarkdownEditorCore PRIVATE
         CursorCoord.cpp CursorCoord.h
         Cursor.cpp Cursor.h)
 target_link_libraries(QtMarkdownEditorCore PUBLIC QtMarkdownRender)
-if (BUILD_STATIC)
-    add_library(QtQuickMarkdownEditor STATIC)
-else ()
-    add_library(QtQuickMarkdownEditor SHARED)
-    target_compile_definitions(QtQuickMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)
-endif ()
-target_sources(QtQuickMarkdownEditor PRIVATE QtQuickMarkdownEditor.cpp QtQuickMarkdownEditor.h)
-target_link_libraries(QtQuickMarkdownEditor PUBLIC
-        Qt${QT_VERSION_MAJOR}::Quick
-        Qt${QT_VERSION_MAJOR}::Qml
-        QtMarkdownEditorCore)
-set_target_properties(QtQuickMarkdownEditor PROPERTIES AUTORCC ON)
-set_target_properties(QtQuickMarkdownEditor PROPERTIES AUTOMOC ON)
+#if (BUILD_STATIC)
+#    add_library(QtQuickMarkdownEditor STATIC)
+#else ()
+#    add_library(QtQuickMarkdownEditor SHARED)
+#    target_compile_definitions(QtQuickMarkdownEditor PRIVATE -DQtMarkdown_LIBRARY)
+#endif ()
+#target_sources(QtQuickMarkdownEditor PRIVATE QtQuickMarkdownEditor.cpp QtQuickMarkdownEditor.h)
+#target_link_libraries(QtQuickMarkdownEditor PUBLIC
+#        Qt${QT_VERSION_MAJOR}::Quick
+#        Qt${QT_VERSION_MAJOR}::Qml
+#        QtMarkdownEditorCore)
+#set_target_properties(QtQuickMarkdownEditor PROPERTIES AUTORCC ON)
+#set_target_properties(QtQuickMarkdownEditor PROPERTIES AUTOMOC ON)
 if (BUILD_STATIC)
     add_library(QtWidgetMarkdownEditor STATIC)
 else ()

@@ -55,7 +55,7 @@ void QtQuickMarkdownEditor::paint(QPainter *painter) {
   m_editor->drawSelection(QPoint(0, 0), *painter);
   m_editor->drawDoc(QPoint(0, 0), *painter);
   setImplicitHeight(m_editor->height());
-  if (hasActiveFocus() && m_showCursor) {
+  if (hasActiveFocus()) {
     m_editor->drawCursor(QPoint(0, 0), *painter);
   }
 #endif
