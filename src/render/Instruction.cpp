@@ -5,9 +5,9 @@
 #include "Instruction.h"
 
 #include "debug.h"
-#include "latex.h"
+#include "microtex.h"
 #include "parser/Text.h"
-#include "platform/qt/graphic_qt.h"
+#include "graphic_qt.h"
 namespace md::render {
 void TextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   Q_ASSERT(doc != nullptr);
@@ -77,8 +77,8 @@ void LatexInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   try {
     float textSize = m_fontSize;
     auto render =
-        tex::LaTeX::parse(m_latex.toStdString(), m_cell->m_size.width(), textSize, textSize / 3.f, 0xff424242);
-    tex::Graphics2D_qt g2(&painter);
+        microtex::MicroTeX::parse(m_latex.toStdString(), m_cell->m_size.width(), textSize, textSize / 3.f, 0xff424242);
+    microtex::Graphics2D_qt g2(&painter);
     render->draw(g2, rect.x(), rect.y());
     delete render;
   } catch (const std::exception& ex) {

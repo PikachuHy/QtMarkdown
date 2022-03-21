@@ -16,19 +16,22 @@ class MarkdownParserConan(ConanFile):
 
     # Binary configuration
     settings = "os", "compiler", "build_type", "arch"
-    options = {"shared": [True, False], "fPIC": [True, False]}
-    default_options = {"shared": False, "fPIC": True}
+    options = {"shared": [True, False], "fPIC": [True, False], "USE_CONAN_QT": [True, False]}
+    default_options = {"shared": False, "fPIC": True, "USE_CONAN_QT": False}
 
     # Sources are located in the same place as this recipe, copy them to the recipe
-    exports_sources = "CMakeLists.txt", "src/*"
+    exports_sources = "CMakeLists.txt", "src/*", "example/*", "assets/*", "MarkdownInstall.cmake"
 
     def requirements(self):
-        self.requires("MarkdownParser/0.1@demo/testing")
-        self.requires("tinytex/1.0.0@demo/testing")
+        # self.requires("MarkdownParser/0.1@demo/testing")
+        self.requires("microtex/1.0.0@demo/testing")
+        self.options['microtex'].QT = True
+        self.options['microtex'].USE_CONAN_QT = self.options.USE_CONAN_QT
+        self.options['microtex'].HAVE_LOG = False
         self.requires("magic_enum/0.7.3")
-
-        self.requires("qt/6.2.3")
-        self.options['qt'].shared = True
+        if self.options.USE_CONAN_QT:
+            self.requires("qt/6.2.3")
+            self.options['qt'].shared = True
 
     def config_options(self):
         if self.settings.os == "Windows":
@@ -56,4 +59,13 @@ class MarkdownParserConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.libs = ["QtMarkdown"]
+        self.cpp_info.includedirs = [
+            "include"
+        ]
+        self.cpp_info.libs = [
+            "QtMarkdownParser",
+            "QtMarkdownRender",
+            "QtMarkdownEditorCore",
+            "QtWidgetMarkdownEditor",
+            "QtQuickMarkdownEditor"
+        ]

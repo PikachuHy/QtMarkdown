@@ -15,18 +15,23 @@
 #include "Instruction.h"
 #include "StringUtil.h"
 #include "debug.h"
-#include "latex.h"
+#include "microtex.h"
 #include "parser/Text.h"
-#include "platform/qt/graphic_qt.h"
+#include "graphic_qt.h"
 using namespace md::parser;
 namespace md::render {
 class TexRender {
  public:
   TexRender(const String &mathFontPath, const String &clmPath) {
-    tex::FontSpec math{"xits", mathFontPath.toStdString(), clmPath.toStdString()};
-    tex::LaTeX::init(math);
+    //    tinytex::FontSpec math{"xits", mathFontPath.toStdString(), clmPath.toStdString()};
+    microtex::InitFontSenseAuto init;
+    microtex::MicroTeX::init(init);
+    microtex::PlatformFactory::registerFactory("qt", std::make_unique<microtex::PlatformFactory_qt>());
+    microtex::PlatformFactory::activate("qt");
+
+    microtex::MicroTeX::setRenderGlyphUsePath(true);
   }
-  ~TexRender() { tex::LaTeX::release(); }
+  ~TexRender() { microtex::MicroTeX::release(); }
 };
 class TexRenderGuard {
  public:
@@ -279,8 +284,8 @@ class RenderPrivate
     auto latex = node->code()->toString(m_doc);
     try {
       float textSize = m_setting->latexFontSize;
-      auto render =
-          tex::LaTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
+      auto render = microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
+                                              textSize / 3.f, 0xff424242);
       const QPoint &point = Point(m_curX, m_curY);
       const QSize &size = Size(render->getWidth() + 2, render->getHeight());
       auto cell = new InlineLatexCell(point, size);
@@ -302,8 +307,8 @@ class RenderPrivate
     auto latex = node->toString(m_doc);
     try {
       float textSize = m_setting->latexFontSize;
-      auto render =
-          tex::LaTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize, textSize / 3.f, 0xff424242);
+      auto render = microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
+                                              textSize / 3.f, 0xff424242);
       const QPoint &point = Point((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY);
       const QSize &size = Size(m_setting->contentMaxWidth(), render->getHeight());
       auto cell = new InlineLatexCell(point, size);

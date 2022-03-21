@@ -1,3 +1,4 @@
+find_package(magic_enum REQUIRED)
 option(BUILD_WITH_BOOST "build with boost" OFF)
 if (BUILD_WITH_BOOST)
     add_definitions(-D_GNU_SOURCE=1)
@@ -9,6 +10,11 @@ if (BUILD_STATIC)
 else()
     add_library(QtMarkdownParser SHARED)
 endif ()
+target_include_directories(
+        QtMarkdownParser PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+)
 target_sources(QtMarkdownParser PRIVATE
         ../debug.cpp ../debug.h
         Document.cpp Document.h
@@ -23,3 +29,14 @@ if (BUILD_WITH_BOOST)
     target_link_libraries(QtMarkdownParser PUBLIC Boost::boost)
 endif ()
 target_include_directories(QtMarkdownParser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+install(
+        TARGETS QtMarkdownParser
+        EXPORT QtMarkdownParser
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+markdown_install_headers(QtMarkdownParser PREFIX parser HEADERS
+        Document.h Token.h Parser.h Visitor.h PieceTable.h Text.h mddef.h
+        QtMarkdownParser
+        )
