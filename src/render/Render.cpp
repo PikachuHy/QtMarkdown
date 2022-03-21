@@ -22,8 +22,7 @@ using namespace md::parser;
 namespace md::render {
 class TexRender {
  public:
-  TexRender(const String &mathFontPath, const String &clmPath) {
-    //    tinytex::FontSpec math{"xits", mathFontPath.toStdString(), clmPath.toStdString()};
+  TexRender() {
     microtex::InitFontSenseAuto init;
     microtex::MicroTeX::init(init);
     microtex::PlatformFactory::registerFactory("qt", std::make_unique<microtex::PlatformFactory_qt>());
@@ -36,58 +35,11 @@ class TexRender {
 class TexRenderGuard {
  public:
   TexRenderGuard() {
-    // 将字体文件复制到临时文件夹
-    // 目前latex渲染用到到字体必须是用绝对路径
-    // 这里可能是有BUG
-    auto paths = QStandardPaths::standardLocations(QStandardPaths::CacheLocation);
-    QString tmpPath;
-    if (paths.isEmpty()) {
-      tmpPath = QDir::homePath();
-    } else {
-      tmpPath = paths.first();
-    }
-    QString mathFontPath = tmpPath + "/XITSMath-Regular.otf";
-    QString clmPath = tmpPath + "/XITSMath-Regular.clm";
-    copy(":/font/XITSMath-Regular.otf", mathFontPath);
-    copy(":/font/XITSMath-Regular.clm", clmPath);
-    m_texRender = std::make_shared<TexRender>(mathFontPath, clmPath);
+    m_texRender = std::make_shared<TexRender>();
     Q_UNUSED(m_texRender);
   }
 
  private:
-  static void copy(const QString &src, const QString &dst) {
-    auto dir = QFileInfo(dst).absoluteDir();
-    if (!dir.exists()) {
-      DEBUG << "mkdir" << dir.absolutePath();
-      bool ok = dir.mkpath(dir.absolutePath());
-      if (!ok) {
-        DEBUG << "mkdir fail";
-      }
-    }
-    if (QFile::exists(dst)) {
-      // 计算缓存文件的md5
-      QFile oldFile(dst);
-      if (!oldFile.open(QIODevice::ReadOnly)) {
-        QFile::moveToTrash(dst);
-      } else {
-        auto cachedFileMd5 = QCryptographicHash::hash(oldFile.readAll(), QCryptographicHash::Md5);
-        QFile newFile(src);
-        newFile.open(QIODevice::ReadOnly);
-        auto newFileMd5 = QCryptographicHash::hash(newFile.readAll(), QCryptographicHash::Md5);
-        if (cachedFileMd5 == newFileMd5) {
-          DEBUG << "hit cache math font:" << dst;
-          return;
-        }
-        DEBUG << "rewrite cached file: " << dst;
-      }
-    }
-    bool ok = QFile::copy(src, dst);
-    if (!ok) {
-      DEBUG << "copy" << src << "to" << dst << "fail";
-    } else {
-      DEBUG << "copy" << src << "to" << dst << "success";
-    }
-  };
   sptr<TexRender> m_texRender;
 };
 // Render内部配置
