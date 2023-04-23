@@ -1,0 +1,6 @@
+{
+    "cmake.configureArgs": [
+        "-DCMAKE_PREFIX_PATH=/Users/pikachu/Qt/6.5.0/macos/lib/cmake",
+        "-DQT=ON"
+    ]
+}

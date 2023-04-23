@@ -1,4 +1,3 @@
-find_package(magic_enum REQUIRED)
 option(BUILD_WITH_BOOST "build with boost" OFF)
 if (BUILD_WITH_BOOST)
     add_definitions(-D_GNU_SOURCE=1)

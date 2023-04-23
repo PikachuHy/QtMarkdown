@@ -304,7 +304,7 @@ bool Editor::saveToFile(const String &path) {
 }
 void Editor::drawSelection(Point offset, Painter &painter) {
   if (!m_hasSelection) return;
-  DEBUG << "selection" << m_selectionInstructions.size();
+  // DEBUG << "selection" << m_selectionInstructions.size();
   for (auto instruction : m_selectionInstructions) {
     instruction->run(painter, offset, m_doc.get());
   }

@@ -23,8 +23,8 @@ namespace md::render {
 class TexRender {
  public:
   TexRender() {
-    microtex::InitFontSenseAuto init;
-    microtex::MicroTeX::init(init);
+    //microtex::InitFontSenseAuto init;
+    //microtex::MicroTeX::init(init);
     microtex::PlatformFactory::registerFactory("qt", std::make_unique<microtex::PlatformFactory_qt>());
     microtex::PlatformFactory::activate("qt");
 

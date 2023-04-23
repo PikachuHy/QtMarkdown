@@ -1,4 +1,3 @@
-find_package(microtex REQUIRED)
 if (BUILD_STATIC)
     add_library(QtMarkdownRender STATIC)
 else()
@@ -18,7 +17,7 @@ target_sources(QtMarkdownRender PRIVATE
         StringUtil.cpp StringUtil.h
         ../../assets/md.qrc)
 target_compile_definitions(QtMarkdownRender PRIVATE -DQtMarkdown_LIBRARY)
-target_link_libraries(QtMarkdownRender PUBLIC Qt${QT_VERSION_MAJOR}::Gui QtMarkdownParser microtex::microtex)
+target_link_libraries(QtMarkdownRender PUBLIC Qt${QT_VERSION_MAJOR}::Gui QtMarkdownParser microtex-qt microtex)
 set_target_properties(QtMarkdownRender PROPERTIES AUTORCC ON)
 set_target_properties(QtMarkdownRender PROPERTIES AUTOMOC ON)
 install(

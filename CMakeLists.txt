@@ -6,6 +6,8 @@ project(QtMarkdown
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_subdirectory(3rd/MicroTeX)
+add_subdirectory(3rd/magic_enum)
 if (MSVC)
     add_compile_options("/utf-8")
     if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
