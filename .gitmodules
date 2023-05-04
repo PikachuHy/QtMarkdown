@@ -1,0 +1,6 @@
+[submodule "3rd/magic_enum"]
+	path = 3rd/magic_enum
+	url = https://github.com/Neargye/magic_enum.git
+[submodule "3rd/MicroTeX"]
+	path = 3rd/MicroTeX
+	url = https://github.com/NanoMichael/MicroTeX.git
