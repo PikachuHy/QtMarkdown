@@ -4,3 +4,6 @@
 [submodule "3rd/MicroTeX"]
 	path = 3rd/MicroTeX
 	url = https://github.com/NanoMichael/MicroTeX.git
+[submodule "3rd/pscm"]
+	path = 3rd/pscm
+	url = https://github.com/PikachuHy/pscm.git
