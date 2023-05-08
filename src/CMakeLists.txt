@@ -1,3 +1,4 @@
+set(CMAKE_AUTOMOC ON)
 add_subdirectory(parser)
 add_subdirectory(render)
 add_subdirectory(editor)

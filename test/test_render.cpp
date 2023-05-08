@@ -12,7 +12,8 @@
 #include <QGuiApplication>
 
 #include "debug.h"
-#include "gtest/gtest.h"
+#define DOCTEST_CONFIG_IMPLEMENT
+#include <doctest/doctest.h>
 using namespace md;
 using namespace md::parser;
 using namespace md::render;
@@ -24,7 +25,7 @@ Text* node2text(Node* node) {
   ASSERT(node->type() == NodeType::text);
   return (Text*)node;
 }
-TEST(CodeBlockRenderTest, TwoLine) {
+TEST_CASE("testing render code block, two line") {
   auto setting = std::make_shared<RenderSetting>();
   auto doc = new Document(R"(
 ```
@@ -33,14 +34,14 @@ b
 ```
 )");
   auto root = doc->m_root;
-  ASSERT_EQ(root->size(), 1);
+  REQUIRE(root->size() == 1);
   {
     auto node = root->childAt(0);
-    ASSERT_EQ(node->type(), NodeType::code_block);
+    CHECK(node->type() == NodeType::code_block);
     auto codeBlock = node2codeBlock(node);
-    ASSERT_EQ(codeBlock->size(), 2);
+    CHECK(codeBlock->size() == 2);
     auto block = Render::render(codeBlock, setting, doc);
-    ASSERT_EQ(block.countOfLogicalLine(), 2);
+    CHECK(block.countOfLogicalLine() == 2);
   }
 }
 
@@ -48,6 +49,15 @@ int main(int argc, char** argv) {
   // 必须加这一句
   // 不然调用字体(QFontMetric)时会崩溃
   QGuiApplication app(argc, argv);
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  doctest::Context context;
+
+  int res = context.run(); // run
+
+  if (context.shouldExit()) // important - query flags (and --exit) rely on the user doing this
+    return res;             // propagate the result of the tests
+
+  int client_stuff_return_code = 0;
+  // your program - if the testing framework is integrated in your production code
+
+  return res + client_stuff_return_code; // the result from doctest is propagated here as well
 }

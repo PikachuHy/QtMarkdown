@@ -3,395 +3,395 @@
 //
 
 #include <iostream>
-
-#include "gtest/gtest.h"
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 #include "parser/Document.h"
 #include "parser/Parser.h"
 #include "parser/Token.h"
 using namespace md::parser;
 
-TEST(ParseUnorderedListTest, OnlyText) {
+TEST_CASE("ParseUnorderedListTest == OnlyText") {
   auto nodes = Parser::parse("- hhh");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::ul);
+  CHECK(node->type() == NodeType::ul);
   auto ul = (UnorderedList*)node;
-  ASSERT_EQ(ul->children().size(), 1);
+  CHECK(ul->children().size() == 1);
   auto item = ul->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::ul_item);
+  CHECK(item->type() == NodeType::ul_item);
   auto ul_item = (UnorderedListItem*)item;
-  ASSERT_EQ(ul_item->children().size(), 1);
+  CHECK(ul_item->children().size() == 1);
   auto text = ul_item->children().at(0);
-  ASSERT_EQ(text->type(), NodeType::text);
+  CHECK(text->type() == NodeType::text);
 }
 
-TEST(ParseUnorderedListTest, OnlyLink) {
+TEST_CASE("ParseUnorderedListTest == OnlyLink") {
   auto nodes = Parser::parse("- [666](http://www.666.com)");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::ul);
+  CHECK(node->type() == NodeType::ul);
   auto ul = (UnorderedList*)node;
-  ASSERT_EQ(ul->children().size(), 1);
+  CHECK(ul->children().size() == 1);
   auto item = ul->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::ul_item);
+  CHECK(item->type() == NodeType::ul_item);
   auto ul_item = (UnorderedListItem*)item;
-  ASSERT_EQ(ul_item->children().size(), 1);
+  CHECK(ul_item->children().size() == 1);
   auto link = ul_item->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
 }
 
-TEST(ParseUnorderedListTest, TextAndLink) {
+TEST_CASE("ParseUnorderedListTest == TextAndLink") {
   auto nodes = Parser::parse("- sdfg[666](http://www.666.com)sdfg");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::ul);
+  CHECK(node->type() == NodeType::ul);
   auto ul = (UnorderedList*)node;
-  ASSERT_EQ(ul->children().size(), 1);
+  CHECK(ul->children().size() == 1);
   auto item = ul->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::ul_item);
+  CHECK(item->type() == NodeType::ul_item);
   auto ul_item = (UnorderedListItem*)item;
-  ASSERT_EQ(ul_item->children().size(), 3);
+  CHECK(ul_item->children().size() == 3);
   {
     auto text = ul_item->children().at(0);
-    ASSERT_EQ(text->type(), NodeType::text);
+    CHECK(text->type() == NodeType::text);
   }
   auto link = ul_item->children().at(1);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
   {
     auto text = ul_item->children().at(2);
-    ASSERT_EQ(text->type(), NodeType::text);
+    CHECK(text->type() == NodeType::text);
   }
 }
 
-TEST(ParseOrderedListTest, OnlyText) {
+TEST_CASE("ParseOrderedListTest == OnlyText") {
   auto nodes = Parser::parse("1. hhh");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::ol);
+  CHECK(node->type() == NodeType::ol);
   auto ol = (OrderedList*)node;
-  ASSERT_EQ(ol->children().size(), 1);
+  CHECK(ol->children().size() == 1);
   auto item = ol->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::ol_item);
+  CHECK(item->type() == NodeType::ol_item);
   auto ul_item = (OrderedListItem*)item;
-  ASSERT_EQ(ul_item->children().size(), 1);
+  CHECK(ul_item->children().size() == 1);
   auto text = ul_item->children().at(0);
-  ASSERT_EQ(text->type(), NodeType::text);
+  CHECK(text->type() == NodeType::text);
 }
 
-TEST(ParseOrderedListTest, OnlyLink) {
+TEST_CASE("ParseOrderedListTest == OnlyLink") {
   Parser parser;
   auto nodes = parser.parse("1. [666](http://www.666.com)");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::ol);
+  CHECK(node->type() == NodeType::ol);
   auto ol = (OrderedList*)node;
-  ASSERT_EQ(ol->children().size(), 1);
+  CHECK(ol->children().size() == 1);
   auto item = ol->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::ol_item);
+  CHECK(item->type() == NodeType::ol_item);
   auto ol_item = (OrderedListItem*)item;
-  ASSERT_EQ(ol_item->children().size(), 1);
+  CHECK(ol_item->children().size() == 1);
   auto link = ol_item->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
 }
 
-TEST(ParseOrderedListTest, TextAndLink) {
+TEST_CASE("ParseOrderedListTest == TextAndLink") {
   Parser parser;
   auto nodes = parser.parse("1. sdfg[666](http://www.666.com)sdfg");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::ol);
+  CHECK(node->type() == NodeType::ol);
   auto ul = (OrderedList*)node;
-  ASSERT_EQ(ul->children().size(), 1);
+  CHECK(ul->children().size() == 1);
   auto item = ul->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::ol_item);
+  CHECK(item->type() == NodeType::ol_item);
   auto ol_item = (OrderedListItem*)item;
-  ASSERT_EQ(ol_item->children().size(), 3);
+  CHECK(ol_item->children().size() == 3);
   {
     auto text = ol_item->children().at(0);
-    ASSERT_EQ(text->type(), NodeType::text);
+    CHECK(text->type() == NodeType::text);
   }
   auto link = ol_item->children().at(1);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
   {
     auto text = ol_item->children().at(2);
-    ASSERT_EQ(text->type(), NodeType::text);
+    CHECK(text->type() == NodeType::text);
   }
 }
 
-TEST(ParseCheckboxListTest, OnlyText) {
+TEST_CASE("ParseCheckboxListTest == OnlyText") {
   Parser parser;
   auto nodes = parser.parse("- [ ] hhh");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::checkbox);
+  CHECK(node->type() == NodeType::checkbox);
   auto ol = (OrderedList*)node;
-  ASSERT_EQ(ol->children().size(), 1);
+  CHECK(ol->children().size() == 1);
   auto item = ol->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::checkbox_item);
+  CHECK(item->type() == NodeType::checkbox_item);
   auto ul_item = (OrderedListItem*)item;
-  ASSERT_EQ(ul_item->children().size(), 1);
+  CHECK(ul_item->children().size() == 1);
   auto text = ul_item->children().at(0);
-  ASSERT_EQ(text->type(), NodeType::text);
+  CHECK(text->type() == NodeType::text);
 }
 
-TEST(ParseCheckboxListTest, OnlyLink) {
+TEST_CASE("ParseCheckboxListTest == OnlyLink") {
   Parser parser;
   auto nodes = parser.parse("- [ ] [666](http://www.666.com)");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::checkbox);
+  CHECK(node->type() == NodeType::checkbox);
   auto ol = (OrderedList*)node;
-  ASSERT_EQ(ol->children().size(), 1);
+  CHECK(ol->children().size() == 1);
   auto item = ol->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::checkbox_item);
+  CHECK(item->type() == NodeType::checkbox_item);
   auto ol_item = (OrderedListItem*)item;
-  ASSERT_EQ(ol_item->children().size(), 1);
+  CHECK(ol_item->children().size() == 1);
   auto link = ol_item->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
 }
 
-TEST(ParseCheckboxListTest, TextAndLink) {
+TEST_CASE("ParseCheckboxListTest == TextAndLink") {
   Parser parser;
   auto nodes = parser.parse("- [ ] sdfg[666](http://www.666.com)sdfg");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::checkbox);
+  CHECK(node->type() == NodeType::checkbox);
   auto ul = (OrderedList*)node;
-  ASSERT_EQ(ul->children().size(), 1);
+  CHECK(ul->children().size() == 1);
   auto item = ul->children().at(0);
-  ASSERT_EQ(item->type(), NodeType::checkbox_item);
+  CHECK(item->type() == NodeType::checkbox_item);
   auto ol_item = (OrderedListItem*)item;
-  ASSERT_EQ(ol_item->children().size(), 3);
+  CHECK(ol_item->children().size() == 3);
   {
     auto text = ol_item->children().at(0);
-    ASSERT_EQ(text->type(), NodeType::text);
+    CHECK(text->type() == NodeType::text);
   }
   auto link = ol_item->children().at(1);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
   {
     auto text = ol_item->children().at(2);
-    ASSERT_EQ(text->type(), NodeType::text);
+    CHECK(text->type() == NodeType::text);
   }
 }
 
-TEST(ParseImageTest, Only) {
+TEST_CASE("ParseImageTest == Only") {
   Parser parser;
   auto nodes = parser.parse("![666](http://www.666.com)");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::image);
+  CHECK(link->type() == NodeType::image);
 }
 
-TEST(ParseLinkTest, Only) {
+TEST_CASE("ParseLinkTest == Only") {
   Parser parser;
   auto nodes = parser.parse("[666](http://www.666.com)");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
 }
-TEST(ParseInlineCodeTest, Only) {
+TEST_CASE("ParseInlineCodeTest == Only") {
   Parser parser;
   auto nodes = parser.parse("`#include`");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::inline_code);
+  CHECK(link->type() == NodeType::inline_code);
 }
-TEST(ParseInlineLatexTest, Only) {
+TEST_CASE("ParseInlineLatexTest == Only") {
   Parser parser;
   auto nodes = parser.parse("$a^2$");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::inline_latex);
+  CHECK(link->type() == NodeType::inline_latex);
 }
-TEST(ParseItalicTest, Only) {
+TEST_CASE("ParseItalicTest == Only") {
   Parser parser;
   auto nodes = parser.parse("*666*");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::italic);
+  CHECK(link->type() == NodeType::italic);
 }
-TEST(ParseBoldTest, Only) {
+TEST_CASE("ParseBoldTest == Only") {
   Parser parser;
   auto nodes = parser.parse("**666**");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::bold);
+  CHECK(link->type() == NodeType::bold);
 }
 
-TEST(ParseItalicBoldBoldTest, Only) {
+TEST_CASE("ParseItalicBoldBoldTest == Only") {
   Parser parser;
   auto nodes = parser.parse("***666***");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::italic_bold);
+  CHECK(link->type() == NodeType::italic_bold);
 }
 
-TEST(ParseStrickoutTest, Only) {
+TEST_CASE("ParseStrickoutTest == Only") {
   Parser parser;
   auto nodes = parser.parse("~~666~~");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 1);
+  CHECK(p->children().size() == 1);
   auto link = p->children().at(0);
-  ASSERT_EQ(link->type(), NodeType::strickout);
+  CHECK(link->type() == NodeType::strickout);
 }
 
-TEST(ParseLinkTest, Middle) {
+TEST_CASE("ParseLinkTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before[666](http://www.666.com)after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto link = p->children().at(1);
-  ASSERT_EQ(link->type(), NodeType::link);
+  CHECK(link->type() == NodeType::link);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
-TEST(ParseInlineCodeTest, Middle) {
+TEST_CASE("ParseInlineCodeTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before`#include`after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto ic = p->children().at(1);
-  ASSERT_EQ(ic->type(), NodeType::inline_code);
+  CHECK(ic->type() == NodeType::inline_code);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
-TEST(ParseInlineLatexTest, Middle) {
+TEST_CASE("ParseInlineLatexTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before$a^2$after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto il = p->children().at(1);
-  ASSERT_EQ(il->type(), NodeType::inline_latex);
+  CHECK(il->type() == NodeType::inline_latex);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
-TEST(ParseItalicTest, Middle) {
+TEST_CASE("ParseItalicTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before*666*after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto i = p->children().at(1);
-  ASSERT_EQ(i->type(), NodeType::italic);
+  CHECK(i->type() == NodeType::italic);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
-TEST(ParseBoldTest, Middle) {
+TEST_CASE("ParseBoldTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before**666**after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto b = p->children().at(1);
-  ASSERT_EQ(b->type(), NodeType::bold);
+  CHECK(b->type() == NodeType::bold);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
 
-TEST(ParseItalicBoldBoldTest, Middle) {
+TEST_CASE("ParseItalicBoldBoldTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before***666***after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto it = p->children().at(1);
-  ASSERT_EQ(it->type(), NodeType::italic_bold);
+  CHECK(it->type() == NodeType::italic_bold);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
 
-TEST(ParseStrickoutTest, Middle) {
+TEST_CASE("ParseStrickoutTest == Middle") {
   Parser parser;
   auto nodes = parser.parse("before~~666~~after");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
-  ASSERT_EQ(p->children().size(), 3);
+  CHECK(p->children().size() == 3);
   auto before = p->children().at(0);
-  ASSERT_EQ(before->type(), NodeType::text);
+  CHECK(before->type() == NodeType::text);
   auto strickout = p->children().at(1);
-  ASSERT_EQ(strickout->type(), NodeType::strickout);
+  CHECK(strickout->type() == NodeType::strickout);
   auto after = p->children().at(2);
-  ASSERT_EQ(after->type(), NodeType::text);
+  CHECK(after->type() == NodeType::text);
 }
 
-TEST(ParseParagraphTest, OnlyTextOneSharp) {
+TEST_CASE("ParseParagraphTest == OnlyTextOneSharp") {
   auto nodes = Parser::parse("#");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto paragraphNode = (Paragraph*)node;
-  ASSERT_EQ(paragraphNode->size(), 1);
+  CHECK(paragraphNode->size() == 1);
   auto text = paragraphNode->childAt(0);
-  ASSERT_EQ(text->type(), NodeType::text);
+  CHECK(text->type() == NodeType::text);
 }
 
-TEST(ParseParagraphTest, OnlyTextThreeBackquote) {
+TEST_CASE("ParseParagraphTest == OnlyTextThreeBackquote") {
   auto nodes = Parser::parse("```");
-  ASSERT_EQ(nodes->size(), 1);
+  CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
-  ASSERT_EQ(node->type(), NodeType::paragraph);
+  CHECK(node->type() == NodeType::paragraph);
   auto paragraphNode = (Paragraph*)node;
-  ASSERT_EQ(paragraphNode->size(), 1);
+  CHECK(paragraphNode->size() == 1);
   auto text = paragraphNode->childAt(0);
-  ASSERT_EQ(text->type(), NodeType::text);
+  CHECK(text->type() == NodeType::text);
 }

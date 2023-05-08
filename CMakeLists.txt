@@ -3,12 +3,10 @@ project(QtMarkdown
         VERSION 1.0.0
         DESCRIPTION "A simple markdown editor"
         )
-set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(QT ON)
-add_subdirectory(3rd/MicroTeX)
-add_subdirectory(3rd/magic_enum)
+add_subdirectory(3rd)
 if (MSVC)
     add_compile_options("/utf-8")
     if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_LIST_DIR})
