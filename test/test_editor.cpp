@@ -17,7 +17,7 @@ using namespace md::editor;
 using md::parser::NodeType;
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
-TEST_CASE("ParagraphEditTest == EmptyParagraphInsertText") {
+TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
   Editor editor;
   editor.loadText("");
   editor.insertText("a");
@@ -36,7 +36,7 @@ TEST_CASE("ParagraphEditTest == EmptyParagraphInsertText") {
   auto s = textNode->toString(doc.get());
   CHECK(s == "a");
 }
-TEST_CASE("ParagraphEditTest == EmptyParagraphInsertReturn") {
+TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertReturn") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
@@ -59,7 +59,7 @@ TEST_CASE("ParagraphEditTest == EmptyParagraphInsertReturn") {
     CHECK(paragraphNode->size() == 0);
   }
 }
-TEST_CASE("ParagraphEditTest == EmptyParagraphInsertTextAndRemoveText") {
+TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertTextAndRemoveText") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
@@ -96,7 +96,7 @@ TEST_CASE("ParagraphEditTest == EmptyParagraphInsertTextAndRemoveText") {
     CHECK(s == QString("ac"));
   }
 }
-TEST_CASE("ParagraphEditTest == RemoveInStartOfPargraph") {
+TEST_CASE("ParagraphEditTest,  RemoveInStartOfPargraph") {
   Editor editor;
   editor.loadText(R"(
 a
@@ -129,7 +129,7 @@ b
     CHECK(s == QString("ab"));
   }
 }
-TEST_CASE("ParagraphEditTest == RemoveEmoji") {
+TEST_CASE("ParagraphEditTest,  RemoveEmoji") {
   Editor editor;
   editor.loadText(R"(
 a😊b
@@ -163,7 +163,7 @@ a😊b
     CHECK(line.length() == 0);
   }
 }
-TEST_CASE("ParagraphEditTest == RemoveEmoji2") {
+TEST_CASE("ParagraphEditTest,  RemoveEmoji2") {
   Editor editor;
   QString s;
   editor.loadText(R"(
@@ -185,7 +185,7 @@ a [666](www.baidu.com) b 😊
   }
 }
 
-TEST_CASE("ParagraphEditTest == RemoveText") {
+TEST_CASE("ParagraphEditTest,  RemoveText") {
   Editor editor;
   QString s;
   editor.loadText(R"(
@@ -205,7 +205,7 @@ ab
   CHECK(blocks.size() == 2);
 }
 
-TEST_CASE("ParagraphEditTest == RemoveEmptyLink") {
+TEST_CASE("ParagraphEditTest,  RemoveEmptyLink") {
   Editor editor;
   QString s;
   editor.loadText(R"(
@@ -225,7 +225,7 @@ a[b](c)d
   CHECK(blocks.size() == 1);
 }
 
-TEST_CASE("ParagraphEditTest == UpgradeToHeader") {
+TEST_CASE("ParagraphEditTest,  UpgradeToHeader") {
   Editor editor;
   editor.loadText("#");
   auto doc = editor.document();
@@ -244,7 +244,7 @@ TEST_CASE("ParagraphEditTest == UpgradeToHeader") {
   CHECK(headerNode->size() == 0);
 }
 
-TEST_CASE("ParagraphEditTest == UpgradeToHeaderAndDegradeToParagraphAndRemoveText") {
+TEST_CASE("ParagraphEditTest,  UpgradeToHeaderAndDegradeToParagraphAndRemoveText") {
   Editor editor;
   QString s;
   editor.loadText(R"(
@@ -312,7 +312,7 @@ a
     CHECK(s == QString("a"));
   }
 }
-TEST_CASE("ParagraphEditTest == UpgradeToUl") {
+TEST_CASE("ParagraphEditTest,  UpgradeToUl") {
   Editor editor;
   editor.loadText("-");
   auto doc = editor.document();
@@ -334,7 +334,7 @@ TEST_CASE("ParagraphEditTest == UpgradeToUl") {
   auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
   CHECK(ulItemNode->size() == 0);
 }
-TEST_CASE("ParagraphEditTest == UpgradeToCodeBlock") {
+TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlock") {
   Editor editor;
   editor.loadText("```");
   auto doc = editor.document();
@@ -355,7 +355,7 @@ TEST_CASE("ParagraphEditTest == UpgradeToCodeBlock") {
     CHECK(codeBlockNode->size() == 0);
   }
 }
-TEST_CASE("ParagraphEditTest == UpgradeToCodeBlockWithOtherText") {
+TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlockWithOtherText") {
   Editor editor;
   editor.loadText("```asdfasdf");
   auto doc = editor.document();
@@ -393,7 +393,7 @@ TEST_CASE("ParagraphEditTest == UpgradeToCodeBlockWithOtherText") {
     CHECK(s == QString("asdfasdf"));
   }
 }
-TEST_CASE("UlEditTest == DegradeToParagraph") {
+TEST_CASE("UlEditTest,  DegradeToParagraph") {
   Editor editor;
   editor.loadText("- ");
   auto doc = editor.document();
@@ -411,7 +411,7 @@ TEST_CASE("UlEditTest == DegradeToParagraph") {
   auto paragraphNode = (md::parser::Paragraph*)node;
   CHECK(paragraphNode->size() == 0);
 }
-TEST_CASE("UlEditTest == InsertSpace") {
+TEST_CASE("UlEditTest,  InsertSpace") {
   Editor editor;
   editor.loadText("- []");
   auto doc = editor.document();
@@ -443,7 +443,7 @@ TEST_CASE("UlEditTest == InsertSpace") {
     CHECK(s == QString("[ ]"));
   }
 }
-TEST_CASE("UlEditTest == UpgradeToCheckbox") {
+TEST_CASE("UlEditTest,  UpgradeToCheckbox") {
   Editor editor;
   editor.loadText("- ");
   auto doc = editor.document();
@@ -466,7 +466,7 @@ TEST_CASE("UlEditTest == UpgradeToCheckbox") {
   auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
   CHECK(ulItemNode->size() == 0);
 }
-TEST_CASE("UlEditTest == InsertReturn") {
+TEST_CASE("UlEditTest,  InsertReturn") {
   Editor editor;
   editor.loadText(R"(
 - GIF啊
@@ -516,7 +516,7 @@ TEST_CASE("UlEditTest == InsertReturn") {
     CHECK(line.length() == 4);
   }
 }
-TEST_CASE("CheckboxEditTest == DegradeToParagraph") {
+TEST_CASE("CheckboxEditTest,  DegradeToParagraph") {
   Editor editor;
   editor.loadText("- [ ] ");
   auto doc = editor.document();
@@ -536,7 +536,7 @@ TEST_CASE("CheckboxEditTest == DegradeToParagraph") {
   auto paragraphNode = (md::parser::Paragraph*)node;
   CHECK(paragraphNode->size() == 0);
 }
-TEST_CASE("CheckboxEditTest == DegradeToParagraph2") {
+TEST_CASE("CheckboxEditTest,  DegradeToParagraph2") {
   Editor editor;
   editor.loadText("- [ ] 666");
   auto doc = editor.document();
@@ -557,7 +557,7 @@ TEST_CASE("CheckboxEditTest == DegradeToParagraph2") {
   CHECK(paragraphNode->size() == 1);
 }
 
-TEST_CASE("CheckboxEditTest == EmptyCheckBoxInsertReturn") {
+TEST_CASE("CheckboxEditTest,  EmptyCheckBoxInsertReturn") {
   Editor editor;
   editor.loadText(R"(
 - [ ] a
@@ -594,7 +594,7 @@ TEST_CASE("CheckboxEditTest == EmptyCheckBoxInsertReturn") {
     CHECK(node->type() == md::parser::NodeType::paragraph);
   }
 }
-TEST_CASE("EditorTest == HeaderReturn") {
+TEST_CASE("EditorTest,  HeaderReturn") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
@@ -626,7 +626,7 @@ TEST_CASE("EditorTest == HeaderReturn") {
   }
 }
 
-TEST_CASE("CodeBlockEditTest == InsertText") {
+TEST_CASE("CodeBlockEditTest,  InsertText") {
   Editor editor;
   editor.loadText(R"(
 ```
@@ -720,7 +720,7 @@ TEST_CASE("CodeBlockEditTest == InsertText") {
   }
 }
 
-TEST_CASE("CursorMoveTest == Emoji") {
+TEST_CASE("CursorMoveTest,  Emoji") {
   Editor editor;
   editor.loadText(R"(
 a😊b
@@ -751,7 +751,7 @@ a😊b
   doc->updateCursor(cursor, coord);
   CHECK(cursor.coord().offset == 0);
 }
-TEST_CASE("PreeditTest == ShowPreedit") {
+TEST_CASE("PreeditTest,  ShowPreedit") {
   Editor editor;
   editor.loadText(R"()");
   editor.setPreedit("a");
@@ -780,7 +780,7 @@ TEST_CASE("PreeditTest == ShowPreedit") {
   CHECK(blocks[0].logicalLineAt(0).length() == 3);
 }
 
-TEST_CASE("PreeditTest == ShowPreedit2") {
+TEST_CASE("PreeditTest,  ShowPreedit2") {
   Editor editor;
   editor.loadText(R"(
 # a
@@ -816,7 +816,7 @@ TEST_CASE("PreeditTest == ShowPreedit2") {
   }
 }
 
-TEST_CASE("MultiBlockEditTest == RemoveEmptyParagraph") {
+TEST_CASE("MultiBlockEditTest,  RemoveEmptyParagraph") {
   Editor editor;
   editor.loadText(R"(
 # a
@@ -843,7 +843,7 @@ c
   CHECK(coord.lineNo == 0);
   CHECK(coord.offset == 1);
 }
-TEST_CASE("UndoTest == InsertReturn") {
+TEST_CASE("UndoTest,  InsertReturn") {
   Editor editor;
   editor.loadText(R"(
 ab

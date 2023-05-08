@@ -10,7 +10,7 @@
 #include "parser/Token.h"
 using namespace md::parser;
 
-TEST_CASE("ParseUnorderedListTest == OnlyText") {
+TEST_CASE("ParseUnorderedListTest,  OnlyText") {
   auto nodes = Parser::parse("- hhh");
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
@@ -25,7 +25,7 @@ TEST_CASE("ParseUnorderedListTest == OnlyText") {
   CHECK(text->type() == NodeType::text);
 }
 
-TEST_CASE("ParseUnorderedListTest == OnlyLink") {
+TEST_CASE("ParseUnorderedListTest,  OnlyLink") {
   auto nodes = Parser::parse("- [666](http://www.666.com)");
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
@@ -40,7 +40,7 @@ TEST_CASE("ParseUnorderedListTest == OnlyLink") {
   CHECK(link->type() == NodeType::link);
 }
 
-TEST_CASE("ParseUnorderedListTest == TextAndLink") {
+TEST_CASE("ParseUnorderedListTest,  TextAndLink") {
   auto nodes = Parser::parse("- sdfg[666](http://www.666.com)sdfg");
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
@@ -63,7 +63,7 @@ TEST_CASE("ParseUnorderedListTest == TextAndLink") {
   }
 }
 
-TEST_CASE("ParseOrderedListTest == OnlyText") {
+TEST_CASE("ParseOrderedListTest,  OnlyText") {
   auto nodes = Parser::parse("1. hhh");
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
@@ -78,7 +78,7 @@ TEST_CASE("ParseOrderedListTest == OnlyText") {
   CHECK(text->type() == NodeType::text);
 }
 
-TEST_CASE("ParseOrderedListTest == OnlyLink") {
+TEST_CASE("ParseOrderedListTest,  OnlyLink") {
   Parser parser;
   auto nodes = parser.parse("1. [666](http://www.666.com)");
   CHECK(nodes->size() == 1);
@@ -94,7 +94,7 @@ TEST_CASE("ParseOrderedListTest == OnlyLink") {
   CHECK(link->type() == NodeType::link);
 }
 
-TEST_CASE("ParseOrderedListTest == TextAndLink") {
+TEST_CASE("ParseOrderedListTest,  TextAndLink") {
   Parser parser;
   auto nodes = parser.parse("1. sdfg[666](http://www.666.com)sdfg");
   CHECK(nodes->size() == 1);
@@ -118,7 +118,7 @@ TEST_CASE("ParseOrderedListTest == TextAndLink") {
   }
 }
 
-TEST_CASE("ParseCheckboxListTest == OnlyText") {
+TEST_CASE("ParseCheckboxListTest,  OnlyText") {
   Parser parser;
   auto nodes = parser.parse("- [ ] hhh");
   CHECK(nodes->size() == 1);
@@ -134,7 +134,7 @@ TEST_CASE("ParseCheckboxListTest == OnlyText") {
   CHECK(text->type() == NodeType::text);
 }
 
-TEST_CASE("ParseCheckboxListTest == OnlyLink") {
+TEST_CASE("ParseCheckboxListTest,  OnlyLink") {
   Parser parser;
   auto nodes = parser.parse("- [ ] [666](http://www.666.com)");
   CHECK(nodes->size() == 1);
@@ -150,7 +150,7 @@ TEST_CASE("ParseCheckboxListTest == OnlyLink") {
   CHECK(link->type() == NodeType::link);
 }
 
-TEST_CASE("ParseCheckboxListTest == TextAndLink") {
+TEST_CASE("ParseCheckboxListTest,  TextAndLink") {
   Parser parser;
   auto nodes = parser.parse("- [ ] sdfg[666](http://www.666.com)sdfg");
   CHECK(nodes->size() == 1);
@@ -174,7 +174,7 @@ TEST_CASE("ParseCheckboxListTest == TextAndLink") {
   }
 }
 
-TEST_CASE("ParseImageTest == Only") {
+TEST_CASE("ParseImageTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("![666](http://www.666.com)");
   CHECK(nodes->size() == 1);
@@ -186,7 +186,7 @@ TEST_CASE("ParseImageTest == Only") {
   CHECK(link->type() == NodeType::image);
 }
 
-TEST_CASE("ParseLinkTest == Only") {
+TEST_CASE("ParseLinkTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("[666](http://www.666.com)");
   CHECK(nodes->size() == 1);
@@ -197,7 +197,7 @@ TEST_CASE("ParseLinkTest == Only") {
   auto link = p->children().at(0);
   CHECK(link->type() == NodeType::link);
 }
-TEST_CASE("ParseInlineCodeTest == Only") {
+TEST_CASE("ParseInlineCodeTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("`#include`");
   CHECK(nodes->size() == 1);
@@ -208,7 +208,7 @@ TEST_CASE("ParseInlineCodeTest == Only") {
   auto link = p->children().at(0);
   CHECK(link->type() == NodeType::inline_code);
 }
-TEST_CASE("ParseInlineLatexTest == Only") {
+TEST_CASE("ParseInlineLatexTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("$a^2$");
   CHECK(nodes->size() == 1);
@@ -219,7 +219,7 @@ TEST_CASE("ParseInlineLatexTest == Only") {
   auto link = p->children().at(0);
   CHECK(link->type() == NodeType::inline_latex);
 }
-TEST_CASE("ParseItalicTest == Only") {
+TEST_CASE("ParseItalicTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("*666*");
   CHECK(nodes->size() == 1);
@@ -230,7 +230,7 @@ TEST_CASE("ParseItalicTest == Only") {
   auto link = p->children().at(0);
   CHECK(link->type() == NodeType::italic);
 }
-TEST_CASE("ParseBoldTest == Only") {
+TEST_CASE("ParseBoldTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("**666**");
   CHECK(nodes->size() == 1);
@@ -242,7 +242,7 @@ TEST_CASE("ParseBoldTest == Only") {
   CHECK(link->type() == NodeType::bold);
 }
 
-TEST_CASE("ParseItalicBoldBoldTest == Only") {
+TEST_CASE("ParseItalicBoldBoldTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("***666***");
   CHECK(nodes->size() == 1);
@@ -254,7 +254,7 @@ TEST_CASE("ParseItalicBoldBoldTest == Only") {
   CHECK(link->type() == NodeType::italic_bold);
 }
 
-TEST_CASE("ParseStrickoutTest == Only") {
+TEST_CASE("ParseStrickoutTest,  Only") {
   Parser parser;
   auto nodes = parser.parse("~~666~~");
   CHECK(nodes->size() == 1);
@@ -266,7 +266,7 @@ TEST_CASE("ParseStrickoutTest == Only") {
   CHECK(link->type() == NodeType::strickout);
 }
 
-TEST_CASE("ParseLinkTest == Middle") {
+TEST_CASE("ParseLinkTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before[666](http://www.666.com)after");
   CHECK(nodes->size() == 1);
@@ -281,7 +281,7 @@ TEST_CASE("ParseLinkTest == Middle") {
   auto after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
-TEST_CASE("ParseInlineCodeTest == Middle") {
+TEST_CASE("ParseInlineCodeTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before`#include`after");
   CHECK(nodes->size() == 1);
@@ -296,7 +296,7 @@ TEST_CASE("ParseInlineCodeTest == Middle") {
   auto after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
-TEST_CASE("ParseInlineLatexTest == Middle") {
+TEST_CASE("ParseInlineLatexTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before$a^2$after");
   CHECK(nodes->size() == 1);
@@ -311,7 +311,7 @@ TEST_CASE("ParseInlineLatexTest == Middle") {
   auto after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
-TEST_CASE("ParseItalicTest == Middle") {
+TEST_CASE("ParseItalicTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before*666*after");
   CHECK(nodes->size() == 1);
@@ -326,7 +326,7 @@ TEST_CASE("ParseItalicTest == Middle") {
   auto after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
-TEST_CASE("ParseBoldTest == Middle") {
+TEST_CASE("ParseBoldTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before**666**after");
   CHECK(nodes->size() == 1);
@@ -342,7 +342,7 @@ TEST_CASE("ParseBoldTest == Middle") {
   CHECK(after->type() == NodeType::text);
 }
 
-TEST_CASE("ParseItalicBoldBoldTest == Middle") {
+TEST_CASE("ParseItalicBoldBoldTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before***666***after");
   CHECK(nodes->size() == 1);
@@ -358,7 +358,7 @@ TEST_CASE("ParseItalicBoldBoldTest == Middle") {
   CHECK(after->type() == NodeType::text);
 }
 
-TEST_CASE("ParseStrickoutTest == Middle") {
+TEST_CASE("ParseStrickoutTest,  Middle") {
   Parser parser;
   auto nodes = parser.parse("before~~666~~after");
   CHECK(nodes->size() == 1);
@@ -374,7 +374,7 @@ TEST_CASE("ParseStrickoutTest == Middle") {
   CHECK(after->type() == NodeType::text);
 }
 
-TEST_CASE("ParseParagraphTest == OnlyTextOneSharp") {
+TEST_CASE("ParseParagraphTest,  OnlyTextOneSharp") {
   auto nodes = Parser::parse("#");
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
@@ -385,7 +385,7 @@ TEST_CASE("ParseParagraphTest == OnlyTextOneSharp") {
   CHECK(text->type() == NodeType::text);
 }
 
-TEST_CASE("ParseParagraphTest == OnlyTextThreeBackquote") {
+TEST_CASE("ParseParagraphTest,  OnlyTextThreeBackquote") {
   auto nodes = Parser::parse("```");
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
