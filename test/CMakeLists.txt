@@ -31,3 +31,12 @@ target_link_libraries(test_stringutil PRIVATE QtMarkdownRender
 doctest::doctest
         )
 add_test(NAME test_stringutil COMMAND test_stringutil)
+
+
+add_executable(test_insert_newline test_insert_newline.cpp)
+target_compile_definitions(test_insert_newline PRIVATE -D_XKEYCHECK_H)
+target_link_libraries(test_insert_newline PRIVATE QtMarkdownEditorCore
+doctest::doctest
+        )
+add_test(NAME test_insert_newline COMMAND test_insert_newline)
+
