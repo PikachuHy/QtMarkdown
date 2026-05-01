@@ -405,6 +405,11 @@ void Editor::keyPressEvent(KeyEvent *event) {
     this->m_doc->undo(*m_cursor);
     return;
   }
+  if (key == Qt::Key_Y && m_holdCtrl) {
+    DEBUG << "redo";
+    this->m_doc->redo(*m_cursor);
+    return;
+  }
   if (m_holdCtrl) {
     if (key == Qt::Key_1) {
       m_doc->upgradeToHeader(*m_cursor, 1);

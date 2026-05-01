@@ -376,8 +376,7 @@ bool Document::isBol(const CursorCoord& coord) const {
 void Document::undo(Cursor& cursor) { m_commandStack->undo(cursor);
   ensureTrailingParagraph(); }
 void Document::redo(Cursor& cursor) {
-  // NOTE: Currently does NOT delegate to m_commandStack->redo().
-  // ensureTrailingParagraph() is forward-compatible safety.
+  m_commandStack->redo(cursor);
   ensureTrailingParagraph();
 }
 void Document::upgradeToHeader(const Cursor& cursor, int level) {

@@ -1051,6 +1051,146 @@ a😊b
   }
 }
 
+TEST_CASE("RedoTest, InsertTextRedo") {
+  Editor editor;
+  editor.loadText(R"(
+ab
+)");
+  auto doc = editor.document();
+  auto& cursor = *editor.m_cursor;
+
+  // Type 'c' at end
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->insertText(cursor, "c");
+  CHECK(cursor.coord().offset == 3);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "abc");
+  }
+
+  // Undo: back to "ab"
+  doc->undo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "ab");
+  }
+
+  // Redo: back to "abc"
+  doc->redo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "abc");
+  }
+  CHECK(cursor.coord().offset == 3);
+}
+
+TEST_CASE("RedoTest, RemoveTextRedo") {
+  Editor editor;
+  editor.loadText(R"(
+ab
+)");
+  auto doc = editor.document();
+  auto& cursor = *editor.m_cursor;
+
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->removeText(cursor);  // "ab" -> "a"
+  CHECK(cursor.coord().offset == 1);
+
+  // Undo: back to "ab"
+  doc->undo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "ab");
+  }
+  CHECK(cursor.coord().offset == 2);
+
+  // Redo: back to "a"
+  doc->redo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "a");
+  }
+  CHECK(cursor.coord().offset == 1);
+}
+
+TEST_CASE("RedoTest, RedoAtTopDoesNothing") {
+  Editor editor;
+  editor.loadText(R"(
+ab
+)");
+  auto doc = editor.document();
+  auto& cursor = *editor.m_cursor;
+
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+
+  // Redo with nothing to redo should be a no-op
+  doc->redo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "ab");
+  }
+}
+
+TEST_CASE("RedoTest, NewActionClearsRedoHistory") {
+  Editor editor;
+  editor.loadText(R"(
+a
+)");
+  auto doc = editor.document();
+  auto& cursor = *editor.m_cursor;
+
+  // Type 'b' at end: "a" -> "ab"
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->insertText(cursor, "b");
+  CHECK(cursor.coord().offset == 2);
+
+  // Undo: back to "a", cursor restored to pre-insertion position
+  doc->undo(cursor);
+  CHECK(cursor.coord().offset == 1);
+
+  // Type 'c' instead (clears redo history): "a" -> "ac"
+  doc->insertText(cursor, "c");
+
+  // Redo should do nothing (history cleared), text stays "ac"
+  doc->redo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "ac");
+  }
+}
+
 int main(int argc, char** argv) {
   // 必须加这一句
   // 不然调用字体(QFontMetric)时会崩溃
