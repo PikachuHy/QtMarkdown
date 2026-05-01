@@ -138,6 +138,15 @@ class InsertReturnVisitor
   }
   void visit(CodeBlock* node) override {
     beginInsertReturn();
+    if (!this->hasTextNode) {
+      // Cursor is on an empty line. Insert a new empty Text child and re-render.
+      node->insertChild(coord.lineNo + 1, std::make_unique<Text>(0, 0));
+      m_doc->renderBlock(coord.blockNo);
+      coord.lineNo++;
+      coord.offset = 0;
+      updateCursor(cursor, coord);
+      return;
+    }
     node->removeChildAt(coord.lineNo);
     node->insertChild(coord.lineNo, std::move(leftTextNode));
     node->insertChild(coord.lineNo + 1, std::move(rightTextNode));

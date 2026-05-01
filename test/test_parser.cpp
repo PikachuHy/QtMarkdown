@@ -124,11 +124,11 @@ TEST_CASE("ParseCheckboxListTest,  OnlyText") {
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
   CHECK(node->type() == NodeType::checkbox);
-  auto ol = (OrderedList*)node;
+  auto ol = static_cast<CheckboxList*>(node);
   CHECK(ol->children().size() == 1);
   auto& item = ol->children().at(0);
   CHECK(item->type() == NodeType::checkbox_item);
-  auto ul_item = (OrderedListItem*)item.get();
+  auto ul_item = static_cast<CheckboxItem*>(item.get());
   CHECK(ul_item->children().size() == 1);
   auto& text = ul_item->children().at(0);
   CHECK(text->type() == NodeType::text);
@@ -140,11 +140,11 @@ TEST_CASE("ParseCheckboxListTest,  OnlyLink") {
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
   CHECK(node->type() == NodeType::checkbox);
-  auto ol = (OrderedList*)node;
+  auto ol = static_cast<CheckboxList*>(node);
   CHECK(ol->children().size() == 1);
   auto& item = ol->children().at(0);
   CHECK(item->type() == NodeType::checkbox_item);
-  auto ol_item = (OrderedListItem*)item.get();
+  auto ol_item = static_cast<CheckboxItem*>(item.get());
   CHECK(ol_item->children().size() == 1);
   auto& link = ol_item->children().at(0);
   CHECK(link->type() == NodeType::link);
@@ -156,11 +156,11 @@ TEST_CASE("ParseCheckboxListTest,  TextAndLink") {
   CHECK(nodes->size() == 1);
   auto node = nodes->childAt(0);
   CHECK(node->type() == NodeType::checkbox);
-  auto ul = (OrderedList*)node;
+  auto ul = static_cast<CheckboxList*>(node);
   CHECK(ul->children().size() == 1);
   auto& item = ul->children().at(0);
   CHECK(item->type() == NodeType::checkbox_item);
-  auto ol_item = (OrderedListItem*)item.get();
+  auto ol_item = static_cast<CheckboxItem*>(item.get());
   CHECK(ol_item->children().size() == 3);
   {
     auto& text = ol_item->children().at(0);

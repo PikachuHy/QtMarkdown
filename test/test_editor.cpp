@@ -461,11 +461,11 @@ TEST_CASE("UlEditTest,  UpgradeToCheckbox") {
   CHECK(doc->root()->size() == 2);
   auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::checkbox);
-  auto ulNode = (md::parser::UnorderedList*)node;
+  auto ulNode = static_cast<md::parser::CheckboxList*>(node);
   CHECK(ulNode->size() == 1);
   auto ulItem = ulNode->childAt(0);
   CHECK(ulItem->type() == md::parser::NodeType::checkbox_item);
-  auto ulItemNode = (md::parser::UnorderedListItem*)ulItem;
+  auto ulItemNode = static_cast<md::parser::CheckboxItem*>(ulItem);
   CHECK(ulItemNode->size() == 0);
 }
 TEST_CASE("UlEditTest,  InsertReturn") {
