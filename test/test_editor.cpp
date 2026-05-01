@@ -24,8 +24,8 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
   auto doc = editor.document();
   auto& blocks = doc->m_blocks;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto p = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto p = doc->root()->childAt(0);
 
   CHECK(p->type() == NodeType::paragraph);
   auto paragraphNode = (md::parser::Paragraph*)p;
@@ -33,7 +33,7 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
   auto child = paragraphNode->childAt(0);
   CHECK(child->type() == NodeType::text);
   auto textNode = (md::parser::Text*)child;
-  auto s = textNode->toString(doc.get());
+  auto s = textNode->toString(doc->parserDoc());
   CHECK(s == "a");
 }
 TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertReturn") {
@@ -43,16 +43,16 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertReturn") {
   doc->insertReturn(*editor.m_cursor);
   auto& blocks = doc->m_blocks;
   CHECK(blocks.size() == 2);
-  CHECK(doc->m_root->size() == 2);
+  CHECK(doc->root()->size() == 2);
   {
-    auto p = doc->m_root->childAt(0);
+    auto p = doc->root()->childAt(0);
 
     CHECK(p->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)p;
     CHECK(paragraphNode->size() == 0);
   }
   {
-    auto p = doc->m_root->childAt(1);
+    auto p = doc->root()->childAt(1);
 
     CHECK(p->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)p;
@@ -66,33 +66,33 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertTextAndRemoveText") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   editor.insertText("a");
   editor.insertText("c");
   auto coord = doc->moveCursorToLeft(cursor.coord());
   doc->updateCursor(cursor, coord);
   editor.insertText("b");
   {
-    auto p = doc->m_root->childAt(0);
+    auto p = doc->root()->childAt(0);
     CHECK(p->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)p;
     CHECK(paragraphNode->size() == 1);
     auto node = paragraphNode->childAt(0);
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == "abc");
   }
   doc->removeText(cursor);
   {
-    auto p = doc->m_root->childAt(0);
+    auto p = doc->root()->childAt(0);
     CHECK(p->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)p;
     CHECK(paragraphNode->size() == 1);
     auto node = paragraphNode->childAt(0);
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("ac"));
   }
 }
@@ -107,7 +107,7 @@ b
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 2);
-  CHECK(doc->m_root->size() == 2);
+  CHECK(doc->root()->size() == 2);
   auto coord = cursor.coord();
   coord.blockNo = 1;
   coord.lineNo = 0;
@@ -116,16 +116,16 @@ b
   doc->removeText(cursor);
 
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto p = doc->m_root->childAt(0);
+    auto p = doc->root()->childAt(0);
     CHECK(p->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)p;
     CHECK(paragraphNode->size() == 1);
     auto node = paragraphNode->childAt(0);
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("ab"));
   }
 }
@@ -232,13 +232,13 @@ TEST_CASE("ParagraphEditTest,  UpgradeToHeader") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   editor.insertText(" ");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto node = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::header);
   auto headerNode = (md::parser::Header*)node;
   CHECK(headerNode->size() == 0);
@@ -257,27 +257,27 @@ a
   doc->insertText(cursor, "#");
   CHECK(blocks.size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("#a"));
   }
   doc->insertText(cursor, " ");
   CHECK(blocks.size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::header);
     auto headerNode = (md::parser::Header*)node;
     CHECK(headerNode->size() == 1);
     auto child = headerNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
     CursorCoord _coord;
     _coord.blockNo = 0;
@@ -288,27 +288,27 @@ a
   doc->removeText(cursor);
   CHECK(blocks.size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
   }
   doc->removeText(cursor);
   CHECK(blocks.size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
   }
 }
@@ -319,13 +319,13 @@ TEST_CASE("ParagraphEditTest,  UpgradeToUl") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   editor.insertText(" ");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto node = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::ul);
   auto ulNode = (md::parser::UnorderedList*)node;
   CHECK(ulNode->size() == 1);
@@ -341,15 +341,15 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlock") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
 
   doc->insertReturn(cursor);
   {
     CHECK(blocks.size() == 1);
-    CHECK(doc->m_root->size() == 1);
-    auto node = doc->m_root->childAt(0);
+    CHECK(doc->root()->size() == 1);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 0);
@@ -362,7 +362,7 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlockWithOtherText") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToBol(cursor.coord());
   doc->updateCursor(cursor, coord);
   coord = doc->moveCursorToRight(cursor.coord());
@@ -374,22 +374,22 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlockWithOtherText") {
   CHECK(cursor.coord().offset == 3);
   doc->insertReturn(cursor);
   CHECK(blocks.size() == 2);
-  CHECK(doc->m_root->size() == 2);
+  CHECK(doc->root()->size() == 2);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 0);
   }
   {
-    auto node = doc->m_root->childAt(1);
+    auto node = doc->root()->childAt(1);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("asdfasdf"));
   }
 }
@@ -400,13 +400,13 @@ TEST_CASE("UlEditTest,  DegradeToParagraph") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   doc->removeText(*editor.m_cursor);
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto node = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::paragraph);
   auto paragraphNode = (md::parser::Paragraph*)node;
   CHECK(paragraphNode->size() == 0);
@@ -418,7 +418,7 @@ TEST_CASE("UlEditTest,  InsertSpace") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   coord = doc->moveCursorToLeft(coord);
@@ -426,9 +426,9 @@ TEST_CASE("UlEditTest,  InsertSpace") {
   doc->insertText(cursor, " ");
 
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::ul);
     auto ulNode = (md::parser::UnorderedList*)node;
     CHECK(ulNode->size() == 1);
@@ -439,7 +439,7 @@ TEST_CASE("UlEditTest,  InsertSpace") {
     auto child = ulItemNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("[ ]"));
   }
 }
@@ -450,14 +450,14 @@ TEST_CASE("UlEditTest,  UpgradeToCheckbox") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   editor.insertText("[ ]");
   editor.insertText(" ");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto node = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::checkbox);
   auto ulNode = (md::parser::UnorderedList*)node;
   CHECK(ulNode->size() == 1);
@@ -476,8 +476,8 @@ TEST_CASE("UlEditTest,  InsertReturn") {
   auto& cursor = *editor.m_cursor;
   {
     CHECK(blocks.size() == 1);
-    CHECK(doc->m_root->size() == 1);
-    auto node = doc->m_root->childAt(0);
+    CHECK(doc->root()->size() == 1);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::ul);
     auto ulNode = (md::parser::UnorderedList*)node;
     CHECK(ulNode->size() == 1);
@@ -488,7 +488,7 @@ TEST_CASE("UlEditTest,  InsertReturn") {
     auto text = ulItemNode->childAt(0);
     CHECK(text->type() == NodeType::text);
     auto textNode = (md::parser::Text*)text;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("GIF啊"));
     auto& line = blocks[0].logicalLineAt(0);
     CHECK(line.length() == 4);
@@ -498,8 +498,8 @@ TEST_CASE("UlEditTest,  InsertReturn") {
   doc->insertReturn(cursor);
   {
     CHECK(blocks.size() == 1);
-    CHECK(doc->m_root->size() == 1);
-    auto node = doc->m_root->childAt(0);
+    CHECK(doc->root()->size() == 1);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::ul);
     auto ulNode = (md::parser::UnorderedList*)node;
     CHECK(ulNode->size() == 2);
@@ -510,7 +510,7 @@ TEST_CASE("UlEditTest,  InsertReturn") {
     auto text = ulItemNode->childAt(0);
     CHECK(text->type() == NodeType::text);
     auto textNode = (md::parser::Text*)text;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("GIF啊"));
     auto& line = blocks[0].logicalLineAt(0);
     CHECK(line.length() == 4);
@@ -523,15 +523,15 @@ TEST_CASE("CheckboxEditTest,  DegradeToParagraph") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(blocks[0].countOfLogicalLine() == 1);
   CHECK(blocks[0].logicalLineAt(0).m_cells.size() == 0);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   doc->removeText(*editor.m_cursor);
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto node = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::paragraph);
   auto paragraphNode = (md::parser::Paragraph*)node;
   CHECK(paragraphNode->size() == 0);
@@ -543,15 +543,15 @@ TEST_CASE("CheckboxEditTest,  DegradeToParagraph2") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(blocks[0].countOfLogicalLine() == 1);
   CHECK(blocks[0].logicalLineAt(0).m_cells.size() == 1);
   auto coord = doc->moveCursorToBeginOfDocument();
   doc->updateCursor(cursor, coord);
   doc->removeText(*editor.m_cursor);
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
-  auto node = doc->m_root->childAt(0);
+  CHECK(doc->root()->size() == 1);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::paragraph);
   auto paragraphNode = (md::parser::Paragraph*)node;
   CHECK(paragraphNode->size() == 1);
@@ -567,9 +567,9 @@ TEST_CASE("CheckboxEditTest,  EmptyCheckBoxInsertReturn") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::checkbox);
   }
   CursorCoord coord;
@@ -577,20 +577,20 @@ TEST_CASE("CheckboxEditTest,  EmptyCheckBoxInsertReturn") {
   doc->updateCursor(cursor, coord);
   doc->removeText(cursor);
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::checkbox);
   }
   doc->insertReturn(cursor);
   CHECK(blocks.size() == 2);
-  CHECK(doc->m_root->size() == 2);
+  CHECK(doc->root()->size() == 2);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::checkbox);
   }
   {
-    auto node = doc->m_root->childAt(1);
+    auto node = doc->root()->childAt(1);
     CHECK(node->type() == md::parser::NodeType::paragraph);
   }
 }
@@ -601,25 +601,25 @@ TEST_CASE("EditorTest,  HeaderReturn") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   editor.insertText("#");
   editor.insertText(" ");
   editor.insertText("asdfljsaf");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::header);
   }
   doc->insertReturn(cursor);
   CHECK(blocks.size() == 2);
-  CHECK(doc->m_root->size() == 2);
+  CHECK(doc->root()->size() == 2);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::header);
   }
   {
-    auto node = doc->m_root->childAt(1);
+    auto node = doc->root()->childAt(1);
     CHECK(node->type() == md::parser::NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 0);
@@ -636,43 +636,43 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 0);
   }
   doc->insertText(cursor, "a");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 1);
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
   }
   doc->insertReturn(cursor);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 2);
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
     CHECK(blocks[0].countOfLogicalLine() == 2);
   }
   doc->insertText(cursor, "b");
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 2);
@@ -681,40 +681,40 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
       auto child = codeBlockNode->childAt(0);
       CHECK(child->type() == md::parser::NodeType::text);
       auto textNode = (md::parser::Text*)child;
-      auto s = textNode->toString(doc.get());
+      auto s = textNode->toString(doc->parserDoc());
       CHECK(s == QString("a"));
     }
     {
       auto child = codeBlockNode->childAt(1);
       CHECK(child->type() == md::parser::NodeType::text);
       auto textNode = (md::parser::Text*)child;
-      auto s = textNode->toString(doc.get());
+      auto s = textNode->toString(doc->parserDoc());
       CHECK(s == QString("b"));
     }
   }
   doc->removeText(cursor);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 2);
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
     CHECK(blocks[0].countOfLogicalLine() == 2);
   }
   doc->removeText(cursor);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == md::parser::NodeType::code_block);
     auto codeBlockNode = (md::parser::CodeBlock*)node;
     CHECK(codeBlockNode->size() == 1);
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
     CHECK(blocks[0].countOfLogicalLine() == 1);
   }
@@ -729,7 +729,7 @@ a😊b
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 0);
   CursorCoord coord;
   coord = doc->moveCursorToRight(cursor.coord());
@@ -759,22 +759,22 @@ TEST_CASE("PreeditTest,  ShowPreedit") {
   auto& blocks = doc->m_blocks;
   auto& cursor = *editor.m_cursor;
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 1);
   CHECK(blocks[0].logicalLineAt(0).length() == 1);
-  auto node = doc->m_root->childAt(0);
+  auto node = doc->root()->childAt(0);
   CHECK(node->type() == NodeType::paragraph);
   auto paragraphNode = (md::parser::Paragraph*)node;
   CHECK(paragraphNode->size() == 1);
   editor.setPreedit("ab");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 2);
   CHECK(paragraphNode->size() == 1);
   CHECK(blocks[0].logicalLineAt(0).length() == 2);
   editor.setPreedit("abc");
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 3);
   CHECK(paragraphNode->size() == 1);
   CHECK(blocks[0].logicalLineAt(0).length() == 3);
@@ -794,24 +794,24 @@ TEST_CASE("PreeditTest,  ShowPreedit2") {
   doc->updateCursor(cursor, coord);
   doc->removeText(cursor);
   CHECK(blocks.size() == 1);
-  CHECK(doc->m_root->size() == 1);
+  CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 0);
   CHECK(blocks[0].logicalLineAt(0).length() == 0);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::header);
     auto header = (md::parser::Header*)node;
     CHECK(header->size() == 0);
   }
   editor.setPreedit("a");
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::header);
     auto header = (md::parser::Header*)node;
     CHECK(header->size() == 1);
     CHECK(header->childAt(0)->type() == NodeType::text);
     auto textNode = (md::parser::Text*)header->childAt(0);
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
   }
 }
@@ -828,7 +828,7 @@ c
   auto& cursor = *editor.m_cursor;
 
   CHECK(blocks.size() == 3);
-  CHECK(doc->m_root->size() == 3);
+  CHECK(doc->root()->size() == 3);
   auto coord = cursor.coord();
   coord.blockNo = 1;
   coord.lineNo = 0;
@@ -837,7 +837,7 @@ c
   doc->removeText(cursor);
   doc->removeText(cursor);
   CHECK(blocks.size() == 2);
-  CHECK(doc->m_root->size() == 2);
+  CHECK(doc->root()->size() == 2);
   coord = cursor.coord();
   CHECK(coord.blockNo == 0);
   CHECK(coord.lineNo == 0);
@@ -860,38 +860,38 @@ ab
   doc->insertReturn(cursor);
   CHECK(blocks.size() == 2);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("a"));
   }
   {
-    auto node = doc->m_root->childAt(1);
+    auto node = doc->root()->childAt(1);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("b"));
   }
   doc->undo(cursor);
   CHECK(blocks.size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("ab"));
   }
   {
@@ -902,14 +902,14 @@ ab
   doc->undo(cursor);
   CHECK(blocks.size() == 1);
   {
-    auto node = doc->m_root->childAt(0);
+    auto node = doc->root()->childAt(0);
     CHECK(node->type() == NodeType::paragraph);
     auto paragraphNode = (md::parser::Paragraph*)node;
     CHECK(paragraphNode->size() == 1);
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc.get());
+    auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("ab"));
   }
 }

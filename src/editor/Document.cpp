@@ -14,7 +14,7 @@ using namespace md::parser;
 using namespace md::render;
 namespace md::editor {
 Document::Document(const String& str, sptr<RenderSetting> setting)
-    : parser::Document(str), m_setting(setting), m_commandStack(std::make_shared<CommandStack>()) {
+    : m_parserDoc(std::make_unique<parser::Document>(str)), m_setting(setting), m_commandStack(std::make_shared<CommandStack>()) {
   this->renderAllBlock();
 }
 void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos) {
@@ -34,7 +34,7 @@ std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  auto [pos, h] = line.cursorAt(coord.offset, this);
+  auto [pos, h] = line.cursorAt(coord.offset, m_parserDoc.get());
   if (h == line.height()) {
     h -= m_setting->lineSpacing;
   }
@@ -46,7 +46,7 @@ CursorCoord Document::moveCursorToRight(CursorCoord coord) {
   SizeType totalOffset = line.length();
   if (totalOffset >= coord.offset + 1) {
     // 判断emoji
-    String s = line.left(coord.offset + 1, this);
+    String s = line.left(coord.offset + 1, m_parserDoc.get());
     auto ch = s[coord.offset].unicode();
     // 如果是emoji的开始标志，再往后移动一位
     if (ch == 0xd83d || ch == 0xd83c) {
@@ -76,7 +76,7 @@ CursorCoord Document::moveCursorToLeft(CursorCoord coord) {
     if (coord.offset >= 2) {
       // 判断emoji
       auto& line = block.logicalLineAt(coord.lineNo);
-      String s = line.left(coord.offset, this);
+      String s = line.left(coord.offset, m_parserDoc.get());
       auto ch = s[coord.offset - 2].unicode();
       // 如果是emoji的开始标志，再往前移动一位
       if (ch == 0xd83d || ch == 0xd83c) {
@@ -103,16 +103,16 @@ CursorCoord Document::moveCursorToUp(CursorCoord coord, Point pos) {
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   int x = pos.x();
-  if (line.canMoveUp(coord.offset, this)) {
-    coord.offset = line.moveUp(coord.offset, x, this);
+  if (line.canMoveUp(coord.offset, m_parserDoc.get())) {
+    coord.offset = line.moveUp(coord.offset, x, m_parserDoc.get());
   } else {
     if (coord.lineNo > 0) {
       coord.lineNo--;
-      coord.offset = block.logicalLineAt(coord.lineNo).moveToX(x, this, true);
+      coord.offset = block.logicalLineAt(coord.lineNo).moveToX(x, m_parserDoc.get(), true);
     } else if (coord.blockNo > 0) {
       coord.blockNo--;
       coord.lineNo = m_blocks[coord.blockNo].countOfLogicalLine() - 1;
-      coord.offset = m_blocks[coord.blockNo].logicalLineAt(coord.lineNo).moveToX(x, this, true);
+      coord.offset = m_blocks[coord.blockNo].logicalLineAt(coord.lineNo).moveToX(x, m_parserDoc.get(), true);
     } else {
       coord.blockNo = 0;
       coord.lineNo = 0;
@@ -127,17 +127,17 @@ CursorCoord Document::moveCursorToDown(CursorCoord coord, Point pos) {
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   int x = pos.x();
-  if (line.canMoveDown(coord.offset, this)) {
+  if (line.canMoveDown(coord.offset, m_parserDoc.get())) {
     DEBUG << "move down";
-    coord.offset = line.moveDown(coord.offset, x, this);
+    coord.offset = line.moveDown(coord.offset, x, m_parserDoc.get());
   } else {
     if (coord.lineNo + 1 < block.countOfLogicalLine()) {
       coord.lineNo++;
-      coord.offset = block.logicalLineAt(coord.lineNo).moveToX(x, this);
+      coord.offset = block.logicalLineAt(coord.lineNo).moveToX(x, m_parserDoc.get());
     } else if (coord.blockNo + 1 < m_blocks.size()) {
       coord.blockNo++;
       coord.lineNo = 0;
-      coord.offset = m_blocks[coord.blockNo].logicalLineAt(coord.lineNo).moveToX(x, this);
+      coord.offset = m_blocks[coord.blockNo].logicalLineAt(coord.lineNo).moveToX(x, m_parserDoc.get());
     } else {
       coord.offset = line.length();
     }
@@ -180,7 +180,7 @@ CursorCoord Document::moveCursorToPos(Point pos) {
     coord.offset = 0;
     return coord;
   }
-  auto node = m_root->childAt(blockNo);
+  auto node = m_parserDoc->root()->childAt(blockNo);
   if (node->type() == NodeType::ul) {
     for (int i = 0; i < block.countOfLogicalLine(); ++i) {
       (void)block.logicalLineAt(i);
@@ -193,7 +193,7 @@ CursorCoord Document::moveCursorToPos(Point pos) {
       CursorCoord coord;
       coord.blockNo = blockNo;
       coord.lineNo = lineNo;
-      coord.offset = line.offsetAt(Point(pos.x(), pos.y() - oldY), this, m_setting->lineSpacing);
+      coord.offset = line.offsetAt(Point(pos.x(), pos.y() - oldY), m_parserDoc.get(), m_setting->lineSpacing);
       return coord;
     }
     y += line.height();
@@ -220,34 +220,34 @@ void Document::insertReturn(Cursor& cursor) {
 
 void Document::renderAllBlock() {
   m_blocks.clear();
-  for (auto& node : m_root->children()) {
-    Block block = Render::render(node.get(), m_setting, this);
+  for (auto& node : m_parserDoc->root()->children()) {
+    Block block = Render::render(node.get(), m_setting, m_parserDoc.get());
     m_blocks.push_back(std::move(block));
   }
 }
 void Document::replaceBlock(SizeType blockNo, std::unique_ptr<parser::Node> node) {
-  ASSERT(blockNo >= 0 && blockNo < m_root->children().size());
+  ASSERT(blockNo >= 0 && blockNo < m_parserDoc->root()->children().size());
   ASSERT(node != nullptr);
   auto* rawNode = node.get();
-  m_root->setChild(blockNo, std::move(node));
-  m_blocks[blockNo] = Render::render(rawNode, m_setting, this);
+  m_parserDoc->root()->setChild(blockNo, std::move(node));
+  m_blocks[blockNo] = Render::render(rawNode, m_setting, m_parserDoc.get());
 }
 void Document::insertBlock(SizeType blockNo, std::unique_ptr<parser::Node> node) {
-  ASSERT(blockNo >= 0 && blockNo <= m_root->children().size());
+  ASSERT(blockNo >= 0 && blockNo <= m_parserDoc->root()->children().size());
   ASSERT(node != nullptr);
   auto* rawNode = node.get();
-  m_root->insertChild(blockNo, std::move(node));
-  m_blocks.insert(m_blocks.begin() + blockNo, Render::render(rawNode, m_setting, this));
+  m_parserDoc->root()->insertChild(blockNo, std::move(node));
+  m_blocks.insert(m_blocks.begin() + blockNo, Render::render(rawNode, m_setting, m_parserDoc.get()));
 }
 void Document::renderBlock(SizeType blockNo) {
-  ASSERT(blockNo >= 0 && blockNo < m_root->children().size());
-  m_blocks[blockNo] = Render::render(m_root->children()[blockNo].get(), m_setting, this);
+  ASSERT(blockNo >= 0 && blockNo < m_parserDoc->root()->children().size());
+  m_blocks[blockNo] = Render::render(m_parserDoc->root()->children()[blockNo].get(), m_setting, m_parserDoc.get());
 }
 void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
-  ASSERT(blockNo1 >= 0 && blockNo1 < m_root->children().size());
-  ASSERT(blockNo2 >= 0 && blockNo2 < m_root->children().size());
-  auto node1 = node2container(m_root->children()[blockNo1].get());
-  auto node2 = node2container(m_root->children()[blockNo2].get());
+  ASSERT(blockNo1 >= 0 && blockNo1 < m_parserDoc->root()->children().size());
+  ASSERT(blockNo2 >= 0 && blockNo2 < m_parserDoc->root()->children().size());
+  auto node1 = node2container(m_parserDoc->root()->children()[blockNo1].get());
+  auto node2 = node2container(m_parserDoc->root()->children()[blockNo2].get());
   // 需要对Text结点进行合并
   for (auto& child : node2->children()) {
     if (node1->children().empty()) {
@@ -263,7 +263,7 @@ void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
       node1->appendChild(std::move(child));
     }
   }
-  m_root->removeChildAt(blockNo2);
+  m_parserDoc->root()->removeChildAt(blockNo2);
   m_blocks.erase(m_blocks.begin() + blockNo2);
   renderBlock(blockNo1);
 }
@@ -305,7 +305,7 @@ CursorCoord Document::moveCursorToBol(CursorCoord coord) {
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  coord.offset = line.moveToBol(coord.offset, this);
+  coord.offset = line.moveToBol(coord.offset, m_parserDoc.get());
   return coord;
 }
 std::pair<CursorCoord, int> Document::moveCursorToEol(CursorCoord coord) {
@@ -313,14 +313,14 @@ std::pair<CursorCoord, int> Document::moveCursorToEol(CursorCoord coord) {
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  auto [offset, x] = line.moveToEol(coord.offset, this);
+  auto [offset, x] = line.moveToEol(coord.offset, m_parserDoc.get());
   coord.offset = offset;
   return {coord, x};
 }
 void Document::removeBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_blocks.size());
   m_blocks.erase(m_blocks.begin() + blockNo);
-  m_root->children().erase(m_root->children().begin() + blockNo);
+  m_parserDoc->root()->children().erase(m_parserDoc->root()->children().begin() + blockNo);
 }
 CursorCoord Document::moveCursorToEndOfDocument() {
   CursorCoord coord;
@@ -344,15 +344,15 @@ bool Document::isBol(const CursorCoord& coord) const {
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   const auto& line = block.logicalLineAt(coord.lineNo);
-  return line.isBol(coord.offset, (DocPtr)this);
+  return line.isBol(coord.offset, m_parserDoc.get());
 }
 void Document::undo(Cursor& cursor) { m_commandStack->undo(cursor); }
 void Document::redo(Cursor& cursor) {}
 void Document::upgradeToHeader(const Cursor& cursor, int level) {
   ASSERT(level >= 1 && level <= 6);
   auto coord = cursor.coord();
-  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_root->size());
-  auto node = m_root->childAt(coord.blockNo);
+  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_parserDoc->root()->size());
+  auto node = m_parserDoc->root()->childAt(coord.blockNo);
   if (node->type() != NodeType::paragraph) return;
   auto paragraphNode = static_cast<Paragraph*>(node);
   auto header = std::make_unique<Header>(level);

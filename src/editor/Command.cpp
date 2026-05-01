@@ -56,7 +56,7 @@ class InsertReturnVisitor
     beginInsertReturn();
     std::unique_ptr<Container> oldBlock;
     std::unique_ptr<Container> newBlock;
-    String prefix = line.left(coord.offset, m_doc);
+    String prefix = line.left(coord.offset, m_doc->parserDoc());
     if (prefix.startsWith("```")) {
       leftTextNode->remove(0, 3);
       oldBlock = std::make_unique<CodeBlock>(std::move(leftTextNode));
@@ -86,7 +86,7 @@ class InsertReturnVisitor
       updateCursor(cursor, coord);
       return;
     }
-    if (rightTextNode->toString(m_doc).isEmpty()) {
+    if (rightTextNode->toString(m_doc->parserDoc()).isEmpty()) {
       newBlock = std::make_unique<Paragraph>();
     } else {
       newBlock = std::make_unique<Header>(node->level());
@@ -442,7 +442,7 @@ class RemoveTextVisitor
   }
   void removeTextInNode(Text* textNode, SizeType leftOffset) {
     if (leftOffset - 1 > 0) {
-      auto s = textNode->toString(m_doc);
+      auto s = textNode->toString(m_doc->parserDoc());
       auto ch = s[leftOffset - 2].unicode();
       // 如果是emoji的开始标志，两个都要删除
       if (ch == 0xd83d || ch == 0xd83c) {
@@ -494,10 +494,10 @@ class InsertTextVisitor
     auto parentNode = textNode->parent();
     ASSERT(parentNode != nullptr);
     auto ppNode = parentNode->parent();
-    ASSERT(ppNode == m_doc->m_root.get() && "node hierarchy error");
+    ASSERT(ppNode == m_doc->root() && "node hierarchy error");
     if (isSpace) {
       if (coord.offset <= 6) {
-        auto prefix = line.left(coord.offset, m_doc);
+        auto prefix = line.left(coord.offset, m_doc->parserDoc());
         if (!prefix.isEmpty() && prefix.count('#') == prefix.size()) {
           // 说明是header
           // 将段落转换为标题
@@ -618,7 +618,7 @@ class InsertTextVisitor
     ASSERT(parentNode != nullptr);
     auto ppNode = parentNode->parent();
     ASSERT(ppNode == node && "node hierarchy error");
-    String s = line.left(coord.offset, m_doc);
+    String s = line.left(coord.offset, m_doc->parserDoc());
     auto prefix = s.left(coord.offset);
     auto listItem = static_cast<UnorderedListItem*>(node->childAt(coord.lineNo));
     if (prefix == "[ ]" || prefix == "[x]") {
@@ -633,7 +633,7 @@ class InsertTextVisitor
       for (auto& child : listItem->children()) {
         if (child->type() == NodeType::text) {
           auto textNode = static_cast<Text*>(child.get());
-          auto s = textNode->toString(m_doc);
+          auto s = textNode->toString(m_doc->parserDoc());
           if (s.length() <= leftLength) {
             leftLength -= s.length();
             continue;
@@ -715,7 +715,7 @@ class InsertTextVisitor
  private:
   void insertTextInNode(Text* textNode, int leftOffset) {
     if (maySkipChar) {
-      auto s = textNode->toString(m_doc);
+      auto s = textNode->toString(m_doc->parserDoc());
       ASSERT(leftOffset >= 0 && leftOffset < s.size());
       auto ch = s[leftOffset];
       if (ch == targetSkipChar) {
@@ -755,7 +755,7 @@ void InsertTextCommand::undo(Cursor& cursor) {
   // 无法处理block的升降级
   while (cursor.coord() != m_coord) {
     RemoveTextVisitor visitor(cursor, m_doc);
-    auto node = m_doc->m_root->childAt(m_coord.blockNo);
+    auto node = m_doc->root()->childAt(m_coord.blockNo);
     node->accept(&visitor);
   }
 }
@@ -763,7 +763,7 @@ void InsertTextCommand::execute(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_coord);
   InsertTextVisitor visitor(cursor, m_doc, m_offset, m_length, m_cursorOffsetDelta, m_isSpace, m_maySkipChar,
                             m_targetSkipChar);
-  auto node = m_doc->m_root->childAt(m_coord.blockNo);
+  auto node = m_doc->root()->childAt(m_coord.blockNo);
   node->accept(&visitor);
   m_finishedCoord = cursor.coord();
 }
@@ -788,10 +788,10 @@ InsertTextCommand::InsertTextCommand(Document* doc, CursorCoord coord, String te
   } else {
     m_isSpace = false;
   }
-  m_offset = m_doc->m_addBuffer.size();
+  m_offset = m_doc->addBuffer().size();
   m_length = textToInsert.size();
   m_cursorOffsetDelta = text.size();
-  m_doc->m_addBuffer.append(textToInsert);
+  m_doc->addBuffer().append(textToInsert);
 }
 bool InsertTextCommand::merge(Command* command) {
   if (this->type() != command->type()) return false;
@@ -805,7 +805,7 @@ bool InsertTextCommand::merge(Command* command) {
 void RemoveTextCommand::execute(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_coord);
   RemoveTextVisitor visitor(cursor, m_doc);
-  auto node = m_doc->m_root->childAt(cursor.coord().blockNo);
+  auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
 }
 void RemoveTextCommand::undo(Cursor& cursor) {}
@@ -828,14 +828,14 @@ void InsertReturnCommand::execute(Cursor& cursor) {
   }
 #endif
   InsertReturnVisitor visitor(cursor, m_doc);
-  auto node = m_doc->m_root->childAt(cursor.coord().blockNo);
+  auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
   m_finishedCoord = cursor.coord();
 }
 void InsertReturnCommand::undo(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_finishedCoord);
   RemoveTextVisitor visitor(cursor, m_doc);
-  auto node = m_doc->m_root->childAt(cursor.coord().blockNo);
+  auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
 }
 void CommandStack::push(std::unique_ptr<Command> command) {

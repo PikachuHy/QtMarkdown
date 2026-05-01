@@ -193,7 +193,7 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
       : m_handled(false), m_doc(doc), m_editor(editor), m_blockNo(blockNo) {}
   void visit(Link *node) override {
     if (m_editor.m_holdCtrl) {
-      auto url = node->href()->toString(&m_doc);
+      auto url = node->href()->toString(m_doc.parserDoc());
       m_editor.m_holdCtrl = false;
       m_editor.m_linkClickedCallback(url);
       m_handled = true;
@@ -206,7 +206,7 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
     m_handled = true;
   }
   void visit(Image *node) override {
-    auto path = node->src()->toString(&m_doc);
+    auto path = node->src()->toString(m_doc.parserDoc());
 #if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
     if (!path.startsWith("/")) {
       for (const auto& resPath: m_doc.m_setting->resPathList) {
@@ -225,7 +225,7 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
     for (const auto &child : node->children()) {
       if (child->type() == NodeType::text) {
         auto text = (Text *)child.get();
-        code += text->toString(&m_doc);
+        code += text->toString(m_doc.parserDoc());
         code += "\n";
       } else if (child->type() == NodeType::lf) {
         code += "\n";
@@ -295,7 +295,7 @@ bool Editor::saveToFile(const String &path) {
     DEBUG << "file open fail:" << notePath;
     return false;
   }
-  SimpleMarkdownVisitor visitor(m_doc.get());
+  SimpleMarkdownVisitor visitor(m_doc->parserDoc());
   m_doc->accept(&visitor);
   auto mdText = visitor.markdown();
   file.write(mdText.toUtf8());
@@ -306,17 +306,17 @@ void Editor::drawSelection(Point offset, Painter &painter) {
   if (!m_hasSelection) return;
   // DEBUG << "selection" << m_selectionInstructions.size();
   for (const auto& instruction : m_selectionInstructions) {
-    instruction->run(painter, offset, m_doc.get());
+    instruction->run(painter, offset, m_doc->parserDoc());
   }
 }
 void Editor::drawDoc(QPoint offset, Painter &painter) {
   if (!m_doc) return;
   // 如果最后一个block不是段落，添加一个段落
-  if (m_doc->m_root->children().back()->type() != NodeType::paragraph) {
+  if (m_doc->root()->children().back()->type() != NodeType::paragraph) {
     auto newParagraph = std::make_unique<Paragraph>();
-    m_doc->m_root->appendChild(std::move(newParagraph));
+    m_doc->root()->appendChild(std::move(newParagraph));
     m_doc->m_blocks.push_back(
-        render::Render::render(m_doc->m_root->children().back().get(), m_renderSetting, m_doc.get()));
+        render::Render::render(m_doc->root()->children().back().get(), m_renderSetting, m_doc->parserDoc()));
   }
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
@@ -325,7 +325,7 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
     auto h = block.height();
     // 把每个指令都画出来
     for (const auto &instruction : block) {
-      instruction->run(painter, offset, m_doc.get());
+      instruction->run(painter, offset, m_doc->parserDoc());
     }
     offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
   }
@@ -346,7 +346,7 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
   auto size = Size(block.width(), block.height() - m_renderSetting->lineSpacing);
   painter.drawRect(Rect(highlightPos + oldOffset, size));
   painter.restore();
-  auto& node = m_doc->m_root->children()[coord.blockNo];
+  auto& node = m_doc->root()->children()[coord.blockNo];
   auto typePos = Point(0, h) + oldOffset;
   if (node->type() == NodeType::paragraph) {
     painter.drawText(typePos, "P");
@@ -693,8 +693,8 @@ void Editor::commitString(String str) {
   m_preeditLength = 0;
 }
 String Editor::title() {
-  if (m_doc->m_root->empty()) return "";
-  auto node = m_doc->m_root->childAt(0);
+  if (m_doc->root()->empty()) return "";
+  auto node = m_doc->root()->childAt(0);
   if (node->type() != NodeType::header) return "";
   auto header = (Header *)node;
   if (header->level() != 1) return "";
@@ -702,7 +702,7 @@ String Editor::title() {
   for (auto& child : header->children()) {
     if (child->type() != NodeType::text) continue;
     auto textNode = (Text *)child.get();
-    s += textNode->toString(m_doc.get());
+    s += textNode->toString(m_doc->parserDoc());
   }
   return s;
 }
@@ -828,7 +828,7 @@ void Editor::generateSelectionInstruction() {
     if (lineNo < coord.lineNo) return true;
     if (lineNo > coord.lineNo) return false;
     const auto &line = this->m_doc->m_blocks[blockNo].logicalLineAt(lineNo);
-    auto coordVisualLineNo = line.visualLineAt(coord.offset, this->m_doc.get());
+    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc->parserDoc());
     if (coordVisualLineNo > visualLineNo) return true;
     return false;
   };
@@ -838,7 +838,7 @@ void Editor::generateSelectionInstruction() {
     if (lineNo < coord.lineNo) return false;
     if (lineNo > coord.lineNo) return false;
     const auto &line = this->m_doc->m_blocks[blockNo].logicalLineAt(lineNo);
-    auto coordVisualLineNo = line.visualLineAt(coord.offset, this->m_doc.get());
+    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc->parserDoc());
     if (coordVisualLineNo < visualLineNo) return false;
     if (coordVisualLineNo > visualLineNo) return false;
     return true;

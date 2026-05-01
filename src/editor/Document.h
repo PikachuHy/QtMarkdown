@@ -14,9 +14,14 @@ namespace md::editor {
 class CommandStack;
 class Cursor;
 struct CursorCoord;
-class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::enable_shared_from_this<Document> {
+class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Document> {
  public:
   explicit Document(const String& str, sptr<render::RenderSetting> setting);
+  parser::Container* root() const { return m_parserDoc->root(); }
+  String& addBuffer() { return m_parserDoc->addBuffer(); }
+  const String& addBuffer() const { return m_parserDoc->addBuffer(); }
+  parser::Document* parserDoc() const { return m_parserDoc.get(); }
+  void accept(parser::VisitorNode* visitor) { m_parserDoc->accept(visitor); }
   CursorCoord moveCursorToRight(CursorCoord coord);
   CursorCoord moveCursorToLeft(CursorCoord coord);
   CursorCoord moveCursorToBol(CursorCoord coord);
@@ -68,6 +73,9 @@ class QTMARKDOWNSHARED_EXPORT Document : public parser::Document, public std::en
   friend class InsertTextCommand;
   friend class RemoveTextCommand;
   friend class InsertReturnCommand;
+
+ private:
+  std::unique_ptr<parser::Document> m_parserDoc;
 };
 }  // namespace md::editor
 
