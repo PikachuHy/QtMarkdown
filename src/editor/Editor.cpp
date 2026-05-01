@@ -29,7 +29,7 @@ class SimpleMarkdownVisitor
       m_md += "#";
     }
     m_md += " ";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     m_md += "\n";
@@ -87,7 +87,7 @@ class SimpleMarkdownVisitor
     m_md += "```";
     node->name()->accept(this);
     m_md += "\n";
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       child->accept(this);
       m_md += "\n";
     }
@@ -104,16 +104,16 @@ class SimpleMarkdownVisitor
   }
   void visit(Paragraph *node) override {
     if (node->children().empty()) return;
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     m_md += "\n";
     m_md += "\n";
   }
   void visit(CheckboxList *node) override {
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       ASSERT(child->type() == NodeType::checkbox_item);
-      auto item = (CheckboxItem *)child;
+      auto item = (CheckboxItem *)child.get();
       m_md += "- [";
       if (item->isChecked()) {
         m_md += "x";
@@ -126,12 +126,12 @@ class SimpleMarkdownVisitor
     }
   }
   void visit(CheckboxItem *node) override {
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
   }
   void visit(UnorderedList *node) override {
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       m_md += "- ";
       it->accept(this);
       m_md += "\n";
@@ -139,7 +139,7 @@ class SimpleMarkdownVisitor
   }
   void visit(OrderedList *node) override {
     int i = 1;
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       m_md += QString("%1. ").arg(i);
       it->accept(this);
       m_md += "\n";
@@ -147,12 +147,12 @@ class SimpleMarkdownVisitor
     }
   }
   void visit(OrderedListItem *node) override {
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       child->accept(this);
     }
   }
   void visit(UnorderedListItem *node) override {
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       child->accept(this);
     }
   }
@@ -160,7 +160,7 @@ class SimpleMarkdownVisitor
   void visit(Lf *node) override { m_md += "\n"; }
   void visit(QuoteBlock *node) override {
     m_md += "> ";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
       m_md += "\n";
     }
@@ -170,7 +170,7 @@ class SimpleMarkdownVisitor
   void visit(LatexBlock *node) override {
     m_md += "\n";
     m_md += "$$\n";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     m_md += "$$\n";
@@ -224,7 +224,7 @@ class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, Code
     String code;
     for (const auto &child : node->children()) {
       if (child->type() == NodeType::text) {
-        auto text = (Text *)child;
+        auto text = (Text *)child.get();
         code += text->toString(&m_doc);
         code += "\n";
       } else if (child->type() == NodeType::lf) {
@@ -305,7 +305,7 @@ bool Editor::saveToFile(const String &path) {
 void Editor::drawSelection(Point offset, Painter &painter) {
   if (!m_hasSelection) return;
   // DEBUG << "selection" << m_selectionInstructions.size();
-  for (auto instruction : m_selectionInstructions) {
+  for (const auto& instruction : m_selectionInstructions) {
     instruction->run(painter, offset, m_doc.get());
   }
 }
@@ -313,9 +313,10 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
   if (!m_doc) return;
   // 如果最后一个block不是段落，添加一个段落
   if (m_doc->m_root->children().back()->type() != NodeType::paragraph) {
-    auto newParagraph = new Paragraph();
-    m_doc->m_root->appendChild(newParagraph);
-    m_doc->m_blocks.push_back(render::Render::render(newParagraph, m_renderSetting, m_doc.get()));
+    auto newParagraph = std::make_unique<Paragraph>();
+    m_doc->m_root->appendChild(std::move(newParagraph));
+    m_doc->m_blocks.push_back(
+        render::Render::render(m_doc->m_root->children().back().get(), m_renderSetting, m_doc.get()));
   }
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
@@ -338,14 +339,14 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
     h += m_renderSetting->blockSpacing;
     h += m_doc->m_blocks[i].height();
   }
-  auto block = m_doc->m_blocks[coord.blockNo];
+  const auto& block = m_doc->m_blocks[coord.blockNo];
   painter.save();
   painter.setPen(QColor(0, 255, 255));
   auto highlightPos = Point(m_renderSetting->docMargin.left(), h);
   auto size = Size(block.width(), block.height() - m_renderSetting->lineSpacing);
   painter.drawRect(Rect(highlightPos + oldOffset, size));
   painter.restore();
-  auto node = m_doc->m_root->children()[coord.blockNo];
+  auto& node = m_doc->m_root->children()[coord.blockNo];
   auto typePos = Point(0, h) + oldOffset;
   if (node->type() == NodeType::paragraph) {
     painter.drawText(typePos, "P");
@@ -601,7 +602,7 @@ String Editor::cursorCoord() const {
   s += "\n";
   s += QString("BlockNo: %1/%2").arg(coord.blockNo).arg(m_doc->m_blocks.size());
   s += "\n";
-  auto &block = m_doc->m_blocks[coord.blockNo];
+  const auto &block = m_doc->m_blocks[coord.blockNo];
   s += QString("LineNo: %1/%2").arg(coord.lineNo).arg(block.countOfLogicalLine());
   s += "\n";
   s += QString("Offset: %1/%2").arg(coord.offset).arg(block.logicalLineAt(coord.lineNo).length());
@@ -698,9 +699,9 @@ String Editor::title() {
   auto header = (Header *)node;
   if (header->level() != 1) return "";
   String s;
-  for (auto child : header->children()) {
+  for (auto& child : header->children()) {
     if (child->type() != NodeType::text) continue;
-    auto textNode = (Text *)child;
+    auto textNode = (Text *)child.get();
     s += textNode->toString(m_doc.get());
   }
   return s;
@@ -818,8 +819,8 @@ void Editor::generateSelectionInstruction() {
   m_selectionInstructions.clear();
   auto fillRect = [this](Point pos, int w, int h) {
     QColor bg(187, 214, 251);
-    auto instruction = new render::FillRectInstruction(pos, Size(w, h), bg);
-    m_selectionInstructions.push_back(instruction);
+    auto instruction = std::make_unique<render::FillRectInstruction>(pos, Size(w, h), bg);
+    m_selectionInstructions.push_back(std::move(instruction));
   };
   auto isBefore = [this](const CursorCoord &coord, SizeType blockNo, SizeType lineNo, SizeType visualLineNo) {
     if (blockNo < coord.blockNo) return true;

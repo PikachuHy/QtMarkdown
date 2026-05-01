@@ -5,6 +5,7 @@
 #ifndef QTMARKDOWN_COMMAND_H
 #define QTMARKDOWN_COMMAND_H
 #include "QtMarkdown_global.h"
+#include <memory>
 #include <vector>
 
 #include "CursorCoord.h"
@@ -15,6 +16,7 @@ class QTMARKDOWNSHARED_EXPORT Command {
  public:
   enum Type { insert_text, remove_text, insert_return };
   Command(Document* doc) : m_doc(doc) {}
+  virtual ~Command() = default;
   [[nodiscard]] virtual Type type() const = 0;
   virtual bool merge(Command* command) = 0;
   virtual void execute(Cursor& cursor) = 0;
@@ -66,12 +68,12 @@ class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
 };
 class QTMARKDOWNSHARED_EXPORT CommandStack {
  public:
-  void push(Command* command);
+  void push(std::unique_ptr<Command> command);
   void undo(Cursor& cursor);
   void redo(Cursor& cursor);
 
  private:
-  std::vector<Command*> m_commands;
+  std::vector<std::unique_ptr<Command>> m_commands;
   int m_top;
 };
 }  // namespace md::editor

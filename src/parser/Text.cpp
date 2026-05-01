@@ -94,12 +94,12 @@ std::pair<SizeType, SizeType> Text::findItem(SizeType totalOffset, bool includeR
   }
   ASSERT(false && "no item find");
 }
-std::pair<Text*, Text*> Text::split(SizeType totalOffset) {
+std::pair<std::unique_ptr<Text>, std::unique_ptr<Text>> Text::split(SizeType totalOffset) {
   ASSERT(totalOffset >= 0);
   auto [splitIndex, curOffset] = findItem(totalOffset);
   auto leftOffset = totalOffset - curOffset;
-  auto leftText = new Text();
-  auto rightText = new Text();
+  auto leftText = std::unique_ptr<Text>(new Text());
+  auto rightText = std::unique_ptr<Text>(new Text());
   for (int i = 0; i < splitIndex; ++i) {
     leftText->m_items.push_back(m_items[i]);
   }
@@ -121,7 +121,7 @@ std::pair<Text*, Text*> Text::split(SizeType totalOffset) {
   for (SizeType i = splitIndex + 1; i < m_items.size(); ++i) {
     rightText->m_items.push_back(m_items[i]);
   }
-  return {leftText, rightText};
+  return {std::move(leftText), std::move(rightText)};
 }
 bool Text::empty() const {
   if (m_items.empty()) return true;
@@ -145,9 +145,9 @@ void Text::removeItemAt(SizeType index) {
 
 String LatexBlock::toString(DocPtr const& doc) const {
   String s;
-  for (auto node : m_children) {
+  for (auto& node : m_children) {
     if (node->type() == NodeType::text) {
-      auto text = static_cast<Text*>(node);
+      auto text = static_cast<Text*>(node.get());
       s += text->toString(doc);
     }
   }

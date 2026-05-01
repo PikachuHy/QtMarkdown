@@ -22,7 +22,7 @@ class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
   [[nodiscard]] String toString(const DocPtr& doc) const;
   void insert(SizeType totalOffset, PieceTableItem item);
   void remove(SizeType totalOffset, SizeType length);
-  std::pair<Text*, Text*> split(SizeType totalOffset);
+  std::pair<std::unique_ptr<Text>, std::unique_ptr<Text>> split(SizeType totalOffset);
   auto begin() { return m_items.begin(); }
   auto end() { return m_items.end(); }
   void merge(Text& text);

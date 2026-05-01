@@ -12,7 +12,7 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
   void visit(Header *node) override {
     auto hn = "h" + String::number(node->level());
     m_html += "<" + hn + ">";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     m_html += "</" + hn + ">\n";
@@ -67,7 +67,7 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
   }
   void visit(CodeBlock *node) override {
     m_html += "<pre><code>\n";
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       child->accept(this);
     }
     m_html += "</code></pre>\n";
@@ -82,14 +82,14 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
   void visit(Paragraph *node) override {
     if (node->children().empty()) return;
     m_html += "<p>";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     m_html += "</p>\n";
   }
   void visit(CheckboxList *node) override {
-    for (auto child : node->children()) {
-      auto item = (CheckboxItem *)child;
+    for (auto& child : node->children()) {
+      auto item = (CheckboxItem *)child.get();
       if (item->isChecked()) {
         m_html += "\t<div><input type=\"checkbox\" checked/>";
       } else {
@@ -100,13 +100,13 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
     }
   }
   void visit(CheckboxItem *node) override {
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
   }
   void visit(UnorderedList *node) override {
     m_html += "<ul>\n";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       m_html += "\t<li>";
       it->accept(this);
       m_html += "</li>\n";
@@ -115,7 +115,7 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
   }
   void visit(OrderedList *node) override {
     m_html += "<ol>\n";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       m_html += "\t<li>";
       it->accept(this);
       m_html += "</li>\n";
@@ -123,12 +123,12 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
     m_html += "</ol>\n";
   }
   void visit(OrderedListItem *node) override {
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       child->accept(this);
     }
   }
   void visit(UnorderedListItem *node) override {
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       child->accept(this);
     }
   }
@@ -136,7 +136,7 @@ struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, I
   void visit(Lf *node) override { m_html += "\n"; }
   void visit(QuoteBlock *node) override {
     m_html += "<blockquote>\n";
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
       m_html += "\n";
     }

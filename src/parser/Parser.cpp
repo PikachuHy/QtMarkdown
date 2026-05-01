@@ -6,6 +6,7 @@
 
 #include <QRegularExpression>
 #include <vector>
+#include <memory>
 
 #include "Document.h"
 #include "Text.h"
@@ -61,9 +62,9 @@ Line trimLeft(Line s) {
   s.offset += count;
   return s;
 }
-QList<Text*> mergeToText(const TokenList& tokens, int prev, int cur) {
+std::vector<std::unique_ptr<Text>> mergeToText(const TokenList& tokens, int prev, int cur) {
   if (prev >= cur) return {};
-  QList<Text*> texts;
+  std::vector<std::unique_ptr<Text>> texts;
   bool hasVal = false;
   qsizetype offset;
   qsizetype length;
@@ -76,13 +77,13 @@ QList<Text*> mergeToText(const TokenList& tokens, int prev, int cur) {
       if (tokens[i].offset() == offset + length) {
         length += tokens[i].length();
       } else {
-        texts.append(new Text(offset, length));
+        texts.push_back(std::make_unique<Text>(offset, length));
         offset = tokens[i].offset();
         length = tokens[i].length();
       }
     }
   }
-  texts.append(new Text(offset, length));
+  texts.push_back(std::make_unique<Text>(offset, length));
   return texts;
 }
 QMap<Char, TokenType> ch2type = {{'#', TokenType::sharp},
@@ -119,7 +120,7 @@ TokenList parseLine(Line text) {
 struct ParseResult {
   bool success;
   int offset;
-  Node* node;
+  std::unique_ptr<Node> node;
   static ParseResult fail() { return {false}; }
 };
 class LineParser {
@@ -131,7 +132,7 @@ class BlockParser {
   [[nodiscard]] virtual ParseResult parse(const LineList& lines, int startIndex) const = 0;
 
  protected:
-  void _parseLine(Container* ret, const std::vector<LineParser*>& parsers, const Line& line) const {
+  void _parseLine(Container* ret, const std::vector<std::unique_ptr<LineParser>>& parsers, const Line& line) const {
     auto tokens = parseLine(line);
     int i = 0;
     int prev = 0;
@@ -141,8 +142,8 @@ class BlockParser {
         auto parseRet = it->parse(tokens, i);
         if (parseRet.success) {
           auto texts = mergeToText(tokens, prev, i);
-          ret->appendChildren(texts);
-          ret->appendChild(parseRet.node);
+          ret->appendChildren(std::move(texts));
+          ret->appendChild(std::move(parseRet.node));
           parsed = true;
           prev = i + parseRet.offset;
           i = prev;
@@ -152,7 +153,7 @@ class BlockParser {
       if (!parsed) i++;
     }
     auto texts = mergeToText(tokens, prev, i);
-    ret->appendChildren(texts);
+    ret->appendChildren(std::move(texts));
   }
 
   void skipEmptyLine(const LineList& lines, int& i) const {
@@ -212,8 +213,10 @@ class ImageParser : public LineParser {
     while (!isRightParenthesis(tokens[i])) i++;
     auto url = mergeToText(tokens, prev, i);
     i++;  // )
-    Text* altTextNode = alt.empty() ? nullptr : alt[0];
-    return {true, i - startIndex, new Image(altTextNode, (Text*)url[0])};
+    return {true, i - startIndex, std::make_unique<Image>(
+        alt.empty() ? nullptr : std::move(alt[0]),
+        std::move(url[0])
+    )};
   }
 };
 // 链接解析器
@@ -262,7 +265,7 @@ class LinkParser : public LineParser {
     while (!isRightParenthesis(tokens[i])) i++;
     auto href = mergeToText(tokens, prev, i);
     i++;  // )
-    return {true, i - startIndex, new Link(content[0], href[0])};
+    return {true, i - startIndex, std::make_unique<Link>(std::move(content[0]), std::move(href[0]))};
   }
 };
 // 行内代码解析器
@@ -297,7 +300,7 @@ class InlineCodeParser : public LineParser {
     while (!isBackquote(tokens[i])) i++;
     auto code = mergeToText(tokens, prev, i);
     i++;  // `
-    return {true, i - startIndex, new InlineCode(code[0])};
+    return {true, i - startIndex, std::make_unique<InlineCode>(std::move(code[0]))};
   }
 };
 // 行内公式解析器
@@ -331,7 +334,8 @@ class InlineLatexParser : public LineParser {
       length += tokens[endIndex].length();
       endIndex++;
     }
-    return {true, endIndex - startIndex + 1, new InlineLatex(new Text(token.offset(), length))};
+    auto code = std::make_unique<Text>(token.offset(), length);
+    return {true, endIndex - startIndex + 1, std::make_unique<InlineLatex>(std::move(code))};
   }
 };
 // 加粗和斜体解析器
@@ -395,27 +399,23 @@ class SemanticTextParser : public LineParser {
 
   static ParseResult _parseItalic(const TokenList& tokens, int startIndex) {
     auto& token = tokens[startIndex + 1];
-    auto text = new Text(token.offset(), token.length());
-    auto node = new ItalicText(text);
-    return {true, 3, node};
+    auto text = std::make_unique<Text>(token.offset(), token.length());
+    return {true, 3, std::make_unique<ItalicText>(std::move(text))};
   }
   static ParseResult _parseBold(const TokenList& tokens, int startIndex) {
     auto& token = tokens[startIndex + 2];
-    auto text = new Text(token.offset(), token.length());
-    auto node = new BoldText(text);
-    return {true, 5, node};
+    auto text = std::make_unique<Text>(token.offset(), token.length());
+    return {true, 5, std::make_unique<BoldText>(std::move(text))};
   }
   static ParseResult _parseItalicAndBold(const TokenList& tokens, int startIndex) {
     auto& token = tokens[startIndex + 3];
-    auto text = new Text(token.offset(), token.length());
-    auto node = new ItalicBoldText(text);
-    return {true, 7, node};
+    auto text = std::make_unique<Text>(token.offset(), token.length());
+    return {true, 7, std::make_unique<ItalicBoldText>(std::move(text))};
   }
   static ParseResult _parseStrickout(const TokenList& tokens, int startIndex) {
     auto& token = tokens[startIndex + 2];
-    auto text = new Text(token.offset(), token.length());
-    auto node = new StrickoutText(text);
-    return {true, 5, node};
+    auto text = std::make_unique<Text>(token.offset(), token.length());
+    return {true, 5, std::make_unique<StrickoutText>(std::move(text))};
   }
 };
 // 标题解析器
@@ -428,7 +428,7 @@ class HeaderParser : public BlockParser {
       auto header = parseHeader(line);
       int i = startIndex + 1;
       skipEmptyLine(lines, i);
-      return {true, i - startIndex, header};
+      return {true, i - startIndex, std::move(header)};
     } else {
       return ParseResult::fail();
     }
@@ -444,12 +444,14 @@ class HeaderParser : public BlockParser {
     if (i < line.size() && line[i] == ' ') return true;
     return false;
   }
-  [[nodiscard]] static Node* parseHeader(const Line& line) {
-    static std::vector<LineParser*> parsers{
-        new LinkParser(),
-        new InlineCodeParser(),
-        new InlineLatexParser(),
-    };
+  [[nodiscard]] static std::unique_ptr<Node> parseHeader(const Line& line) {
+    static std::vector<std::unique_ptr<LineParser>> parsers = [] {
+        std::vector<std::unique_ptr<LineParser>> v;
+        v.push_back(std::make_unique<LinkParser>());
+        v.push_back(std::make_unique<InlineCodeParser>());
+        v.push_back(std::make_unique<InlineLatexParser>());
+        return v;
+    }();
     int i = 0;
     while (i < line.size() && line[i] == '#') i++;
     int level = i;
@@ -457,7 +459,7 @@ class HeaderParser : public BlockParser {
     i++;
     Line str = line.mid(i);
     auto tokens = parseLine(str);
-    auto header = new Header(level);
+    auto header = std::make_unique<Header>(level);
     i = 0;
     int prev = 0;
     while (i < tokens.size()) {
@@ -467,8 +469,8 @@ class HeaderParser : public BlockParser {
         auto parseRet = it->parse(tokens, i);
         if (parseRet.success) {
           auto texts = mergeToText(tokens, prev, i);
-          header->appendChildren(texts);
-          header->appendChild(parseRet.node);
+          header->appendChildren(std::move(texts));
+          header->appendChild(std::move(parseRet.node));
           parsed = true;
           prev = i + parseRet.offset;
           i = prev;
@@ -478,7 +480,7 @@ class HeaderParser : public BlockParser {
       if (!parsed) i++;
     }
     auto texts = mergeToText(tokens, prev, i);
-    header->appendChildren(texts);
+    header->appendChildren(std::move(texts));
     return header;
   }
 };
@@ -568,14 +570,14 @@ class LatexBlockParser : public BlockParser {
       i++;
     }
     if (i == startIndex + 1 || i == lines.size()) return ParseResult::fail();
-    auto latexBlock = new LatexBlock();
+    auto latexBlock = std::make_unique<LatexBlock>();
     for (int j = startIndex + 1; j < i; j++) {
-      latexBlock->appendChild(new Text(lines[j].offset, lines[j].length));
+      latexBlock->appendChild(std::make_unique<Text>(lines[j].offset, lines[j].length));
       // 添加一个换行符\n，还原文本时可以用到
-      latexBlock->appendChild(new Lf());
+      latexBlock->appendChild(std::make_unique<Lf>());
     }
     i++;  // last $$
-    return {true, i - startIndex, latexBlock};
+    return {true, i - startIndex, std::move(latexBlock)};
   }
 };
 
@@ -588,10 +590,16 @@ class ParagraphParser : public BlockParser {
 
  private:
   [[nodiscard]] ParseResult parseParagraph(const LineList& lines, int lineIndex) const {
-    auto paragraph = new Paragraph();
-    static std::vector<LineParser*> parsers{
-        new ImageParser(), new LinkParser(), new InlineCodeParser(), new InlineLatexParser(), new SemanticTextParser(),
-    };
+    auto paragraph = std::make_unique<Paragraph>();
+    static std::vector<std::unique_ptr<LineParser>> parsers = [] {
+        std::vector<std::unique_ptr<LineParser>> v;
+        v.push_back(std::make_unique<ImageParser>());
+        v.push_back(std::make_unique<LinkParser>());
+        v.push_back(std::make_unique<InlineCodeParser>());
+        v.push_back(std::make_unique<InlineLatexParser>());
+        v.push_back(std::make_unique<SemanticTextParser>());
+        return v;
+    }();
     auto i = lineIndex;
     StringList prefix_list = {"# ", "## ", "### ", "#### ", "##### ", "###### ", "- ", "1. ", "```", "$$"};
     bool firstInParagraph = true;
@@ -619,14 +627,14 @@ class ParagraphParser : public BlockParser {
       }
       // 不然的话，就加一个换行，但还是同一个段落
       if (!firstInParagraph) {
-        paragraph->appendChild(new Lf());
+        paragraph->appendChild(std::make_unique<Lf>());
       }
-      _parseLine(paragraph, parsers, line);
+      _parseLine(paragraph.get(), parsers, line);
       i++;
       firstInParagraph = false;
     }
     skipEmptyLine(lines, i);
-    return {true, i - lineIndex, paragraph};
+    return {true, i - lineIndex, std::move(paragraph)};
   }
 };
 
@@ -647,15 +655,15 @@ class CodeBlockParser : public BlockParser {
     auto line = lines[i];
     i++;
     auto name = line.mid(3);
-    auto codeBlock = new CodeBlock(new Text(name.offset, name.length));
+    auto codeBlock = std::make_unique<CodeBlock>(std::make_unique<Text>(name.offset, name.length));
     while (i < lines.size() && !lines[i].startsWith("```")) {
-      codeBlock->appendChild(new Text(lines[i].offset, lines[i].length));
+      codeBlock->appendChild(std::make_unique<Text>(lines[i].offset, lines[i].length));
       //      codeBlock->appendChild(new Lf());
       i++;
     }
     i++;
     skipEmptyLine(lines, i);
-    return {true, i - startIndex, codeBlock};
+    return {true, i - startIndex, std::move(codeBlock)};
   }
   [[nodiscard]] bool tryParseCodeBlock(const LineList& lines, int i) const {
     if (i >= lines.size() || !lines[i].startsWith("```")) return false;
@@ -681,38 +689,40 @@ class CheckboxListParser : public BlockParser {
 
  private:
   [[nodiscard]] ParseResult parseCheckboxList(const LineList& lines, int startIndex) const {
-    static std::vector<LineParser*> parsers = {
-        new LinkParser(),
-        new InlineLatexParser(),
-        new InlineCodeParser(),
-        new SemanticTextParser(),
-    };
+    static std::vector<std::unique_ptr<LineParser>> parsers = [] {
+        std::vector<std::unique_ptr<LineParser>> v;
+        v.push_back(std::make_unique<LinkParser>());
+        v.push_back(std::make_unique<InlineLatexParser>());
+        v.push_back(std::make_unique<InlineCodeParser>());
+        v.push_back(std::make_unique<SemanticTextParser>());
+        return v;
+    }();
     int i = startIndex;
-    auto checkboxList = new CheckboxList();
+    auto checkboxList = std::make_unique<CheckboxList>();
     QString uncheckedPrefix = "- [ ] ";
     QString checkedPrefix = "- [x] ";
     while (i < lines.size()) {
       auto line = lines[i];
       if (line.startsWith(uncheckedPrefix)) {
-        auto item = new CheckboxItem();
+        auto item = std::make_unique<CheckboxItem>();
         item->setChecked(false);
         auto line2 = line.right(line.size() - uncheckedPrefix.size());
-        _parseLine(item, parsers, line2);
-        checkboxList->appendChild(item);
+        _parseLine(item.get(), parsers, line2);
+        checkboxList->appendChild(std::move(item));
         i++;
       } else if (line.startsWith(checkedPrefix)) {
-        auto item = new CheckboxItem();
+        auto item = std::make_unique<CheckboxItem>();
         item->setChecked(true);
         auto line2 = line.right(line.size() - checkedPrefix.size());
-        _parseLine(item, parsers, line2);
-        checkboxList->appendChild(item);
+        _parseLine(item.get(), parsers, line2);
+        checkboxList->appendChild(std::move(item));
         i++;
       } else {
         break;
       }
     }
     skipEmptyLine(lines, i);
-    return {true, i - startIndex, checkboxList};
+    return {true, i - startIndex, std::move(checkboxList)};
   }
 };
 
@@ -731,22 +741,24 @@ class UnorderedListParser : public BlockParser {
 
  private:
   [[nodiscard]] ParseResult parseUnorderedList(const LineList& lines, int startIndex) const {
-    static std::vector<LineParser*> parsers = {
-        new LinkParser(),
-        new InlineLatexParser(),
-        new InlineCodeParser(),
-        new SemanticTextParser(),
-    };
+    static std::vector<std::unique_ptr<LineParser>> parsers = [] {
+        std::vector<std::unique_ptr<LineParser>> v;
+        v.push_back(std::make_unique<LinkParser>());
+        v.push_back(std::make_unique<InlineLatexParser>());
+        v.push_back(std::make_unique<InlineCodeParser>());
+        v.push_back(std::make_unique<SemanticTextParser>());
+        return v;
+    }();
     int i = startIndex;
-    auto ul = new UnorderedList();
+    auto ul = std::make_unique<UnorderedList>();
     while (i < lines.size() && trimLeft(lines[i]).startsWith("- ")) {
-      auto item = new UnorderedListItem();
-      _parseLine(item, parsers, trimLeft(lines[i]).mid(2));
-      ul->appendChild(item);
+      auto item = std::make_unique<UnorderedListItem>();
+      _parseLine(item.get(), parsers, trimLeft(lines[i]).mid(2));
+      ul->appendChild(std::move(item));
       i++;
     }
     skipEmptyLine(lines, i);
-    return {true, i - startIndex, ul};
+    return {true, i - startIndex, std::move(ul)};
   }
 };
 
@@ -764,14 +776,16 @@ class OrderedListParser : public BlockParser {
   }
  private:
   [[nodiscard]] ParseResult parseOrderedList(const LineList& lines, int startIndex) const {
-    static std::vector<LineParser*> parsers = {
-        new LinkParser(),
-        new InlineLatexParser(),
-        new InlineCodeParser(),
-        new SemanticTextParser(),
-    };
+    static std::vector<std::unique_ptr<LineParser>> parsers = [] {
+        std::vector<std::unique_ptr<LineParser>> v;
+        v.push_back(std::make_unique<LinkParser>());
+        v.push_back(std::make_unique<InlineLatexParser>());
+        v.push_back(std::make_unique<InlineCodeParser>());
+        v.push_back(std::make_unique<SemanticTextParser>());
+        return v;
+    }();
     int i = startIndex;
-    auto ol = new OrderedList();
+    auto ol = std::make_unique<OrderedList>();
     while (i < lines.size()) {
       auto line = lines[i];
       bool hasDigit = false;
@@ -781,18 +795,18 @@ class OrderedListParser : public BlockParser {
         j++;
       }
       if (!hasDigit) break;
-      if (j >= line.size() || line[j] != '.') return {true, i - startIndex, ol};
+      if (j >= line.size() || line[j] != '.') return {true, i - startIndex, std::move(ol)};
       j++;
-      if (j >= line.size() || line[j] != ' ') return {true, i - startIndex, ol};
+      if (j >= line.size() || line[j] != ' ') return {true, i - startIndex, std::move(ol)};
       j++;
-      auto item = new OrderedListItem();
-      _parseLine(item, parsers, line.mid(j));
-      ol->appendChild(item);
+      auto item = std::make_unique<OrderedListItem>();
+      _parseLine(item.get(), parsers, line.mid(j));
+      ol->appendChild(std::move(item));
       // 下一行
       i++;
     }
     skipEmptyLine(lines, i);
-    return {true, i - startIndex, ol};
+    return {true, i - startIndex, std::move(ol)};
   }
 };
 
@@ -812,15 +826,15 @@ class QuoteBlockParser : public BlockParser {
  private:
   [[nodiscard]] ParseResult parseQuoteBlock(const LineList& lines, int startIndex) const {
     int i = startIndex;
-    auto quoteBlock = new QuoteBlock();
+    auto quoteBlock = std::make_unique<QuoteBlock>();
     while (i < lines.size() && lines[i].startsWith("> ")) {
       auto& line = lines[i];
-      quoteBlock->appendChild(new Text(line.offset + 2, line.length - 2));
+      quoteBlock->appendChild(std::make_unique<Text>(line.offset + 2, line.length - 2));
       i++;
     }
     i++;
     skipEmptyLine(lines, i);
-    return {true, i - startIndex, quoteBlock};
+    return {true, i - startIndex, std::move(quoteBlock)};
   }
 };
 
@@ -859,32 +873,41 @@ class ParserPrivate {
     }
   }
   sptr<Container> parse() {
-    static std::vector<BlockParser*> parsers = {
-        new HeaderParser(),        new CodeBlockParser(),   new CheckboxListParser(),
-        new UnorderedListParser(), new OrderedListParser(), new QuoteBlockParser(),
-        new TableParser(),         new LatexBlockParser(),  new ParagraphParser()};
+    static std::vector<std::unique_ptr<BlockParser>> parsers = [] {
+        std::vector<std::unique_ptr<BlockParser>> v;
+        v.push_back(std::make_unique<HeaderParser>());
+        v.push_back(std::make_unique<CodeBlockParser>());
+        v.push_back(std::make_unique<CheckboxListParser>());
+        v.push_back(std::make_unique<UnorderedListParser>());
+        v.push_back(std::make_unique<OrderedListParser>());
+        v.push_back(std::make_unique<QuoteBlockParser>());
+        v.push_back(std::make_unique<TableParser>());
+        v.push_back(std::make_unique<LatexBlockParser>());
+        v.push_back(std::make_unique<ParagraphParser>());
+        return v;
+    }();
     auto nodes = std::make_shared<Container>();
     splitTextToLines();
     int i = 0;
     while (i < m_lines.size()) {
-      for (auto parser : parsers) {
+      for (auto& parser : parsers) {
         auto parseRet = parser->parse(m_lines, i);
         if (parseRet.success) {
           i += parseRet.offset;
           if (parseRet.node->type() == NodeType::paragraph) {
             // 空段落直接去掉
-            auto paragraphNode = (Paragraph*)parseRet.node;
+            auto paragraphNode = static_cast<Paragraph*>(parseRet.node.get());
 #if 1
             if (paragraphNode->children().empty()) {
               DEBUG << "delete empty paragraph node";
-              delete paragraphNode;
+              parseRet.node.reset();
               break;
             } else {
-              nodes->appendChild(parseRet.node);
+              nodes->appendChild(std::move(parseRet.node));
             }
 #endif
           } else {
-            nodes->appendChild(parseRet.node);
+            nodes->appendChild(std::move(parseRet.node));
           }
           break;
         }
@@ -892,7 +915,7 @@ class ParserPrivate {
     }
     // 如果文档为空，默认添加一个段落
     if (nodes->children().empty()) {
-      nodes->appendChild(new Paragraph());
+      nodes->appendChild(std::make_unique<Paragraph>());
     }
     return nodes;
   }

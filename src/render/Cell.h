@@ -14,6 +14,7 @@ namespace md::render {
 class QTMARKDOWNSHARED_EXPORT Cell {
  public:
   Cell(Point pos, Size size) : m_pos(pos), m_size(size) {}
+  virtual ~Cell() = default;
   // 逻辑长度
   [[nodiscard]] virtual SizeType length() = 0;
   // 像素宽度

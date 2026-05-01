@@ -11,7 +11,7 @@ namespace md {
 namespace render {
 class Instruction;
 }
-using InstructionPtr = render::Instruction*;
+using InstructionPtr = std::unique_ptr<render::Instruction>;
 using InstructionPtrList = std::vector<InstructionPtr>;
 using Brush = QBrush;
 using Color = QColor;

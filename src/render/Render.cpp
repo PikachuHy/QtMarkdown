@@ -68,7 +68,7 @@ class RenderPrivate
     setFont(font);
     beginBlock();
     drawHeaderPrefix(node->level());
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     endBlock();
@@ -81,7 +81,7 @@ class RenderPrivate
     setFont(font);
     beginBlock();
     m_curX += curFont().pixelSize() * m_setting->paragraphIntent;
-    for (auto it : node->children()) {
+    for (auto& it : node->children()) {
       it->accept(this);
     }
     endBlock();
@@ -118,8 +118,8 @@ class RenderPrivate
       drawText(node, str, s, startIndex, count);
       startIndex += count;
       // 画不下，就强制加一个连字符
-      auto cell = new StaticTextCell("-", Point(m_curX, m_curY), textSize("-"), Qt::black, curFont());
-      m_block.appendInstruction(new StaticTextInstruction(cell));
+      auto cell = std::make_unique<StaticTextCell>("-", Point(m_curX, m_curY), textSize("-"), Qt::black, curFont());
+      m_block.appendInstruction(std::make_unique<StaticTextInstruction>(std::move(cell)));
       moveToNewLine();
     }
   }
@@ -192,8 +192,8 @@ class RenderPrivate
       auto size = m_block.m_logicalLines.back().m_cells.back()->m_size;
       const QPoint &codeBgPos = Point(x - 2, y - 2);
       const QSize &codeBgSize = Size(size.width() + 4, size.height() + 4);
-      auto instruction = new FillRectInstruction(codeBgPos, codeBgSize, QColor(249, 249, 249));
-      m_block.insertInstruction(m_block.m_instructions.size() - 1, instruction);
+      auto instruction = std::make_unique<FillRectInstruction>(codeBgPos, codeBgSize, QColor(249, 249, 249));
+      m_block.insertInstruction(m_block.m_instructions.size() - 1, std::move(instruction));
     }
     restore();
   }
@@ -219,14 +219,14 @@ class RenderPrivate
     endBlock();
     auto w = m_setting->contentMaxWidth();
     auto h = m_block.height() - m_setting->lineSpacing;
-    auto instruction = new FillRectInstruction(Point(x - 3, y - 3), Size(w + 6, h + 6), QColor(249, 249, 249));
-    m_block.insertInstruction(indexToInsertFillRect, instruction);
+    auto instruction = std::make_unique<FillRectInstruction>(Point(x - 3, y - 3), Size(w + 6, h + 6), QColor(249, 249, 249));
+    m_block.insertInstruction(indexToInsertFillRect, std::move(instruction));
     QString copyBtnFilePath = ":icon/copy_32x32.png";
     QFile copyBtnFile(copyBtnFilePath);
     ASSERT(copyBtnFile.exists());
     QPixmap copyBtnImg(copyBtnFilePath);
     Point pos(x + w - copyBtnImg.width(), y);
-    m_block.appendInstruction(new StaticImageInstruction(copyBtnFilePath, pos, copyBtnImg.size()));
+    m_block.appendInstruction(std::make_unique<StaticImageInstruction>(copyBtnFilePath, pos, copyBtnImg.size()));
     m_block.appendElement({node, pos, copyBtnImg.size()});
     restore();
   }
@@ -240,10 +240,10 @@ class RenderPrivate
                                               textSize / 3.f, 0xff424242);
       const QPoint &point = Point(m_curX, m_curY);
       const QSize &size = Size(render->getWidth() + 2, render->getHeight());
-      auto cell = new InlineLatexCell(point, size);
-      appendVisualCell(cell);
-      auto instruction = new LatexInstruction(cell, latex, textSize);
-      m_block.appendInstruction(instruction);
+      auto cell = std::make_unique<InlineLatexCell>(point, size);
+      appendVisualCell(cell.get());
+      auto instruction = std::make_unique<LatexInstruction>(std::move(cell), latex, textSize);
+      m_block.appendInstruction(std::move(instruction));
       m_curX += render->getWidth();
       delete render;
     } catch (const std::exception &ex) {
@@ -263,10 +263,10 @@ class RenderPrivate
                                               textSize / 3.f, 0xff424242);
       const QPoint &point = Point((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY);
       const QSize &size = Size(m_setting->contentMaxWidth(), render->getHeight());
-      auto cell = new InlineLatexCell(point, size);
-      appendVisualCell(cell);
-      auto instruction = new LatexInstruction(cell, latex, textSize);
-      m_block.appendInstruction(instruction);
+      auto cell = std::make_unique<InlineLatexCell>(point, size);
+      appendVisualCell(cell.get());
+      auto instruction = std::make_unique<LatexInstruction>(std::move(cell), latex, textSize);
+      m_block.appendInstruction(std::move(instruction));
       m_curX += render->getWidth();
       delete render;
     } catch (const std::exception &ex) {
@@ -341,8 +341,8 @@ class RenderPrivate
     }
     image = image.scaledToWidth(imgWidth);
     const QPoint &pos = Point(m_curX, m_curY);
-    auto cell = new ImageCell(node, imgPath, pos, image.size());
-    m_block.appendInstruction(new ImageInstruction(cell));
+    auto cell = std::make_unique<ImageCell>(node, imgPath, pos, image.size());
+    m_block.appendInstruction(std::make_unique<ImageInstruction>(std::move(cell)));
     m_curY += image.height();
     m_block.appendElement({node, pos, image.size()});
     // TODO: 需要重新考虑图片
@@ -360,8 +360,7 @@ class RenderPrivate
     // 播放图标放在中心位置
     int x = (image.width() - playImage.width()) / 2 + pos.x();
     int y = (image.height() - playImage.height()) / 2 + pos.y();
-    auto instruction = new StaticImageInstruction(playIconPath, Point(x, y), playImage.size());
-    m_block.appendInstruction(instruction);
+    m_block.appendInstruction(std::make_unique<StaticImageInstruction>(playIconPath, Point(x, y), playImage.size()));
   }
   void visit(CheckboxList *node) override {
     Q_ASSERT(node != nullptr);
@@ -387,13 +386,11 @@ class RenderPrivate
     const QSize &size = Size(h1, h1);
     if (node->isChecked()) {
       QString imagePath = ":icon/checkbox-selected_64x64.png";
-      auto instruction = new StaticImageInstruction(imagePath, pos, size);
-      m_block.appendInstruction(instruction);
+      m_block.appendInstruction(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
 
     } else {
       QString imagePath = ":icon/checkbox-unselected_64x64.png";
-      auto instruction = new StaticImageInstruction(imagePath, pos, size);
-      m_block.appendInstruction(instruction);
+      m_block.appendInstruction(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
     }
     m_block.appendElement({node, pos, size});
     m_curX += h1 + 10;
@@ -418,8 +415,7 @@ class RenderPrivate
       auto h = textHeight();
       auto size = 5;
       auto y = m_curY + (h - size) / 2 + 2;
-      auto instruction = new EllipseInstruction(Point(m_curX, y), Size(size, size), Qt::black);
-      m_block.appendInstruction(instruction);
+      m_block.appendInstruction(std::make_unique<EllipseInstruction>(Point(m_curX, y), Size(size, size), Qt::black));
       m_curX += 15;
       m_block.m_logicalLines.back().m_padding = m_curX - oldX;
       beginVisualLine();
@@ -446,8 +442,8 @@ class RenderPrivate
       QString numStr = QString("%1.  ").arg(i);
       const Size &size = textSize(numStr);
       const QPoint &pos = Point(m_curX, m_curY);
-      auto cell = new StaticTextCell(numStr, pos, size, Qt::black, curFont());
-      m_block.appendInstruction(new StaticTextInstruction(cell));
+      auto cell = std::make_unique<StaticTextCell>(numStr, pos, size, Qt::black, curFont());
+      m_block.appendInstruction(std::make_unique<StaticTextInstruction>(std::move(cell)));
       m_curX += size.width();
       m_block.m_logicalLines.back().m_padding = m_curX - oldX;
       beginVisualLine();
@@ -467,7 +463,7 @@ class RenderPrivate
     Q_ASSERT(node != nullptr);
     beginBlock(false);
     int startY = m_curY;
-    for (auto child : node->children()) {
+    for (auto& child : node->children()) {
       beginLogicalLine();
       child->accept(this);
       endLogicalLine();
@@ -478,8 +474,7 @@ class RenderPrivate
     }
     QColor bgColor(238, 238, 238);
     Point pos(m_setting->docMargin.left() - m_setting->quoteMargin.left(), startY);
-    auto instruction = new FillRectInstruction(pos, Size(5, endY - startY), bgColor);
-    m_block.appendInstruction(instruction);
+    m_block.appendInstruction(std::make_unique<FillRectInstruction>(pos, Size(5, endY - startY), bgColor));
     endBlock();
   }
   void visit(Table *node) override { Q_ASSERT(node != nullptr); }
@@ -492,14 +487,14 @@ class RenderPrivate
     auto font = curFont();
     font.setPixelSize(12);
     auto size = textSize(enterStr);
-    auto cell = new StaticTextCell(enterStr, Point(m_curX, m_curY), size, Qt::blue, font);
-    m_block.appendInstruction(new StaticTextInstruction(cell));
+    auto cell = std::make_unique<StaticTextCell>(enterStr, Point(m_curX, m_curY), size, Qt::blue, font);
+    m_block.appendInstruction(std::make_unique<StaticTextInstruction>(std::move(cell)));
 #endif
     endLogicalLine();
     beginLogicalLine();
     restore();
   }
-  [[nodiscard]] Block renderRet() const { return m_block; }
+  [[nodiscard]] Block renderRet() { return std::move(m_block); }
 
  private:
   void drawHeaderPrefix(int level) {
@@ -510,8 +505,8 @@ class RenderPrivate
     setFont(font);
     auto size = textSize(prefix);
     auto x = m_curX - size.width() - 1;
-    auto cell = new StaticTextCell(prefix, Point(x, m_curY), size, Qt::black, font);
-    m_block.appendInstruction(new StaticTextInstruction(cell));
+    auto cell = std::make_unique<StaticTextCell>(prefix, Point(x, m_curY), size, Qt::black, font);
+    m_block.appendInstruction(std::make_unique<StaticTextInstruction>(std::move(cell)));
     restore();
   }
 
@@ -530,9 +525,9 @@ class RenderPrivate
     }
     const QString &text = str.mid(offset, length);
     const Size &size = textSize(text);
-    auto cell = new TextCell(node, offset, length, Point(m_curX, m_curY), size, curPen(), curFont());
-    appendVisualCell(cell);
-    m_block.appendInstruction(new TextInstruction(cell));
+    auto cell = std::make_unique<TextCell>(node, offset, length, Point(m_curX, m_curY), size, curPen(), curFont());
+    appendVisualCell(cell.get());
+    m_block.appendInstruction(std::make_unique<TextInstruction>(std::move(cell)));
     restore();
     m_curX += size.width();
   }
@@ -1020,9 +1015,9 @@ bool LogicalLine::isBol(SizeType offset, const DocPtr doc) const {
   }
   return false;
 }
-void Block::appendInstruction(Instruction *instruction) {
+void Block::appendInstruction(std::unique_ptr<Instruction> instruction) {
   ASSERT(instruction != nullptr);
-  m_instructions.push_back(instruction);
+  m_instructions.push_back(std::move(instruction));
 }
 int Block::height() const {
   int h = 0;
@@ -1042,9 +1037,9 @@ int Block::width() const {
   }
   return w;
 }
-void Block::insertInstruction(SizeType index, Instruction *instruction) {
+void Block::insertInstruction(SizeType index, std::unique_ptr<Instruction> instruction) {
   ASSERT(index >= 0 && index <= m_instructions.size());
-  m_instructions.insert(m_instructions.begin() + index, instruction);
+  m_instructions.insert(m_instructions.begin() + index, std::move(instruction));
 }
 Block Render::render(Node *node, sptr<RenderSetting> setting, DocPtr doc) {
   Q_ASSERT(node != nullptr);

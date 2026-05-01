@@ -94,9 +94,13 @@ class QTMARKDOWNSHARED_EXPORT Block {
  public:
   using LogicalLineList = std::vector<LogicalLine>;
   explicit Block(parser::Node* node) : m_node(node) {}
-  void appendInstruction(Instruction* instruction);
+  Block(const Block&) = delete;
+  Block& operator=(const Block&) = delete;
+  Block(Block&&) = default;
+  Block& operator=(Block&&) = default;
+  void appendInstruction(std::unique_ptr<Instruction> instruction);
   void appendElement(Element element) { m_elements.push_back(element); }
-  void insertInstruction(SizeType index, Instruction* instruction);
+  void insertInstruction(SizeType index, std::unique_ptr<Instruction> instruction);
   int width() const;
   [[nodiscard]] int height() const;
   [[nodiscard]] LogicalLineList lines() const { return m_logicalLines; }
@@ -107,6 +111,8 @@ class QTMARKDOWNSHARED_EXPORT Block {
   const ElementList& elementList() const { return m_elements; }
 
  private:
+  // Destruction order: m_instructions (owns Cells) destroyed BEFORE m_logicalLines.
+  // This is correct -- Cells must not outlive LogicalLine/VisualLine raw Cell* references.
   // 逻辑行
   LogicalLineList m_logicalLines;
   // 绘图指令

@@ -6,6 +6,7 @@
 #define QTMARKDOWN_INSTRUCTION_H
 #include <QPainter>
 #include <QRect>
+#include <memory>
 #include <utility>
 #include <vector>
 #include "QtMarkdown_global.h"
@@ -20,33 +21,34 @@ class RenderPrivate;
 // 基本绘图指令
 class QTMARKDOWNSHARED_EXPORT Instruction {
  public:
+  virtual ~Instruction() = default;
   virtual void run(Painter& painter, Point offset, DocPtr doc) const = 0;
 };
 class QTMARKDOWNSHARED_EXPORT TextInstruction : public Instruction {
  public:
-  TextInstruction(TextCell* cell) : m_cell(cell) {}
+  TextInstruction(std::unique_ptr<TextCell> cell) : m_cell(std::move(cell)) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
   String textString(DocPtr doc) const;
 
  private:
-  TextCell* m_cell;
+  std::unique_ptr<TextCell> m_cell;
 };
 
 class QTMARKDOWNSHARED_EXPORT StaticTextInstruction : public Instruction {
  public:
-  StaticTextInstruction(StaticTextCell* cell) : m_cell(cell) {}
+  StaticTextInstruction(std::unique_ptr<StaticTextCell> cell) : m_cell(std::move(cell)) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
 
  private:
-  StaticTextCell* m_cell;
+  std::unique_ptr<StaticTextCell> m_cell;
 };
 class QTMARKDOWNSHARED_EXPORT ImageInstruction : public Instruction {
  public:
-  ImageInstruction(ImageCell* cell) : m_cell(cell) {}
+  ImageInstruction(std::unique_ptr<ImageCell> cell) : m_cell(std::move(cell)) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
 
  private:
-  ImageCell* m_cell;
+  std::unique_ptr<ImageCell> m_cell;
 };
 class QTMARKDOWNSHARED_EXPORT StaticImageInstruction : public Instruction {
  public:
@@ -80,12 +82,12 @@ class QTMARKDOWNSHARED_EXPORT EllipseInstruction : public Instruction {
 };
 class QTMARKDOWNSHARED_EXPORT LatexInstruction : public Instruction {
  public:
-  LatexInstruction(InlineLatexCell* cell, String latex, int fontSize)
-      : m_cell(cell), m_latex(std::move(latex)), m_fontSize(fontSize) {}
+  LatexInstruction(std::unique_ptr<InlineLatexCell> cell, String latex, int fontSize)
+      : m_cell(std::move(cell)), m_latex(std::move(latex)), m_fontSize(fontSize) {}
   void run(Painter& painter, Point offset, DocPtr doc) const override;
 
  private:
-  InlineLatexCell* m_cell;
+  std::unique_ptr<InlineLatexCell> m_cell;
   String m_latex;
   int m_fontSize;
 };

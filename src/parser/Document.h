@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QRect>
 #include <iostream>
+#include <memory>
 
 #include "QtMarkdown_global.h"
 #include "Token.h"
@@ -63,37 +64,36 @@ struct Visitable : public Node {
     }
   }
 };
-using NodePtr = Node*;
-using NodePtrList = std::vector<NodePtr>;
+using NodePtrList = std::vector<std::unique_ptr<Node>>;
 class Text;
 class QTMARKDOWNSHARED_EXPORT Container : public Node {
  public:
   Container() = default;
   NodePtrList& children() { return m_children; }
-  void setChildren(const NodePtrList& children) {
-    m_children = children;
-    for (auto child : m_children) {
+  void setChildren(NodePtrList&& children) {
+    m_children = std::move(children);
+    for (auto& child : m_children) {
       child->setParent(this);
     }
   }
-  void setChild(SizeType index, NodePtr node);
-  void insertChild(SizeType index, NodePtr node);
-  void appendChild(Node* child) {
-    m_children.push_back(child);
+  void setChild(SizeType index, std::unique_ptr<Node> node);
+  void insertChild(SizeType index, std::unique_ptr<Node> node);
+  void appendChild(std::unique_ptr<Node> child) {
     child->setParent(this);
+    m_children.push_back(std::move(child));
   }
-  void appendChildren(NodePtrList& children);
-  void appendChildren(QList<Text*>& children);
-  [[nodiscard]] NodePtr childAt(SizeType index) const;
+  void appendChildren(NodePtrList&& children);
+  void appendChildren(std::vector<std::unique_ptr<Text>>&& texts);
+  [[nodiscard]] Node* childAt(SizeType index) const;
   void removeChildAt(SizeType index);
-  void removeChild(NodePtr node);
-  SizeType indexOf(NodePtr child) const;
-  NodePtr& operator[](SizeType index);
-  const NodePtr& operator[](SizeType index) const;
+  void removeChild(Node* node);
+  SizeType indexOf(Node* child) const;
+  std::unique_ptr<Node>& operator[](SizeType index);
+  const std::unique_ptr<Node>& operator[](SizeType index) const;
   auto empty() const { return m_children.empty(); }
   [[nodiscard]] auto size() const { return m_children.size(); }
   void accept(VisitorNode* v) override {
-    for (auto node : m_children) {
+    for (auto& node : m_children) {
       node->accept(v);
     }
   }
@@ -160,66 +160,70 @@ class QTMARKDOWNSHARED_EXPORT QuoteBlock : public ContainerVisitable<QuoteBlock>
 
 class QTMARKDOWNSHARED_EXPORT ItalicText : public Visitable<ItalicText> {
  public:
-  explicit ItalicText(Text* text);
-  [[nodiscard]] Text* text() const { return m_text; }
+  explicit ItalicText(std::unique_ptr<Text> text);
+  ~ItalicText();
+  [[nodiscard]] Text* text() const { return m_text.get(); }
 
  private:
-  Text* m_text;
+  std::unique_ptr<Text> m_text;
 };
 class QTMARKDOWNSHARED_EXPORT BoldText : public Visitable<BoldText> {
  public:
-  explicit BoldText(Text* text);
-
-  [[nodiscard]] Text* text() const { return m_text; }
+  explicit BoldText(std::unique_ptr<Text> text);
+  ~BoldText();
+  [[nodiscard]] Text* text() const { return m_text.get(); }
 
  private:
-  Text* m_text;
+  std::unique_ptr<Text> m_text;
 };
 class QTMARKDOWNSHARED_EXPORT ItalicBoldText : public Visitable<ItalicBoldText> {
  public:
-  explicit ItalicBoldText(Text* text);
-
-  [[nodiscard]] Text* text() const { return m_text; }
+  explicit ItalicBoldText(std::unique_ptr<Text> text);
+  ~ItalicBoldText();
+  [[nodiscard]] Text* text() const { return m_text.get(); }
 
  private:
-  Text* m_text;
+  std::unique_ptr<Text> m_text;
 };
 class QTMARKDOWNSHARED_EXPORT StrickoutText : public Visitable<StrickoutText> {
  public:
-  explicit StrickoutText(Text* text);
-
-  [[nodiscard]] Text* text() const { return m_text; }
+  explicit StrickoutText(std::unique_ptr<Text> text);
+  ~StrickoutText();
+  [[nodiscard]] Text* text() const { return m_text.get(); }
 
  private:
-  Text* m_text;
+  std::unique_ptr<Text> m_text;
 };
 class QTMARKDOWNSHARED_EXPORT Image : public Visitable<Image> {
  public:
-  Image(Text* alt, Text* src) : m_alt(alt), m_src(src) { m_type = NodeType::image; }
-  Text* alt() { return m_alt; }
-  Text* src() { return m_src; }
+  Image(std::unique_ptr<Text> alt, std::unique_ptr<Text> src);
+  ~Image();
+  Text* alt() { return m_alt.get(); }
+  Text* src() { return m_src.get(); }
 
  private:
-  Text* m_alt;
-  Text* m_src;
+  std::unique_ptr<Text> m_alt;
+  std::unique_ptr<Text> m_src;
 };
 class QTMARKDOWNSHARED_EXPORT Link : public Visitable<Link> {
  public:
-  Link(Text* content, Text* href);
-  Text* content() { return m_content; }
-  Text* href() { return m_href; }
+  Link(std::unique_ptr<Text> content, std::unique_ptr<Text> href);
+  ~Link();
+  Text* content() { return m_content.get(); }
+  Text* href() { return m_href.get(); }
 
  private:
-  Text* m_content;
-  Text* m_href;
+  std::unique_ptr<Text> m_content;
+  std::unique_ptr<Text> m_href;
 };
 class QTMARKDOWNSHARED_EXPORT CodeBlock : public ContainerVisitable<CodeBlock> {
  public:
-  explicit CodeBlock(Text* name) : m_name(name) { m_type = NodeType::code_block; }
-  Text* name() { return m_name; }
+  explicit CodeBlock(std::unique_ptr<Text> name);
+  ~CodeBlock();
+  Text* name() { return m_name.get(); }
 
  private:
-  Text* m_name;
+  std::unique_ptr<Text> m_name;
 };
 class LatexBlock;
 class QTMARKDOWNSHARED_EXPORT Hr : public Visitable<Hr> {
@@ -228,19 +232,21 @@ class QTMARKDOWNSHARED_EXPORT Hr : public Visitable<Hr> {
 };
 class QTMARKDOWNSHARED_EXPORT InlineCode : public Visitable<InlineCode> {
  public:
-  explicit InlineCode(Text* code) : m_code(code) { m_type = NodeType::inline_code; }
-  Text* code() { return m_code; }
+  explicit InlineCode(std::unique_ptr<Text> code);
+  ~InlineCode();
+  Text* code() { return m_code.get(); }
 
  private:
-  Text* m_code;
+  std::unique_ptr<Text> m_code;
 };
 class QTMARKDOWNSHARED_EXPORT InlineLatex : public Visitable<InlineLatex> {
  public:
-  explicit InlineLatex(Text* code) : m_code(code) { m_type = NodeType::inline_latex; }
-  Text* code() { return m_code; }
+  explicit InlineLatex(std::unique_ptr<Text> code);
+  ~InlineLatex();
+  Text* code() { return m_code.get(); }
 
  private:
-  Text* m_code;
+  std::unique_ptr<Text> m_code;
 };
 class QTMARKDOWNSHARED_EXPORT Table : public Visitable<Table> {
  public:

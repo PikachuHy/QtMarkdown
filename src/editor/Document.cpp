@@ -31,7 +31,7 @@ std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
     y += m_blocks[blockNo].height();
   }
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto line = block.logicalLineAt(coord.lineNo);
   auto [pos, h] = line.cursorAt(coord.offset, this);
@@ -41,7 +41,7 @@ std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   return {pos + Point(0, y), h};
 }
 CursorCoord Document::moveCursorToRight(CursorCoord coord) {
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   auto& line = block.logicalLineAt(coord.lineNo);
   SizeType totalOffset = line.length();
   if (totalOffset >= coord.offset + 1) {
@@ -71,7 +71,7 @@ CursorCoord Document::moveCursorToRight(CursorCoord coord) {
 }
 CursorCoord Document::moveCursorToLeft(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   if (coord.offset > 0) {
     if (coord.offset >= 2) {
       // 判断emoji
@@ -99,7 +99,7 @@ CursorCoord Document::moveCursorToLeft(CursorCoord coord) {
 }
 CursorCoord Document::moveCursorToUp(CursorCoord coord, Point pos) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   int x = pos.x();
@@ -123,7 +123,7 @@ CursorCoord Document::moveCursorToUp(CursorCoord coord, Point pos) {
 }
 CursorCoord Document::moveCursorToDown(CursorCoord coord, Point pos) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   int x = pos.x();
@@ -171,7 +171,7 @@ CursorCoord Document::moveCursorToPos(Point pos) {
     return moveCursorToEndOfDocument();
   }
   // 找到block以后，遍历每一个逻辑行
-  auto block = m_blocks[blockNo];
+  const auto& block = m_blocks[blockNo];
   if (block.countOfLogicalLine() == 0) {
     // 如果没有逻辑行，就是0，0，0
     CursorCoord coord;
@@ -203,67 +203,69 @@ CursorCoord Document::moveCursorToPos(Point pos) {
 }
 void Document::insertText(Cursor& cursor, const String& text) {
   if (text.isEmpty()) return;
-  auto command = new InsertTextCommand(this, cursor.coord(), text);
+  auto command = std::make_unique<InsertTextCommand>(this, cursor.coord(), text);
   command->execute(cursor);
-  m_commandStack->push(command);
+  m_commandStack->push(std::move(command));
 }
 void Document::removeText(Cursor& cursor) {
-  auto command = new RemoveTextCommand(this, cursor.coord());
+  auto command = std::make_unique<RemoveTextCommand>(this, cursor.coord());
   command->execute(cursor);
-  m_commandStack->push(command);
+  m_commandStack->push(std::move(command));
 }
 void Document::insertReturn(Cursor& cursor) {
-  auto command = new InsertReturnCommand(this, cursor.coord());
+  auto command = std::make_unique<InsertReturnCommand>(this, cursor.coord());
   command->execute(cursor);
-  m_commandStack->push(command);
+  m_commandStack->push(std::move(command));
 }
 
 void Document::renderAllBlock() {
   m_blocks.clear();
-  for (auto node : m_root->children()) {
-    const Block& block = Render::render(node, m_setting, this);
-    m_blocks.push_back(block);
+  for (auto& node : m_root->children()) {
+    Block block = Render::render(node.get(), m_setting, this);
+    m_blocks.push_back(std::move(block));
   }
 }
-void Document::replaceBlock(SizeType blockNo, parser::Node* node) {
+void Document::replaceBlock(SizeType blockNo, std::unique_ptr<parser::Node> node) {
   ASSERT(blockNo >= 0 && blockNo < m_root->children().size());
   ASSERT(node != nullptr);
-  m_root->setChild(blockNo, node);
-  m_blocks[blockNo] = Render::render(node, m_setting, this);
+  auto* rawNode = node.get();
+  m_root->setChild(blockNo, std::move(node));
+  m_blocks[blockNo] = Render::render(rawNode, m_setting, this);
 }
-void Document::insertBlock(SizeType blockNo, parser::Node* node) {
+void Document::insertBlock(SizeType blockNo, std::unique_ptr<parser::Node> node) {
   ASSERT(blockNo >= 0 && blockNo <= m_root->children().size());
   ASSERT(node != nullptr);
-  m_root->insertChild(blockNo, node);
-  m_blocks.insert(m_blocks.begin() + blockNo, Render::render(node, m_setting, this));
+  auto* rawNode = node.get();
+  m_root->insertChild(blockNo, std::move(node));
+  m_blocks.insert(m_blocks.begin() + blockNo, Render::render(rawNode, m_setting, this));
 }
 void Document::renderBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_root->children().size());
-  m_blocks[blockNo] = Render::render(m_root->children()[blockNo], m_setting, this);
+  m_blocks[blockNo] = Render::render(m_root->children()[blockNo].get(), m_setting, this);
 }
 void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
   ASSERT(blockNo1 >= 0 && blockNo1 < m_root->children().size());
   ASSERT(blockNo2 >= 0 && blockNo2 < m_root->children().size());
-  auto node1 = node2container(m_root->children()[blockNo1]);
-  auto node2 = node2container(m_root->children()[blockNo2]);
+  auto node1 = node2container(m_root->children()[blockNo1].get());
+  auto node2 = node2container(m_root->children()[blockNo2].get());
   // 需要对Text结点进行合并
-  for (auto child : node2->children()) {
+  for (auto& child : node2->children()) {
     if (node1->children().empty()) {
-      node1->appendChild(child);
+      node1->appendChild(std::move(child));
       continue;
     }
     if (node1->children().back()->type() == NodeType::text && child->type() == NodeType::text) {
-      auto node = node1->children().back();
-      auto textNode1 = (Text*)node;
-      auto textNode2 = (Text*)child;
+      auto& node = node1->children().back();
+      auto textNode1 = static_cast<Text*>(node.get());
+      auto textNode2 = static_cast<Text*>(child.get());
       textNode1->merge(*textNode2);
     } else {
-      node1->appendChild(child);
+      node1->appendChild(std::move(child));
     }
   }
   m_root->removeChildAt(blockNo2);
   m_blocks.erase(m_blocks.begin() + blockNo2);
-  replaceBlock(blockNo1, node1);
+  renderBlock(blockNo1);
 }
 parser::Container* Document::node2container(parser::Node* node) {
   ASSERT(node != nullptr);
@@ -300,7 +302,7 @@ parser::Container* Document::node2container(parser::Node* node) {
 }
 CursorCoord Document::moveCursorToBol(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   coord.offset = line.moveToBol(coord.offset, this);
@@ -308,7 +310,7 @@ CursorCoord Document::moveCursorToBol(CursorCoord coord) {
 }
 std::pair<CursorCoord, int> Document::moveCursorToEol(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
   auto [offset, x] = line.moveToEol(coord.offset, this);
@@ -324,7 +326,7 @@ CursorCoord Document::moveCursorToEndOfDocument() {
   CursorCoord coord;
   ASSERT(!m_blocks.empty());
   coord.blockNo = m_blocks.size() - 1;
-  auto block = m_blocks[coord.blockNo];
+  const auto& block = m_blocks[coord.blockNo];
   ASSERT(block.countOfLogicalLine() > 0);
   coord.lineNo = block.countOfLogicalLine() - 1;
   coord.offset = block.logicalLineAt(coord.lineNo).length();
@@ -352,9 +354,9 @@ void Document::upgradeToHeader(const Cursor& cursor, int level) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_root->size());
   auto node = m_root->childAt(coord.blockNo);
   if (node->type() != NodeType::paragraph) return;
-  auto paragraphNode = (Paragraph*)node;
-  auto header = new Header(level);
-  header->setChildren(paragraphNode->children());
-  replaceBlock(coord.blockNo, header);
+  auto paragraphNode = static_cast<Paragraph*>(node);
+  auto header = std::make_unique<Header>(level);
+  header->setChildren(std::move(paragraphNode->children()));
+  replaceBlock(coord.blockNo, std::move(header));
 }
 }  // namespace md::editor
