@@ -272,7 +272,8 @@ class RemoveTextVisitor
     : public MultipleVisitor<Paragraph, Header, OrderedList, UnorderedList, CheckboxList, CodeBlock>,
       public DocumentOperationVisitor {
  public:
-  RemoveTextVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) {}
+  RemoveTextVisitor(Cursor& cursor, Document* doc, RemoveTextCommand* cmd = nullptr)
+      : DocumentOperationVisitor(cursor, doc), m_cmd(cmd) {}
   void visit(Paragraph* node) override {
     const auto& block = m_doc->m_blocks[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
@@ -294,6 +295,18 @@ class RemoveTextVisitor
         } else if (coord.blockNo > 0) {
           // 合并当前block和前一个block
           // 新坐标为前一个block的最后一行，最后一列
+          if (m_cmd) {
+            auto prevContainer = m_doc->node2container(m_doc->root()->childAt(coord.blockNo - 1));
+            auto curContainer = m_doc->node2container(m_doc->root()->childAt(coord.blockNo));
+            m_cmd->m_mergePrevChildCount = prevContainer->children().size();
+            if (!prevContainer->children().empty()) {
+              auto& lastChild = prevContainer->children().back();
+              if (lastChild->type() == NodeType::text && !curContainer->children().empty() && curContainer->children().front()->type() == NodeType::text) {
+                m_cmd->m_mergePrevLastTextLen = static_cast<Text*>(lastChild.get())->toString(m_doc->parserDoc()).length();
+              }
+            }
+            m_cmd->m_undoAction = RemoveTextCommand::UndoAction::block_merge;
+          }
           const auto& prevBlock = m_doc->m_blocks[coord.blockNo - 1];
           coord.lineNo = prevBlock.countOfLogicalLine() - 1;
           coord.offset = prevBlock.logicalLineAt(prevBlock.countOfLogicalLine() - 1).length();
@@ -340,6 +353,10 @@ class RemoveTextVisitor
     const auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty() || (coord.lineNo == 0 && coord.offset == 0)) {
       DEBUG << "degrade header to paragraph";
+      if (m_cmd) {
+        m_cmd->m_headerLevel = node->level();
+        m_cmd->m_undoAction = RemoveTextCommand::UndoAction::header_degrade;
+      }
       auto paragraphNode = std::make_unique<Paragraph>();
       paragraphNode->setChildren(std::move(node->children()));
       replaceBlock(coord.blockNo, std::move(paragraphNode));
@@ -441,18 +458,30 @@ class RemoveTextVisitor
     }
   }
   void removeTextInNode(Text* textNode, SizeType leftOffset) {
+    auto s = textNode->toString(m_doc->parserDoc());
     if (leftOffset - 1 > 0) {
-      auto s = textNode->toString(m_doc->parserDoc());
       auto ch = s[leftOffset - 2].unicode();
       // 如果是emoji的开始标志，两个都要删除
       if (ch == 0xd83d || ch == 0xd83c) {
+        if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
+          m_cmd->m_deletedText = s.mid(leftOffset - 2, 2);
+          m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
+        }
         textNode->remove(leftOffset - 2, 2);
         coord.offset -= 2;
       } else {
+        if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
+          m_cmd->m_deletedText = s.mid(leftOffset - 1, 1);
+          m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
+        }
         textNode->remove(leftOffset - 1, 1);
         coord.offset--;
       }
     } else {
+      if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
+        m_cmd->m_deletedText = s.mid(leftOffset - 1, 1);
+        m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
+      }
       textNode->remove(leftOffset - 1, 1);
       coord.offset--;
     }
@@ -461,6 +490,8 @@ class RemoveTextVisitor
     renderBlock(coord.blockNo);
     updateCursor(cursor, coord);
   }
+
+  RemoveTextCommand* m_cmd = nullptr;
 };
 
 class InsertTextVisitor
@@ -804,11 +835,89 @@ bool InsertTextCommand::merge(Command* command) {
 }
 void RemoveTextCommand::execute(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_coord);
-  RemoveTextVisitor visitor(cursor, m_doc);
+  RemoveTextVisitor visitor(cursor, m_doc, this);
   auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
+  m_finishedCoord = cursor.coord();
 }
-void RemoveTextCommand::undo(Cursor& cursor) {}
+void RemoveTextCommand::undo(Cursor& cursor) {
+  if (m_undoAction == RemoveTextCommand::UndoAction::none) {
+    DEBUG << "RemoveTextCommand::undo(): nothing recorded";
+    return;
+  }
+
+  if (m_undoAction == RemoveTextCommand::UndoAction::text_delete) {
+    if (m_deletedText.isEmpty()) {
+      DEBUG << "RemoveTextCommand::undo(): text_delete but deleted text is empty";
+      return;
+    }
+
+    SizeType offset = m_doc->addBuffer().size();
+    m_doc->addBuffer().append(m_deletedText);
+
+    m_doc->updateCursor(cursor, m_finishedCoord);
+
+    InsertTextVisitor visitor(
+        cursor, m_doc,
+        offset,
+        m_deletedText.length(),
+        m_deletedText.length(),  // cursorOffsetDelta = text length
+        false,                   // isSpace = false
+        false,                   // maySkipChar = false
+        "");                     // targetSkipChar (unused)
+    auto node = m_doc->root()->childAt(cursor.coord().blockNo);
+    node->accept(&visitor);
+
+    m_doc->updateCursor(cursor, m_coord);
+    return;
+  }
+
+  if (m_undoAction == RemoveTextCommand::UndoAction::block_merge) {
+    auto blockNo = m_finishedCoord.blockNo;
+    auto container = m_doc->node2container(
+        m_doc->root()->childAt(blockNo));
+    SizeType splitIndex = m_mergePrevChildCount;
+
+    if (m_mergePrevLastTextLen > 0) {
+      SizeType textIdx = m_mergePrevChildCount - 1;
+      ASSERT(textIdx >= 0 && textIdx < container->children().size());
+      auto& child = container->children()[textIdx];
+      ASSERT(child->type() == NodeType::text);
+      auto textNode = static_cast<Text*>(child.get());
+      auto splitResult = textNode->split(m_mergePrevLastTextLen);
+      container->setChild(textIdx, std::move(splitResult.first));
+      container->insertChild(textIdx + 1, std::move(splitResult.second));
+    }
+
+    auto newBlock = std::make_unique<Paragraph>();
+    SizeType childCount = container->children().size();
+    for (SizeType i = splitIndex; i < childCount; ++i) {
+      newBlock->appendChild(std::move(container->children()[i]));
+    }
+    ASSERT(newBlock->children().size() == childCount - splitIndex);
+    container->children().resize(splitIndex);
+
+    m_doc->insertBlock(blockNo + 1, std::move(newBlock));
+    m_doc->renderBlock(blockNo);
+
+    m_doc->updateCursor(cursor, m_coord);
+    return;
+  }
+
+  if (m_undoAction == RemoveTextCommand::UndoAction::header_degrade) {
+    auto node = m_doc->root()->childAt(m_coord.blockNo);
+    ASSERT(node->type() == NodeType::paragraph);
+    auto paragraphNode = static_cast<Paragraph*>(node);
+    auto header = std::make_unique<Header>(m_headerLevel);
+    header->setChildren(std::move(paragraphNode->children()));
+    m_doc->replaceBlock(m_coord.blockNo, std::move(header));
+
+    m_doc->updateCursor(cursor, m_coord);
+    return;
+  }
+
+  DEBUG << "RemoveTextCommand::undo(): unhandled UndoAction";
+}
 void InsertReturnCommand::execute(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_coord);
   auto coord = m_coord;

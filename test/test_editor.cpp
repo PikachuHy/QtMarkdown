@@ -15,6 +15,8 @@
 #include "debug.h"
 using namespace md::editor;
 using md::parser::NodeType;
+using md::parser::Paragraph;
+using md::parser::Text;
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
@@ -911,6 +913,141 @@ ab
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->parserDoc());
     CHECK(s == QString("ab"));
+  }
+}
+
+TEST_CASE("UndoTest, RemoveText") {
+  Editor editor;
+  editor.loadText(R"(
+ab
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  CHECK(cursor.coord().offset == 2);
+
+  doc->removeText(cursor);
+  CHECK(blocks.size() == 1);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "a");
+  }
+  CHECK(cursor.coord().offset == 1);
+
+  doc->undo(cursor);
+  CHECK(blocks.size() == 1);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "ab");
+  }
+  CHECK(cursor.coord().offset == 2);
+}
+
+TEST_CASE("UndoTest, MergeBlockThenUndo") {
+  Editor editor;
+  editor.loadText(R"(
+a
+
+b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+
+  CHECK(blocks.size() == 2);
+  CHECK(doc->root()->size() == 2);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "a");
+  }
+  {
+    auto node = doc->root()->childAt(1);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "b");
+  }
+
+  CursorCoord coord;
+  coord.blockNo = 1;
+  coord.lineNo = 0;
+  coord.offset = 0;
+  doc->updateCursor(cursor, coord);
+
+  doc->removeText(cursor);
+  CHECK(blocks.size() == 1);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "ab");
+  }
+
+  doc->undo(cursor);
+  CHECK(blocks.size() == 2);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "a");
+  }
+  {
+    auto node = doc->root()->childAt(1);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "b");
+  }
+}
+
+TEST_CASE("UndoTest, RemoveTextEmoji") {
+  Editor editor;
+  editor.loadText(R"(
+a😊b
+)");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+
+  auto coord = doc->moveCursorToEndOfDocument();
+  doc->updateCursor(cursor, coord);
+  CHECK(cursor.coord().offset == 4);
+
+  doc->removeText(cursor);  // removes 'b' -> "a😊"
+  CHECK(cursor.coord().offset == 3);
+  doc->removeText(cursor);  // removes emoji -> "a"
+  CHECK(cursor.coord().offset == 1);
+
+  // Undo: restores emoji -> "a😊"
+  doc->undo(cursor);
+  {
+    auto node = doc->root()->childAt(0);
+    CHECK(node->type() == NodeType::paragraph);
+    auto p = static_cast<Paragraph*>(node);
+    CHECK(p->size() == 1);
+    auto text = static_cast<Text*>(p->childAt(0));
+    CHECK(text->toString(doc->parserDoc()) == "a😊");
   }
 }
 

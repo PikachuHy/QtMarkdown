@@ -45,6 +45,7 @@ class QTMARKDOWNSHARED_EXPORT InsertTextCommand : public Command {
 };
 class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
  public:
+  enum UndoAction { none, text_delete, block_merge, header_degrade };
   RemoveTextCommand(Document* doc, CursorCoord coord) : Command(doc), m_coord(coord) {}
   [[nodiscard]] Type type() const override { return remove_text; }
   bool merge(Command* command) override { return false; }
@@ -52,7 +53,14 @@ class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
   void undo(Cursor& cursor) override;
 
  private:
+  friend class RemoveTextVisitor;
   CursorCoord m_coord;
+  UndoAction m_undoAction = none;
+  String m_deletedText;
+  CursorCoord m_finishedCoord;
+  SizeType m_mergePrevChildCount = 0;
+  SizeType m_mergePrevLastTextLen = 0;
+  int m_headerLevel = 0;
 };
 class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
  public:
@@ -74,7 +82,7 @@ class QTMARKDOWNSHARED_EXPORT CommandStack {
 
  private:
   std::vector<std::unique_ptr<Command>> m_commands;
-  int m_top;
+  int m_top = 0;
 };
 }  // namespace md::editor
 #endif  // QTMARKDOWN_COMMAND_H
