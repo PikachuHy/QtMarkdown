@@ -17,11 +17,11 @@ TEST_CASE("ParseUnorderedListTest,  OnlyText") {
   CHECK(node->type() == NodeType::ul);
   auto ul = (UnorderedList*)node;
   CHECK(ul->children().size() == 1);
-  auto item = ul->children().at(0);
+  auto& item = ul->children().at(0);
   CHECK(item->type() == NodeType::ul_item);
-  auto ul_item = (UnorderedListItem*)item;
+  auto ul_item = (UnorderedListItem*)item.get();
   CHECK(ul_item->children().size() == 1);
-  auto text = ul_item->children().at(0);
+  auto& text = ul_item->children().at(0);
   CHECK(text->type() == NodeType::text);
 }
 
@@ -32,11 +32,11 @@ TEST_CASE("ParseUnorderedListTest,  OnlyLink") {
   CHECK(node->type() == NodeType::ul);
   auto ul = (UnorderedList*)node;
   CHECK(ul->children().size() == 1);
-  auto item = ul->children().at(0);
+  auto& item = ul->children().at(0);
   CHECK(item->type() == NodeType::ul_item);
-  auto ul_item = (UnorderedListItem*)item;
+  auto ul_item = (UnorderedListItem*)item.get();
   CHECK(ul_item->children().size() == 1);
-  auto link = ul_item->children().at(0);
+  auto& link = ul_item->children().at(0);
   CHECK(link->type() == NodeType::link);
 }
 
@@ -47,18 +47,18 @@ TEST_CASE("ParseUnorderedListTest,  TextAndLink") {
   CHECK(node->type() == NodeType::ul);
   auto ul = (UnorderedList*)node;
   CHECK(ul->children().size() == 1);
-  auto item = ul->children().at(0);
+  auto& item = ul->children().at(0);
   CHECK(item->type() == NodeType::ul_item);
-  auto ul_item = (UnorderedListItem*)item;
+  auto ul_item = (UnorderedListItem*)item.get();
   CHECK(ul_item->children().size() == 3);
   {
-    auto text = ul_item->children().at(0);
+    auto& text = ul_item->children().at(0);
     CHECK(text->type() == NodeType::text);
   }
-  auto link = ul_item->children().at(1);
+  auto& link = ul_item->children().at(1);
   CHECK(link->type() == NodeType::link);
   {
-    auto text = ul_item->children().at(2);
+    auto& text = ul_item->children().at(2);
     CHECK(text->type() == NodeType::text);
   }
 }
@@ -70,11 +70,11 @@ TEST_CASE("ParseOrderedListTest,  OnlyText") {
   CHECK(node->type() == NodeType::ol);
   auto ol = (OrderedList*)node;
   CHECK(ol->children().size() == 1);
-  auto item = ol->children().at(0);
+  auto& item = ol->children().at(0);
   CHECK(item->type() == NodeType::ol_item);
-  auto ul_item = (OrderedListItem*)item;
+  auto ul_item = (OrderedListItem*)item.get();
   CHECK(ul_item->children().size() == 1);
-  auto text = ul_item->children().at(0);
+  auto& text = ul_item->children().at(0);
   CHECK(text->type() == NodeType::text);
 }
 
@@ -86,11 +86,11 @@ TEST_CASE("ParseOrderedListTest,  OnlyLink") {
   CHECK(node->type() == NodeType::ol);
   auto ol = (OrderedList*)node;
   CHECK(ol->children().size() == 1);
-  auto item = ol->children().at(0);
+  auto& item = ol->children().at(0);
   CHECK(item->type() == NodeType::ol_item);
-  auto ol_item = (OrderedListItem*)item;
+  auto ol_item = (OrderedListItem*)item.get();
   CHECK(ol_item->children().size() == 1);
-  auto link = ol_item->children().at(0);
+  auto& link = ol_item->children().at(0);
   CHECK(link->type() == NodeType::link);
 }
 
@@ -102,18 +102,18 @@ TEST_CASE("ParseOrderedListTest,  TextAndLink") {
   CHECK(node->type() == NodeType::ol);
   auto ul = (OrderedList*)node;
   CHECK(ul->children().size() == 1);
-  auto item = ul->children().at(0);
+  auto& item = ul->children().at(0);
   CHECK(item->type() == NodeType::ol_item);
-  auto ol_item = (OrderedListItem*)item;
+  auto ol_item = (OrderedListItem*)item.get();
   CHECK(ol_item->children().size() == 3);
   {
-    auto text = ol_item->children().at(0);
+    auto& text = ol_item->children().at(0);
     CHECK(text->type() == NodeType::text);
   }
-  auto link = ol_item->children().at(1);
+  auto& link = ol_item->children().at(1);
   CHECK(link->type() == NodeType::link);
   {
-    auto text = ol_item->children().at(2);
+    auto& text = ol_item->children().at(2);
     CHECK(text->type() == NodeType::text);
   }
 }
@@ -126,11 +126,11 @@ TEST_CASE("ParseCheckboxListTest,  OnlyText") {
   CHECK(node->type() == NodeType::checkbox);
   auto ol = (OrderedList*)node;
   CHECK(ol->children().size() == 1);
-  auto item = ol->children().at(0);
+  auto& item = ol->children().at(0);
   CHECK(item->type() == NodeType::checkbox_item);
-  auto ul_item = (OrderedListItem*)item;
+  auto ul_item = (OrderedListItem*)item.get();
   CHECK(ul_item->children().size() == 1);
-  auto text = ul_item->children().at(0);
+  auto& text = ul_item->children().at(0);
   CHECK(text->type() == NodeType::text);
 }
 
@@ -142,11 +142,11 @@ TEST_CASE("ParseCheckboxListTest,  OnlyLink") {
   CHECK(node->type() == NodeType::checkbox);
   auto ol = (OrderedList*)node;
   CHECK(ol->children().size() == 1);
-  auto item = ol->children().at(0);
+  auto& item = ol->children().at(0);
   CHECK(item->type() == NodeType::checkbox_item);
-  auto ol_item = (OrderedListItem*)item;
+  auto ol_item = (OrderedListItem*)item.get();
   CHECK(ol_item->children().size() == 1);
-  auto link = ol_item->children().at(0);
+  auto& link = ol_item->children().at(0);
   CHECK(link->type() == NodeType::link);
 }
 
@@ -158,18 +158,18 @@ TEST_CASE("ParseCheckboxListTest,  TextAndLink") {
   CHECK(node->type() == NodeType::checkbox);
   auto ul = (OrderedList*)node;
   CHECK(ul->children().size() == 1);
-  auto item = ul->children().at(0);
+  auto& item = ul->children().at(0);
   CHECK(item->type() == NodeType::checkbox_item);
-  auto ol_item = (OrderedListItem*)item;
+  auto ol_item = (OrderedListItem*)item.get();
   CHECK(ol_item->children().size() == 3);
   {
-    auto text = ol_item->children().at(0);
+    auto& text = ol_item->children().at(0);
     CHECK(text->type() == NodeType::text);
   }
-  auto link = ol_item->children().at(1);
+  auto& link = ol_item->children().at(1);
   CHECK(link->type() == NodeType::link);
   {
-    auto text = ol_item->children().at(2);
+    auto& text = ol_item->children().at(2);
     CHECK(text->type() == NodeType::text);
   }
 }
@@ -182,7 +182,7 @@ TEST_CASE("ParseImageTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::image);
 }
 
@@ -194,7 +194,7 @@ TEST_CASE("ParseLinkTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::link);
 }
 TEST_CASE("ParseInlineCodeTest,  Only") {
@@ -205,7 +205,7 @@ TEST_CASE("ParseInlineCodeTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::inline_code);
 }
 TEST_CASE("ParseInlineLatexTest,  Only") {
@@ -216,7 +216,7 @@ TEST_CASE("ParseInlineLatexTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::inline_latex);
 }
 TEST_CASE("ParseItalicTest,  Only") {
@@ -227,7 +227,7 @@ TEST_CASE("ParseItalicTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::italic);
 }
 TEST_CASE("ParseBoldTest,  Only") {
@@ -238,7 +238,7 @@ TEST_CASE("ParseBoldTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::bold);
 }
 
@@ -250,7 +250,7 @@ TEST_CASE("ParseItalicBoldBoldTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::italic_bold);
 }
 
@@ -262,7 +262,7 @@ TEST_CASE("ParseStrickoutTest,  Only") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 1);
-  auto link = p->children().at(0);
+  auto& link = p->children().at(0);
   CHECK(link->type() == NodeType::strickout);
 }
 
@@ -274,11 +274,11 @@ TEST_CASE("ParseLinkTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto link = p->children().at(1);
+  auto& link = p->children().at(1);
   CHECK(link->type() == NodeType::link);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 TEST_CASE("ParseInlineCodeTest,  Middle") {
@@ -289,11 +289,11 @@ TEST_CASE("ParseInlineCodeTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto ic = p->children().at(1);
+  auto& ic = p->children().at(1);
   CHECK(ic->type() == NodeType::inline_code);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 TEST_CASE("ParseInlineLatexTest,  Middle") {
@@ -304,11 +304,11 @@ TEST_CASE("ParseInlineLatexTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto il = p->children().at(1);
+  auto& il = p->children().at(1);
   CHECK(il->type() == NodeType::inline_latex);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 TEST_CASE("ParseItalicTest,  Middle") {
@@ -319,11 +319,11 @@ TEST_CASE("ParseItalicTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto i = p->children().at(1);
+  auto& i = p->children().at(1);
   CHECK(i->type() == NodeType::italic);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 TEST_CASE("ParseBoldTest,  Middle") {
@@ -334,11 +334,11 @@ TEST_CASE("ParseBoldTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto b = p->children().at(1);
+  auto& b = p->children().at(1);
   CHECK(b->type() == NodeType::bold);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 
@@ -350,11 +350,11 @@ TEST_CASE("ParseItalicBoldBoldTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto it = p->children().at(1);
+  auto& it = p->children().at(1);
   CHECK(it->type() == NodeType::italic_bold);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 
@@ -366,11 +366,11 @@ TEST_CASE("ParseStrickoutTest,  Middle") {
   CHECK(node->type() == NodeType::paragraph);
   auto p = (Paragraph*)node;
   CHECK(p->children().size() == 3);
-  auto before = p->children().at(0);
+  auto& before = p->children().at(0);
   CHECK(before->type() == NodeType::text);
-  auto strickout = p->children().at(1);
+  auto& strickout = p->children().at(1);
   CHECK(strickout->type() == NodeType::strickout);
-  auto after = p->children().at(2);
+  auto& after = p->children().at(2);
   CHECK(after->type() == NodeType::text);
 }
 

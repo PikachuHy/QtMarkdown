@@ -1,3 +1,5 @@
+find_package(doctest REQUIRED)
+
 enable_testing()
 add_executable(test_parser test_parser.cpp)
 target_link_libraries(test_parser PRIVATE QtMarkdownParser doctest::doctest)
