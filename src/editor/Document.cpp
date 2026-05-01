@@ -33,7 +33,7 @@ std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-  auto line = block.logicalLineAt(coord.lineNo);
+  auto& line = block.logicalLineAt(coord.lineNo);
   auto [pos, h] = line.cursorAt(coord.offset, this);
   if (h == line.height()) {
     h -= m_setting->lineSpacing;
@@ -183,7 +183,7 @@ CursorCoord Document::moveCursorToPos(Point pos) {
   auto node = m_root->childAt(blockNo);
   if (node->type() == NodeType::ul) {
     for (int i = 0; i < block.countOfLogicalLine(); ++i) {
-      auto line = block.logicalLineAt(i);
+      (void)block.logicalLineAt(i);
     }
   }
   auto oldY = y;

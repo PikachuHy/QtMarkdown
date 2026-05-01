@@ -33,10 +33,10 @@ void TextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
 void StaticTextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   Q_ASSERT(doc != nullptr);
   painter.save();
-  painter.setPen(m_cell->m_fg);
-  painter.setFont(m_cell->m_font);
-  auto rect = Rect(m_cell->m_pos + offset, m_cell->m_size);
-  painter.drawText(rect, m_cell->m_text);
+  painter.setPen(m_fg);
+  painter.setFont(m_font);
+  auto rect = Rect(m_pos + offset, m_size);
+  painter.drawText(rect, m_text);
 #if 0
   // debug用
   QRect debugRect(rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2);
@@ -51,8 +51,8 @@ void StaticTextInstruction::run(Painter& painter, Point offset, DocPtr doc) cons
   painter.restore();
 }
 void ImageInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
-  auto rect = Rect(m_cell->m_pos + offset, m_cell->m_size);
-  painter.drawPixmap(rect, QPixmap(m_cell->m_path));
+  auto rect = Rect(m_pos + offset, m_size);
+  painter.drawPixmap(rect, QPixmap(m_path));
 }
 void StaticImageInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   auto rect = Rect(m_pos + offset, m_size);

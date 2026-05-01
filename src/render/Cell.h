@@ -27,7 +27,7 @@ class QTMARKDOWNSHARED_EXPORT Cell {
  protected:
   Point m_pos;
   Size m_size;
-  friend class RenderPrivate;
+  friend class LayoutPass;
   friend class LogicalLine;
   friend class VisualLine;
 };
@@ -48,33 +48,6 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
   SizeType m_length;
   friend class TextInstruction;
   friend class LogicalLine;
-};
-class StaticTextInstruction;
-class QTMARKDOWNSHARED_EXPORT StaticTextCell : public Cell {
- public:
-  StaticTextCell(String text, Point pos, const Size& size, const Color& fg, const Font& font)
-      : Cell(pos, size), m_text(std::move(text)), m_fg(fg), m_font(font) {}
-  SizeType length() override;
-  int width(SizeType length, DocPtr doc) const override;
-
- private:
-  String m_text;
-  Color m_fg;
-  Font m_font;
-  friend class StaticTextInstruction;
-};
-class ImageInstruction;
-class QTMARKDOWNSHARED_EXPORT ImageCell : public Cell {
- public:
-  ImageCell(parser::Image* node, String path, Point pos, Size size)
-      : Cell(pos, size), m_node(node), m_path(std::move(path)) {}
-  SizeType length() override;
-  int width(SizeType length, DocPtr doc) const override;
-
- private:
-  String m_path;
-  parser::Image* m_node;
-  friend class ImageInstruction;
 };
 class LatexInstruction;
 class QTMARKDOWNSHARED_EXPORT InlineLatexCell : public Cell {

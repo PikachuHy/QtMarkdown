@@ -37,27 +37,35 @@ class LogicalLine;
 class QTMARKDOWNSHARED_EXPORT VisualLine {
  public:
   VisualLine(Point pos, int h) : m_pos(pos), m_h(h) {}
+  VisualLine(const VisualLine&) = delete;
+  VisualLine& operator=(const VisualLine&) = delete;
+  VisualLine(VisualLine&&) noexcept = default;
+  VisualLine& operator=(VisualLine&&) noexcept = default;
   int height() const;
   int width() const;
   SizeType length() const;
-  bool hasCell(Cell* cell) const;
   std::pair<Cell*, int> cellAtX(int x, DocPtr doc) const;
   Point pos() const { return m_pos; }
 
  private:
-  std::vector<Cell*> m_cells;
+  std::vector<std::unique_ptr<Cell>> m_cells;
   Point m_pos;
   int m_h;
-  friend class RenderPrivate;
+  friend class LayoutPass;
   friend class LogicalLine;
 };
 class QTMARKDOWNSHARED_EXPORT LogicalLine {
   using VisualLineList = std::vector<VisualLine>;
 
  public:
+  LogicalLine() = default;
+  LogicalLine(const LogicalLine&) = delete;
+  LogicalLine& operator=(const LogicalLine&) = delete;
+  LogicalLine(LogicalLine&&) noexcept = default;
+  LogicalLine& operator=(LogicalLine&&) noexcept = default;
   int height() const;
   int width() const;
-  std::pair<Point, int> cursorAt(SizeType offset, DocPtr doc);
+  std::pair<Point, int> cursorAt(SizeType offset, DocPtr doc) const;
   bool hasTextAt(SizeType offset) const;
   // 第一个Text是当前offset所在Text结点
   // 第二个int是当前offset在结点中还有的offset
@@ -88,7 +96,7 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   Point m_pos;
   int m_h;
   int m_padding = 0;
-  friend class RenderPrivate;
+  friend class LayoutPass;
 };
 class QTMARKDOWNSHARED_EXPORT Block {
  public:
@@ -96,14 +104,13 @@ class QTMARKDOWNSHARED_EXPORT Block {
   explicit Block(parser::Node* node) : m_node(node) {}
   Block(const Block&) = delete;
   Block& operator=(const Block&) = delete;
-  Block(Block&&) = default;
-  Block& operator=(Block&&) = default;
-  void appendInstruction(std::unique_ptr<Instruction> instruction);
+  Block(Block&&) noexcept = default;
+  Block& operator=(Block&&) noexcept = default;
+  void setInstructions(InstructionPtrList instructions) { m_instructions = std::move(instructions); }
   void appendElement(Element element) { m_elements.push_back(element); }
-  void insertInstruction(SizeType index, std::unique_ptr<Instruction> instruction);
   int width() const;
   [[nodiscard]] int height() const;
-  [[nodiscard]] LogicalLineList lines() const { return m_logicalLines; }
+  [[nodiscard]] const LogicalLineList& lines() const { return m_logicalLines; }
   [[nodiscard]] auto begin() const { return m_instructions.begin(); }
   [[nodiscard]] auto end() const { return m_instructions.end(); }
   auto countOfLogicalLine() const { return m_logicalLines.size(); }
@@ -111,8 +118,9 @@ class QTMARKDOWNSHARED_EXPORT Block {
   const ElementList& elementList() const { return m_elements; }
 
  private:
-  // Destruction order: m_instructions (owns Cells) destroyed BEFORE m_logicalLines.
-  // This is correct -- Cells must not outlive LogicalLine/VisualLine raw Cell* references.
+  // Destruction order: m_instructions (non-owning pointers) destroyed BEFORE m_logicalLines.
+  // m_logicalLines owns cells via VisualLine::vector<unique_ptr<Cell>>.
+  // Instructions are destroyed first, so their raw Cell* pointers dangle only after they are no longer used.
   // 逻辑行
   LogicalLineList m_logicalLines;
   // 绘图指令
@@ -121,7 +129,7 @@ class QTMARKDOWNSHARED_EXPORT Block {
 
   // 方便调试用
   parser::Node* m_node;
-  friend class RenderPrivate;
+  friend class LayoutPass;
 };
 
 class QTMARKDOWNSHARED_EXPORT Render {

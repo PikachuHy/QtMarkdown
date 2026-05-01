@@ -12,6 +12,8 @@ target_include_directories(
 target_sources(QtMarkdownRender PRIVATE
         Element.cpp Element.h
         Cell.cpp Cell.h
+        PaintPass.cpp PaintPass.h
+        PaintRecord.cpp PaintRecord.h
         Render.cpp Render.h
         Instruction.cpp Instruction.h
         StringUtil.cpp StringUtil.h
@@ -29,5 +31,5 @@ install(
 )
 
 markdown_install_headers(QtMarkdownRender PREFIX render
-        HEADERS Element.h Cell.h Render.h Instruction.h StringUtil.h mddef.h
+        HEADERS Element.h Cell.h PaintPass.h PaintRecord.h Render.h Instruction.h StringUtil.h mddef.h
         )
