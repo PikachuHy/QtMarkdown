@@ -182,10 +182,10 @@ class InsertReturnVisitor
     for (int i = 0; i < childIndex; ++i) {
       oldBlock->appendChild(std::move(originalBlock->children()[i]));
     }
-    if (!leftTextNode->empty()) {
+    if (leftTextNode && !leftTextNode->empty()) {
       oldBlock->appendChild(std::move(leftTextNode));
     }
-    if (!rightTextNode->empty()) {
+    if (rightTextNode && !rightTextNode->empty()) {
       newBlock->appendChild(std::move(rightTextNode));
     }
     for (SizeType i = childIndex + 1; i < originalBlock->children().size(); ++i) {
@@ -524,8 +524,8 @@ class InsertTextVisitor
           textNode->remove(0, 1);
           if (textNode->empty()) {
             // 如果变成空文本了，删除这个结点
-            ASSERT(textNode->parent() == ulItem.get());
-            ulItem->removeChildAt(0);
+            ASSERT(textNode->parent() == ulItemRaw);
+            ulItemRaw->removeChildAt(0);
           }
           replaceBlock(coord.blockNo, std::move(ul));
           coord.offset = 0;
@@ -542,8 +542,8 @@ class InsertTextVisitor
           textNode->remove(0, 2);
           if (textNode->empty()) {
             // 如果变成空文本了，删除这个结点
-            ASSERT(textNode->parent() == olItem.get());
-            olItem->removeChildAt(0);
+            ASSERT(textNode->parent() == olItemRaw);
+            olItemRaw->removeChildAt(0);
           }
           replaceBlock(coord.blockNo, std::move(ol));
           coord.offset = 0;

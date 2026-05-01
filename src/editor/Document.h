@@ -75,6 +75,8 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   friend class InsertReturnCommand;
 
  private:
+  void ensureTrailingParagraph();
+  void assertBlocksInSync();
   std::unique_ptr<parser::Document> m_parserDoc;
 };
 }  // namespace md::editor

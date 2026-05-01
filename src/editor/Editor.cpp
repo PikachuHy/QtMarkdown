@@ -311,13 +311,8 @@ void Editor::drawSelection(Point offset, Painter &painter) {
 }
 void Editor::drawDoc(QPoint offset, Painter &painter) {
   if (!m_doc) return;
-  // 如果最后一个block不是段落，添加一个段落
-  if (m_doc->root()->children().back()->type() != NodeType::paragraph) {
-    auto newParagraph = std::make_unique<Paragraph>();
-    m_doc->root()->appendChild(std::move(newParagraph));
-    m_doc->m_blocks.push_back(
-        render::Render::render(m_doc->root()->children().back().get(), m_renderSetting, m_doc->parserDoc()));
-  }
+  ASSERT(!m_doc->root()->children().empty() &&
+         m_doc->root()->children().back()->type() == NodeType::paragraph);
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
   for (int blockNo = 0; blockNo < m_doc->m_blocks.size(); ++blockNo) {

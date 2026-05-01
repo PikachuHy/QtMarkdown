@@ -17,6 +17,19 @@ Document::Document(const String& str, sptr<RenderSetting> setting)
     : m_parserDoc(std::make_unique<parser::Document>(str)), m_setting(setting), m_commandStack(std::make_shared<CommandStack>()) {
   this->renderAllBlock();
 }
+void Document::assertBlocksInSync() {
+  ASSERT(m_blocks.size() == m_parserDoc->root()->children().size());
+}
+void Document::ensureTrailingParagraph() {
+  auto& children = m_parserDoc->root()->children();
+  if (children.empty() || children.back()->type() != NodeType::paragraph) {
+    auto paragraph = std::make_unique<Paragraph>();
+    parser::Node* raw = paragraph.get();
+    m_parserDoc->root()->appendChild(std::move(paragraph));
+    m_blocks.push_back(Render::render(raw, m_setting, m_parserDoc.get()));
+  }
+  assertBlocksInSync();
+}
 void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos) {
   cursor.setCoord(coord);
   if (!updatePos) return;
@@ -206,16 +219,19 @@ void Document::insertText(Cursor& cursor, const String& text) {
   auto command = std::make_unique<InsertTextCommand>(this, cursor.coord(), text);
   command->execute(cursor);
   m_commandStack->push(std::move(command));
+  ensureTrailingParagraph();
 }
 void Document::removeText(Cursor& cursor) {
   auto command = std::make_unique<RemoveTextCommand>(this, cursor.coord());
   command->execute(cursor);
   m_commandStack->push(std::move(command));
+  ensureTrailingParagraph();
 }
 void Document::insertReturn(Cursor& cursor) {
   auto command = std::make_unique<InsertReturnCommand>(this, cursor.coord());
   command->execute(cursor);
   m_commandStack->push(std::move(command));
+  ensureTrailingParagraph();
 }
 
 void Document::renderAllBlock() {
@@ -224,6 +240,7 @@ void Document::renderAllBlock() {
     Block block = Render::render(node.get(), m_setting, m_parserDoc.get());
     m_blocks.push_back(std::move(block));
   }
+  ensureTrailingParagraph();
 }
 void Document::replaceBlock(SizeType blockNo, std::unique_ptr<parser::Node> node) {
   ASSERT(blockNo >= 0 && blockNo < m_parserDoc->root()->children().size());
@@ -326,6 +343,16 @@ CursorCoord Document::moveCursorToEndOfDocument() {
   CursorCoord coord;
   ASSERT(!m_blocks.empty());
   coord.blockNo = m_blocks.size() - 1;
+  // Skip trailing empty paragraphs so cursor lands on actual content
+  while (coord.blockNo > 0) {
+    const auto& block = m_blocks[coord.blockNo];
+    if (block.countOfLogicalLine() == 1 && block.logicalLineAt(0).length() == 0 &&
+        m_parserDoc->root()->childAt(coord.blockNo)->type() == NodeType::paragraph) {
+      coord.blockNo--;
+    } else {
+      break;
+    }
+  }
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(block.countOfLogicalLine() > 0);
   coord.lineNo = block.countOfLogicalLine() - 1;
@@ -346,8 +373,13 @@ bool Document::isBol(const CursorCoord& coord) const {
   const auto& line = block.logicalLineAt(coord.lineNo);
   return line.isBol(coord.offset, m_parserDoc.get());
 }
-void Document::undo(Cursor& cursor) { m_commandStack->undo(cursor); }
-void Document::redo(Cursor& cursor) {}
+void Document::undo(Cursor& cursor) { m_commandStack->undo(cursor);
+  ensureTrailingParagraph(); }
+void Document::redo(Cursor& cursor) {
+  // NOTE: Currently does NOT delegate to m_commandStack->redo().
+  // ensureTrailingParagraph() is forward-compatible safety.
+  ensureTrailingParagraph();
+}
 void Document::upgradeToHeader(const Cursor& cursor, int level) {
   ASSERT(level >= 1 && level <= 6);
   auto coord = cursor.coord();
@@ -358,5 +390,6 @@ void Document::upgradeToHeader(const Cursor& cursor, int level) {
   auto header = std::make_unique<Header>(level);
   header->setChildren(std::move(paragraphNode->children()));
   replaceBlock(coord.blockNo, std::move(header));
+  ensureTrailingParagraph();
 }
 }  // namespace md::editor
