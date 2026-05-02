@@ -7,3 +7,5 @@ out
 build
 deps
 example/quazip
+.claude
+.cache/

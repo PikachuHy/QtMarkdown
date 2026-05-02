@@ -5,9 +5,7 @@
 using namespace md;
 using namespace md::parser;
 
-struct SimpleHtmlVisitor : MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText, Image, Link, CodeBlock,
-                                           InlineCode, Paragraph, CheckboxList, CheckboxItem, UnorderedList,
-                                           OrderedList, UnorderedListItem, OrderedListItem, Hr, QuoteBlock, Table, Lf> {
+struct SimpleHtmlVisitor : NodeVisitor {
   explicit SimpleHtmlVisitor(DocPtr doc) : m_doc(doc) {}
   void visit(Header *node) override {
     auto hn = "h" + String::number(node->level());

@@ -19,16 +19,7 @@
 
 using namespace md;
 using namespace md::parser;
-class DocxRender : public MultipleVisitor<Header, Text, Paragraph
-                                          /*
-                                           * ItalicText, BoldText, ItalicBoldText, StrickoutText, Image, Link,
-                                                               CodeBlock,
-                                          InlineCode,
-                                                               CheckboxList, CheckboxItem, UnorderedList,
-                                          UnorderedListItem, OrderedList, OrderedListItem, LatexBlock, InlineLatex, Hr,
-                                          QuoteBlock, Table, Lf
-                                                               */
-                                          > {
+class DocxRender : public NodeVisitor {
  public:
   DocxRender(DocPtr doc, QXmlStreamWriter& writer) : m_doc(doc), m_writer(writer) {}
   void writeElement(String name, std::function<void()> fn) {
