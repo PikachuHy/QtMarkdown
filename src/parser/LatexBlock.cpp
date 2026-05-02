@@ -2,7 +2,7 @@
 // Created by PikachuHy on 2021/11/5.
 //
 
-#include "LatexBlock.h"
+#include "nodes/LatexBlock.h"
 #include "Text.h"
 
 namespace md::parser {

@@ -5,7 +5,7 @@
 #ifndef MD_PARSER_HEADER_H
 #define MD_PARSER_HEADER_H
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Header : public ContainerVisitable<Header> {

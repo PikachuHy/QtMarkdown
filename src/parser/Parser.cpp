@@ -5,7 +5,7 @@
 #include "Parser.h"
 
 #include "ParserDetail.h"
-#include "Paragraph.h"
+#include "nodes/Paragraph.h"
 #include "Text.h"
 #include "debug.h"
 

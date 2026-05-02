@@ -5,7 +5,7 @@
 #ifndef MD_PARSER_LATEXBLOCK_H
 #define MD_PARSER_LATEXBLOCK_H
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT LatexBlock : public ContainerVisitable<LatexBlock> {

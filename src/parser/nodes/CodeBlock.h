@@ -5,7 +5,7 @@
 #ifndef MD_PARSER_CODEBLOCK_H
 #define MD_PARSER_CODEBLOCK_H
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT CodeBlock : public ContainerVisitable<CodeBlock> {

@@ -23,29 +23,40 @@ target_sources(QtMarkdownParser PRIVATE
         PieceTable.cpp PieceTable.h
         Text.cpp Text.h
         Node.h
-        Header.h
-        Paragraph.h
-        CheckboxList.h
-        UnorderedList.h
-        OrderedList.h
-        QuoteBlock.h
-        ItalicText.h
-        BoldText.h
-        ItalicBoldText.h
-        StrickoutText.h
-        Image.h
-        Link.h
-        CodeBlock.h
-        InlineCode.h
-        InlineLatex.h
-        Hr.h
-        Table.h
-        Lf.h
-        LatexBlock.h LatexBlock.cpp
-        ListNode.h
         ParserDetail.h
-        InlineParser.cpp
-        BlockParser.cpp)
+        parsers/HeaderParser.cpp
+        parsers/CodeBlockParser.cpp
+        parsers/CheckboxListParser.cpp
+        parsers/UnorderedListParser.cpp
+        parsers/OrderedListParser.cpp
+        parsers/QuoteBlockParser.cpp
+        parsers/LatexBlockParser.cpp
+        parsers/ParagraphParser.cpp
+        parsers/ImageParser.cpp
+        parsers/LinkParser.cpp
+        parsers/InlineCodeParser.cpp
+        parsers/InlineLatexParser.cpp
+        parsers/SemanticTextParser.cpp
+        nodes/Header.h
+        nodes/Paragraph.h
+        nodes/CheckboxList.h
+        nodes/UnorderedList.h
+        nodes/OrderedList.h
+        nodes/QuoteBlock.h
+        nodes/ItalicText.h
+        nodes/BoldText.h
+        nodes/ItalicBoldText.h
+        nodes/StrickoutText.h
+        nodes/Image.h
+        nodes/Link.h
+        nodes/CodeBlock.h
+        nodes/InlineCode.h
+        nodes/InlineLatex.h
+        nodes/Hr.h
+        nodes/Table.h
+        nodes/Lf.h
+        nodes/LatexBlock.h LatexBlock.cpp
+        nodes/ListNode.h)
 target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core magic_enum::magic_enum)
 if (BUILD_WITH_BOOST)
@@ -61,9 +72,13 @@ install(
 )
 markdown_install_headers(QtMarkdownParser PREFIX parser HEADERS
         Document.h Token.h Parser.h Visitor.h PieceTable.h Text.h mddef.h
-        Node.h Header.h Paragraph.h CheckboxList.h UnorderedList.h OrderedList.h
-        QuoteBlock.h ItalicText.h BoldText.h ItalicBoldText.h StrickoutText.h
-        Image.h Link.h CodeBlock.h InlineCode.h InlineLatex.h Hr.h Table.h Lf.h
-        LatexBlock.h ListNode.h
+        Node.h
+        nodes/Header.h nodes/Paragraph.h nodes/CheckboxList.h
+        nodes/UnorderedList.h nodes/OrderedList.h nodes/QuoteBlock.h
+        nodes/ItalicText.h nodes/BoldText.h nodes/ItalicBoldText.h
+        nodes/StrickoutText.h nodes/Image.h nodes/Link.h
+        nodes/CodeBlock.h nodes/InlineCode.h nodes/InlineLatex.h
+        nodes/Hr.h nodes/Table.h nodes/Lf.h nodes/LatexBlock.h
+        nodes/ListNode.h
         QtMarkdownParser
         )

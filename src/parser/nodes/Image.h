@@ -5,7 +5,7 @@
 #ifndef MD_PARSER_IMAGE_H
 #define MD_PARSER_IMAGE_H
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Image : public Visitable<Image> {

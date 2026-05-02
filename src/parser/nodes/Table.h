@@ -5,7 +5,7 @@
 #ifndef MD_PARSER_TABLE_H
 #define MD_PARSER_TABLE_H
 
-#include "Node.h"
+#include "../Node.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Table : public Visitable<Table> {
