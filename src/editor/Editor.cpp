@@ -231,7 +231,7 @@ class MousePressVisitor : public NodeVisitor {
     auto path = node->src()->toString(m_doc.parserDoc());
 #if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
     if (!path.startsWith("/")) {
-      for (const auto& resPath: m_doc.m_setting->resPathList) {
+      for (const auto& resPath: m_doc.setting().resPathList) {
         QString newImgPath = resPath + "/" + path;
         if (QFile(newImgPath).exists()) {
           path = newImgPath;
@@ -337,8 +337,8 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
          m_doc->root()->children().back()->type() == NodeType::paragraph);
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (int blockNo = 0; blockNo < m_doc->m_blocks.size(); ++blockNo) {
-    const auto &block = m_doc->m_blocks[blockNo];
+  for (int blockNo = 0; blockNo < m_doc->blocks().size(); ++blockNo) {
+    const auto &block = m_doc->blocks()[blockNo];
     auto h = block.height();
     // 把每个指令都画出来
     for (const auto &instruction : block) {
@@ -354,9 +354,9 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
   int h = m_renderSetting->docMargin.top();
   for (int i = 0; i < coord.blockNo; ++i) {
     h += m_renderSetting->blockSpacing;
-    h += m_doc->m_blocks[i].height();
+    h += m_doc->blocks()[i].height();
   }
-  const auto& block = m_doc->m_blocks[coord.blockNo];
+  const auto& block = m_doc->blocks()[coord.blockNo];
   painter.save();
   painter.setPen(QColor(0, 255, 255));
   auto highlightPos = Point(m_renderSetting->docMargin.left(), h);
@@ -383,7 +383,7 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
 int Editor::width() const { return m_renderSetting->maxWidth; }
 int Editor::height() const {
   auto h = 0;
-  for (const auto &instructionGroup : m_doc->m_blocks) {
+  for (const auto &instructionGroup : m_doc->blocks()) {
     h += instructionGroup.height();
     h += m_renderSetting->blockSpacing;
   }
@@ -582,8 +582,8 @@ void Editor::mousePressEvent(Point offset, MouseEvent *event) {
   }
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (int blockNo = 0; blockNo < m_doc->m_blocks.size(); ++blockNo) {
-    const auto &block = m_doc->m_blocks[blockNo];
+  for (int blockNo = 0; blockNo < m_doc->blocks().size(); ++blockNo) {
+    const auto &block = m_doc->blocks()[blockNo];
     auto h = block.height();
     for (const auto &element : block.elementList()) {
       if (Rect(element.pos + offset, element.size).contains(event->pos())) {
@@ -622,9 +622,9 @@ String Editor::cursorCoord() const {
   auto coord = m_cursor->coord();
   s += QString("Cursor: (%1, %2, %3)").arg(pos.x()).arg(pos.y()).arg(m_cursor->height());
   s += "\n";
-  s += QString("BlockNo: %1/%2").arg(coord.blockNo).arg(m_doc->m_blocks.size());
+  s += QString("BlockNo: %1/%2").arg(coord.blockNo).arg(m_doc->blocks().size());
   s += "\n";
-  const auto &block = m_doc->m_blocks[coord.blockNo];
+  const auto &block = m_doc->blocks()[coord.blockNo];
   s += QString("LineNo: %1/%2").arg(coord.lineNo).arg(block.countOfLogicalLine());
   s += "\n";
   s += QString("Offset: %1/%2").arg(coord.offset).arg(block.logicalLineAt(coord.lineNo).length());
@@ -668,7 +668,7 @@ void Editor::renderDocument() {
 CursorShape Editor::cursorShape(Point offset, Point pos) {
   auto oldOffset = offset;
   offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (const auto &block : m_doc->m_blocks) {
+  for (const auto &block : m_doc->blocks()) {
     auto h = block.height();
     for (const auto &element : block.elementList()) {
       if (Rect(element.pos + offset, element.size).contains(pos)) {
@@ -849,7 +849,7 @@ void Editor::generateSelectionInstruction() {
     if (blockNo > coord.blockNo) return false;
     if (lineNo < coord.lineNo) return true;
     if (lineNo > coord.lineNo) return false;
-    const auto &line = this->m_doc->m_blocks[blockNo].logicalLineAt(lineNo);
+    const auto &line = this->m_doc->blocks()[blockNo].logicalLineAt(lineNo);
     auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc->parserDoc());
     if (coordVisualLineNo > visualLineNo) return true;
     return false;
@@ -859,7 +859,7 @@ void Editor::generateSelectionInstruction() {
     if (blockNo > coord.blockNo) return false;
     if (lineNo < coord.lineNo) return false;
     if (lineNo > coord.lineNo) return false;
-    const auto &line = this->m_doc->m_blocks[blockNo].logicalLineAt(lineNo);
+    const auto &line = this->m_doc->blocks()[blockNo].logicalLineAt(lineNo);
     auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc->parserDoc());
     if (coordVisualLineNo < visualLineNo) return false;
     if (coordVisualLineNo > visualLineNo) return false;
@@ -871,12 +871,12 @@ void Editor::generateSelectionInstruction() {
   auto [begin, end] = selectionRange;
   auto totalH = m_renderSetting->docMargin.top();
   for (int i = 0; i < begin.coord().blockNo; ++i) {
-    const auto &block = m_doc->m_blocks[i];
+    const auto &block = m_doc->blocks()[i];
     totalH += block.height();
   }
   bool drawDone = false;
   for (auto blockNo = begin.coord().blockNo; blockNo <= end.coord().blockNo; ++blockNo) {
-    const auto &block = m_doc->m_blocks[blockNo];
+    const auto &block = m_doc->blocks()[blockNo];
     auto blockOffset = Point(0, totalH);
     for (int lineNo = 0; lineNo < block.countOfLogicalLine(); ++lineNo) {
       const auto &line = block.logicalLineAt(lineNo);

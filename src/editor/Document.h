@@ -62,27 +62,15 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   std::pair<Point, int> mapToScreen(const CursorCoord& coord);
   bool isBol(const CursorCoord& coord) const;
 
-  render::BlockList m_blocks;
-  sptr<render::RenderSetting> m_setting;
-  sptr<CommandStack> m_commandStack;
-  // Friends are internal implementation classes (visitor/command pattern in
-  // Editor.cpp and Command.cpp). They need direct access to m_parserDoc,
-  // m_blocks, and m_setting for undoable mutations. This is an intentional
-  // design tradeoff to keep the command pattern efficient.
-  friend class Editor;
-  friend class EditorTest;
-  friend class DocumentOperationVisitor;
-  friend class InsertReturnVisitor;
-  friend class RemoveTextVisitor;
-  friend class InsertTextVisitor;
-  friend class InsertTextCommand;
-  friend class RemoveTextCommand;
-  friend class InsertReturnCommand;
+  const render::RenderSetting& setting() const { return *m_setting; }
 
  private:
   void ensureTrailingParagraph();
   void assertBlocksInSync();
   std::unique_ptr<parser::Document> m_parserDoc;
+  render::BlockList m_blocks;
+  sptr<render::RenderSetting> m_setting;
+  sptr<CommandStack> m_commandStack;
 };
 }  // namespace md::editor
 

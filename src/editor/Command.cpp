@@ -15,7 +15,7 @@ class DocumentOperationVisitor {
  public:
   DocumentOperationVisitor(Cursor& cursor, Document* doc) : cursor(cursor), m_doc(doc) {
     coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
   }
 
  protected:
@@ -41,8 +41,8 @@ class InsertReturnVisitor
  public:
   InsertReturnVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) { coord = cursor.coord(); }
   void visit(Paragraph* node) override {
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -118,8 +118,8 @@ class InsertReturnVisitor
 
  private:
   void beginInsertReturn() {
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.hasTextAt(coord.offset)) {
@@ -231,7 +231,7 @@ class InsertReturnVisitor
     }
   }
   void handleInsertReturnInList(Container* node) {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& block = m_doc->blocks()[coord.blockNo];
     const auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
       if (node->type() == NodeType::ol)
@@ -276,7 +276,7 @@ class RemoveTextVisitor
   RemoveTextVisitor(Cursor& cursor, Document* doc, RemoveTextCommand* cmd = nullptr)
       : DocumentOperationVisitor(cursor, doc), m_cmd(cmd) {}
   void visit(Paragraph* node) override {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty() && block.logicalLineAt(0).length() == 0) {
@@ -310,7 +310,7 @@ class RemoveTextVisitor
             }
             m_cmd->m_undoAction = RemoveTextCommand::UndoAction::block_merge;
           }
-          const auto& prevBlock = m_doc->m_blocks[coord.blockNo - 1];
+          const auto& prevBlock = m_doc->blocks()[coord.blockNo - 1];
           coord.lineNo = prevBlock.countOfLogicalLine() - 1;
           coord.offset = prevBlock.logicalLineAt(prevBlock.countOfLogicalLine() - 1).length();
           mergeBlock(coord.blockNo - 1, coord.blockNo);
@@ -351,7 +351,7 @@ class RemoveTextVisitor
     }
   }
   void visit(Header* node) override {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     const auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty() || (coord.lineNo == 0 && coord.offset == 0)) {
@@ -381,7 +381,7 @@ class RemoveTextVisitor
   void visit(UnorderedList* node) override { removeTextInListNode(node); }
   void visit(CheckboxList* node) override { removeTextInListNode(node); }
   void visit(CodeBlock* node) override {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -411,7 +411,7 @@ class RemoveTextVisitor
 
  private:
   void removeTextInListNode(Container* node) {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -513,8 +513,8 @@ class InsertTextVisitor
         targetSkipChar(targetSkipChar) {}
   void visit(Paragraph* node) override {
     auto coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -608,8 +608,8 @@ class InsertTextVisitor
   }
   void visit(Header* node) override {
     auto coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -627,8 +627,8 @@ class InsertTextVisitor
   void visit(CheckboxList* node) override { insertTextInListHelper(node); }
   void visit(UnorderedList* node) override {
     auto coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -703,8 +703,8 @@ class InsertTextVisitor
   }
   void visit(CodeBlock* node) override {
     auto coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
     if (line.empty()) {
@@ -742,8 +742,8 @@ class InsertTextVisitor
   }
   void insertTextInListHelper(Container* node) {
     auto coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+    const auto& block = m_doc->blocks()[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
     auto& line = block.logicalLineAt(coord.lineNo);
 
@@ -915,8 +915,8 @@ void RemoveTextCommand::undo(Cursor& cursor) {
 void InsertReturnCommand::execute(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_coord);
   auto coord = m_coord;
-  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-  const auto& block = m_doc->m_blocks[coord.blockNo];
+  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
+  const auto& block = m_doc->blocks()[coord.blockNo];
   InsertReturnVisitor visitor(cursor, m_doc);
   auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
