@@ -7,7 +7,7 @@
 #include "Node.h"
 #include "PieceTable.h"
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
+class QTMARKDOWNSHARED_EXPORT Text : public Node {
   using PieceTableItemList = std::vector<PieceTableItem>;
  public:
   Text(SizeType offset, SizeType length) {
@@ -26,6 +26,7 @@ class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
   auto begin() { return m_items.begin(); }
   auto end() { return m_items.end(); }
   void merge(Text& text);
+  void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
   Text() { m_type = NodeType::text; }

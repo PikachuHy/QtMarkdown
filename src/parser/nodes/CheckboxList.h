@@ -14,13 +14,7 @@ class QTMARKDOWNSHARED_EXPORT CheckboxItem : public ListItemNode {
   CheckboxItem() : m_checked(false) { m_type = NodeType::checkbox_item; }
   [[nodiscard]] bool isChecked() const { return m_checked; }
   void setChecked(bool flag) { m_checked = flag; }
-  void accept(VisitorNode* v) override {
-    if (auto p = dynamic_cast<Visitor<CheckboxItem>*>(v); p) {
-      p->visit(this);
-    } else {
-      ListItemNode::accept(v);
-    }
-  }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
   bool m_checked;
@@ -29,13 +23,7 @@ class QTMARKDOWNSHARED_EXPORT CheckboxItem : public ListItemNode {
 class QTMARKDOWNSHARED_EXPORT CheckboxList : public ListNode {
  public:
   CheckboxList() { m_type = NodeType::checkbox; }
-  void accept(VisitorNode* v) override {
-    if (auto p = dynamic_cast<Visitor<CheckboxList>*>(v); p) {
-      p->visit(this);
-    } else {
-      ListNode::accept(v);
-    }
-  }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 };
 }  // namespace md::parser
 

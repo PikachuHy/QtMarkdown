@@ -8,11 +8,12 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT StrickoutText : public Visitable<StrickoutText> {
+class QTMARKDOWNSHARED_EXPORT StrickoutText : public Node {
  public:
   explicit StrickoutText(std::unique_ptr<Text> text);
   ~StrickoutText();
   [[nodiscard]] Text* text() const { return m_text.get(); }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
   std::unique_ptr<Text> m_text;

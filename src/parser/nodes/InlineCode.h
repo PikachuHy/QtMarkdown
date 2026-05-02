@@ -8,11 +8,12 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT InlineCode : public Visitable<InlineCode> {
+class QTMARKDOWNSHARED_EXPORT InlineCode : public Node {
  public:
   explicit InlineCode(std::unique_ptr<Text> code);
   ~InlineCode();
   Text* code() { return m_code.get(); }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
   std::unique_ptr<Text> m_code;

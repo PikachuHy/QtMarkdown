@@ -8,9 +8,10 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Lf : public Visitable<Lf> {
+class QTMARKDOWNSHARED_EXPORT Lf : public Node {
  public:
   Lf() { m_type = NodeType::lf; }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 };
 }  // namespace md::parser
 

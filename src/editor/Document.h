@@ -21,7 +21,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   String& addBuffer() { return m_parserDoc->addBuffer(); }
   const String& addBuffer() const { return m_parserDoc->addBuffer(); }
   parser::Document* parserDoc() const { return m_parserDoc.get(); }
-  void accept(parser::VisitorNode* visitor) { m_parserDoc->accept(visitor); }
+  void accept(parser::NodeVisitor* visitor) { m_parserDoc->accept(visitor); }
   CursorCoord moveCursorToRight(CursorCoord coord);
   CursorCoord moveCursorToLeft(CursorCoord coord);
   CursorCoord moveCursorToBol(CursorCoord coord);

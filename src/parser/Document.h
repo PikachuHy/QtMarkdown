@@ -40,7 +40,7 @@ class QTMARKDOWNSHARED_EXPORT Document {
  public:
   explicit Document(const String& str);
   String toHtml();
-  void accept(VisitorNode* visitor);
+  void accept(NodeVisitor* visitor);
   Container* root() const { return m_root.get(); }
   String& addBuffer() { return m_addBuffer; }
   const String& addBuffer() const { return m_addBuffer; }

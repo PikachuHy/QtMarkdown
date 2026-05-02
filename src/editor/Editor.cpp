@@ -19,9 +19,7 @@
 using namespace md::parser;
 namespace md::editor {
 class SimpleMarkdownVisitor
-    : public MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText, Image, Link, CodeBlock, InlineCode,
-                             Paragraph, CheckboxList, CheckboxItem, UnorderedList, OrderedList, UnorderedListItem,
-                             OrderedListItem, Hr, QuoteBlock, Table, Lf, LatexBlock, InlineLatex> {
+    : public NodeVisitor {
  public:
   explicit SimpleMarkdownVisitor(DocPtr doc) : m_doc(doc) {}
   void visit(Header *node) override {
@@ -187,7 +185,7 @@ class SimpleMarkdownVisitor
   String m_md;
   DocPtr m_doc;
 };
-class MousePressVisitor : public MultipleVisitor<Link, CheckboxItem, Image, CodeBlock> {
+class MousePressVisitor : public NodeVisitor {
  public:
   MousePressVisitor(Document &doc, Editor &editor, SizeType blockNo)
       : m_handled(false), m_doc(doc), m_editor(editor), m_blockNo(blockNo) {}

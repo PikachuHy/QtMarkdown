@@ -39,7 +39,7 @@ String Document::toHtml() {
   return {};
 }
 
-void Document::accept(VisitorNode *visitor) {
+void Document::accept(NodeVisitor *visitor) {
   for (auto& it : m_root->children()) {
     it->accept(visitor);
   }

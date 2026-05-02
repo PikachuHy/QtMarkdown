@@ -36,7 +36,7 @@ class DocumentOperationVisitor {
   CursorCoord coord;
 };
 class InsertReturnVisitor
-    : public MultipleVisitor<Paragraph, Header, ListNode, CodeBlock>,
+    : public NodeVisitor,
       public DocumentOperationVisitor {
  public:
   InsertReturnVisitor(Cursor& cursor, Document* doc) : DocumentOperationVisitor(cursor, doc) { coord = cursor.coord(); }
@@ -93,7 +93,9 @@ class InsertReturnVisitor
     }
     splitNode(node, std::move(oldBlock), std::move(newBlock));
   }
-  void visit(ListNode* node) override { handleInsertReturnInList(node); }
+  void visit(OrderedList* node) override { handleInsertReturnInList(node); }
+  void visit(UnorderedList* node) override { handleInsertReturnInList(node); }
+  void visit(CheckboxList* node) override { handleInsertReturnInList(node); }
   void visit(CodeBlock* node) override {
     beginInsertReturn();
     if (!this->hasTextNode) {
@@ -268,7 +270,7 @@ class InsertReturnVisitor
   std::unique_ptr<Text> rightTextNode;
 };
 class RemoveTextVisitor
-    : public MultipleVisitor<Paragraph, Header, ListNode, CodeBlock>,
+    : public NodeVisitor,
       public DocumentOperationVisitor {
  public:
   RemoveTextVisitor(Cursor& cursor, Document* doc, RemoveTextCommand* cmd = nullptr)
@@ -373,7 +375,9 @@ class RemoveTextVisitor
       endRemoveText();
     }
   }
-  void visit(ListNode* node) override { removeTextInListNode(node); }
+  void visit(OrderedList* node) override { removeTextInListNode(node); }
+  void visit(UnorderedList* node) override { removeTextInListNode(node); }
+  void visit(CheckboxList* node) override { removeTextInListNode(node); }
   void visit(CodeBlock* node) override {
     const auto& block = m_doc->m_blocks[coord.blockNo];
     ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
@@ -492,7 +496,7 @@ class RemoveTextVisitor
 };
 
 class InsertTextVisitor
-    : public MultipleVisitor<Paragraph, Header, ListNode, UnorderedList, CodeBlock>,
+    : public NodeVisitor,
       public DocumentOperationVisitor {
  public:
   InsertTextVisitor(Cursor& cursor, Document* doc, SizeType offset, SizeType length, SizeType cursorOffsetDelta,
@@ -616,20 +620,8 @@ class InsertTextVisitor
     auto [textNode, leftOffset] = line.textAt(coord.offset);
     insertTextInNode(textNode, leftOffset);
   }
-  void visit(ListNode* node) override {
-    auto coord = cursor.coord();
-    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
-    const auto& block = m_doc->m_blocks[coord.blockNo];
-    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-    auto& line = block.logicalLineAt(coord.lineNo);
-
-    if (line.empty()) {
-      insertTextInEmptyList(node);
-      return;
-    }
-    auto [textNode, leftOffset] = line.textAt(coord.offset);
-    insertTextInNode(textNode, leftOffset);
-  }
+  void visit(OrderedList* node) override { insertTextInListHelper(node); }
+  void visit(CheckboxList* node) override { insertTextInListHelper(node); }
   void visit(UnorderedList* node) override {
     auto coord = cursor.coord();
     ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
@@ -744,6 +736,20 @@ class InsertTextVisitor
     renderBlock(coord.blockNo);
     coord.offset += cursorOffsetDelta;
     updateCursor(cursor, coord);
+  }
+  void insertTextInListHelper(Container* node) {
+    auto coord = cursor.coord();
+    ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
+    const auto& block = m_doc->m_blocks[coord.blockNo];
+    ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+    auto& line = block.logicalLineAt(coord.lineNo);
+
+    if (line.empty()) {
+      insertTextInEmptyList(node);
+      return;
+    }
+    auto [textNode, leftOffset] = line.textAt(coord.offset);
+    insertTextInNode(textNode, leftOffset);
   }
   void insertTextInEmptyList(Container* node) {
     auto newTextNode = std::make_unique<Text>(PieceTableItem::add, offset, length);

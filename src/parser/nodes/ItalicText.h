@@ -8,11 +8,12 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT ItalicText : public Visitable<ItalicText> {
+class QTMARKDOWNSHARED_EXPORT ItalicText : public Node {
  public:
   explicit ItalicText(std::unique_ptr<Text> text);
   ~ItalicText();
   [[nodiscard]] Text* text() const { return m_text.get(); }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
   std::unique_ptr<Text> m_text;

@@ -50,7 +50,7 @@ class QTMARKDOWNSHARED_EXPORT Node {
  public:
   explicit Node(NodeType type = NodeType::none, Node* parent = nullptr) : m_type(type), m_parent(parent) {}
   virtual ~Node() {}
-  virtual void accept(VisitorNode*) = 0;
+  virtual void accept(NodeVisitor*) = 0;
   NodeType type() { return m_type; }
   void setParent(Node* parent) { m_parent = parent; }
   [[nodiscard]] Node* parent() const { return m_parent; }
@@ -58,16 +58,6 @@ class QTMARKDOWNSHARED_EXPORT Node {
  protected:
   NodeType m_type;
   Node* m_parent;
-};
-
-template <typename T>
-struct Visitable : public Node {
-  void accept(VisitorNode* v) override {
-    auto p = dynamic_cast<Visitor<T>*>(v);
-    if (p) {
-      p->visit(static_cast<T*>(this));
-    }
-  }
 };
 
 using NodePtrList = std::vector<std::unique_ptr<Node>>;
@@ -100,7 +90,7 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   const std::unique_ptr<Node>& operator[](SizeType index) const;
   auto empty() const { return m_children.empty(); }
   [[nodiscard]] auto size() const { return m_children.size(); }
-  void accept(VisitorNode* v) override {
+  void accept(NodeVisitor* v) override {
     for (auto& node : m_children) {
       node->accept(v);
     }
@@ -108,15 +98,6 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
 
  protected:
   NodePtrList m_children;
-};
-
-template <typename T>
-struct ContainerVisitable : public Container {
-  void accept(VisitorNode* v) override {
-    if (auto p = dynamic_cast<Visitor<T>*>(v); p) {
-      p->visit(static_cast<T*>(this));
-    }
-  }
 };
 
 }  // namespace md::parser

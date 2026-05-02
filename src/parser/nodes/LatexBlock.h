@@ -8,10 +8,11 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT LatexBlock : public ContainerVisitable<LatexBlock> {
+class QTMARKDOWNSHARED_EXPORT LatexBlock : public Container {
  public:
   LatexBlock() { m_type = NodeType::latex_block; }
   [[nodiscard]] String toString(DocPtr const& doc) const;
+  void accept(NodeVisitor* v) override { v->visit(this); }
 };
 }  // namespace md::parser
 

@@ -8,12 +8,13 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Link : public Visitable<Link> {
+class QTMARKDOWNSHARED_EXPORT Link : public Node {
  public:
   Link(std::unique_ptr<Text> content, std::unique_ptr<Text> href);
   ~Link();
   Text* content() { return m_content.get(); }
   Text* href() { return m_href.get(); }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
   std::unique_ptr<Text> m_content;

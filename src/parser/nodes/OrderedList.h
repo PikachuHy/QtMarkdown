@@ -12,25 +12,13 @@ namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT OrderedList : public ListNode {
  public:
   OrderedList() { m_type = NodeType::ol; }
-  void accept(VisitorNode* v) override {
-    if (auto p = dynamic_cast<Visitor<OrderedList>*>(v); p) {
-      p->visit(this);
-    } else {
-      ListNode::accept(v);
-    }
-  }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 };
 
 class QTMARKDOWNSHARED_EXPORT OrderedListItem : public ListItemNode {
  public:
   OrderedListItem() { m_type = NodeType::ol_item; }
-  void accept(VisitorNode* v) override {
-    if (auto p = dynamic_cast<Visitor<OrderedListItem>*>(v); p) {
-      p->visit(this);
-    } else {
-      ListItemNode::accept(v);
-    }
-  }
+  void accept(NodeVisitor* v) override { v->visit(this); }
 };
 }  // namespace md::parser
 

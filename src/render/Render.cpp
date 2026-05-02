@@ -50,9 +50,7 @@ struct LayoutConfig {
   Color pen;
 };
 class LayoutPass
-    : public MultipleVisitor<Header, Text, ItalicText, BoldText, ItalicBoldText, StrickoutText, Image, Link, CodeBlock,
-                             InlineCode, Paragraph, CheckboxList, CheckboxItem, UnorderedList, UnorderedListItem,
-                             OrderedList, OrderedListItem, LatexBlock, InlineLatex, Hr, QuoteBlock, Table, Lf> {
+    : public NodeVisitor {
  public:
   explicit LayoutPass(Node *node, sptr<RenderSetting> setting, DocPtr doc)
       : m_block(node), m_setting(setting), m_doc(doc) {
