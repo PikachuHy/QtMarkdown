@@ -6,8 +6,6 @@
 
 #include <QCryptographicHash>
 #include <QDir>
-#include <QFontDatabase>
-#include <QGuiApplication>
 #include <QStack>
 #include <QStandardPaths>
 #include <vector>
@@ -16,6 +14,7 @@
 #include "PaintPass.h"
 #include "PaintRecord.h"
 #include "StringUtil.h"
+#include "FontMetricsProvider.h"
 #include "debug.h"
 #include "microtex.h"
 #include "parser/Text.h"
@@ -44,6 +43,9 @@ class TexRenderGuard {
  private:
   sptr<TexRender> m_texRender;
 };
+namespace {  // internal linkage -- static storage duration
+QtFontMetricsProvider s_defaultFontMetrics;
+}
 // Render内部配置
 struct LayoutConfig {
   Font font;
@@ -52,9 +54,13 @@ struct LayoutConfig {
 class LayoutPass
     : public NodeVisitor {
  public:
-  explicit LayoutPass(Node *node, sptr<RenderSetting> setting, DocPtr doc)
-      : m_block(node), m_setting(setting), m_doc(doc) {
+  explicit LayoutPass(Node *node, sptr<RenderSetting> setting, DocPtr doc,
+                      IFontMetricsProvider* fontMetrics = nullptr)
+      : m_block(node), m_setting(setting), m_doc(doc),
+        m_fontMetrics(fontMetrics ? fontMetrics : &s_defaultFontMetrics),
+        m_hasGui(fontMetrics == nullptr) {
     Q_ASSERT(doc != nullptr);
+    Q_ASSERT(m_fontMetrics != nullptr);
     m_config.font.setPixelSize(16 + 2);
     m_config.pen = Qt::black;
     m_configs.push_back(m_config);
@@ -217,13 +223,15 @@ class LayoutPass
     }
     endBlock();
 
-    QString copyBtnFilePath = ":icon/copy_32x32.png";
-    QFile copyBtnFile(copyBtnFilePath);
-    ASSERT(copyBtnFile.exists());
-    QPixmap copyBtnImg(copyBtnFilePath);
-    Point pos(x + w - copyBtnImg.width(), y);
-    m_paintRecords.push_back(PaintRecord::staticImage(copyBtnFilePath, pos, copyBtnImg.size()));
-    m_block.appendElement({node, pos, copyBtnImg.size()});
+    if (m_hasGui) {
+      QString copyBtnFilePath = ":icon/copy_32x32.png";
+      QFile copyBtnFile(copyBtnFilePath);
+      ASSERT(copyBtnFile.exists());
+      QPixmap copyBtnImg(copyBtnFilePath);
+      Point pos(x + w - copyBtnImg.width(), y);
+      m_paintRecords.push_back(PaintRecord::staticImage(copyBtnFilePath, pos, copyBtnImg.size()));
+      m_block.appendElement({node, pos, copyBtnImg.size()});
+    }
     restore();
   }
   void visit(InlineLatex *node) override {
@@ -561,7 +569,7 @@ class LayoutPass
     }
     const QString &text = str.mid(offset, length);
     const Size &size = textSize(text);
-    auto cell = std::make_unique<TextCell>(node, offset, length, Point(m_curX, m_curY), size, curPen(), curFont());
+    auto cell = std::make_unique<TextCell>(node, offset, length, Point(m_curX, m_curY), size, curPen(), curFont(), m_fontMetrics);
     auto* rawCell = cell.get();
     appendVisualCell(std::move(cell));
     m_paintRecords.push_back(PaintRecord::fromCell(rawCell));
@@ -587,8 +595,7 @@ class LayoutPass
     LogicalLine logicalLine;
     m_curX = m_setting->docMargin.left();
     logicalLine.m_pos = Point(m_curX, m_curY);
-    QFontMetrics fm(curFont());
-    auto size = fm.size(Qt::TextSingleLine, "龙");
+    auto size = m_fontMetrics->size(curFont(), "龙");
     logicalLine.m_h = size.height();
     m_block.m_logicalLines.push_back(std::move(logicalLine));
     if (initNewVisualLine) {
@@ -616,8 +623,7 @@ class LayoutPass
   void beginVisualLine() {
     ASSERT(!m_block.m_logicalLines.empty());
     auto &line = m_block.m_logicalLines.back();
-    QFontMetrics fm(curFont());
-    auto size = fm.size(Qt::TextSingleLine, "龙");
+    auto size = m_fontMetrics->size(curFont(), "龙");
     line.m_lines.push_back(VisualLine(Point(m_curX, m_curY), size.height()));
   }
   void endVisualLine() {
@@ -658,13 +664,14 @@ class LayoutPass
   }
   QFont codeFont() {
     auto font = curFont();
-#ifdef Q_OS_WiN
+#ifdef Q_OS_WIN
     font.setFamily("Cascadia Code");
-    font.setPixelSize(20);
+#elif defined(Q_OS_MACOS)
+    font.setFamily("Menlo");
 #else
-    font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    font.setPixelSize(20);
+    font.setFamily("monospace");
 #endif
+    font.setPixelSize(20);
     return font;
   }
   [[nodiscard]] QFont curFont() const { return m_config.font; }
@@ -672,31 +679,18 @@ class LayoutPass
   void setFont(const QFont &font) { m_config.font = font; }
   void setPen(const QColor &color) { m_config.pen = color; }
   // 辅助到绘制方法
-  Size textSize(const QString &text) { return fontMetrics().size(Qt::TextSingleLine, text); }
+  Size textSize(const QString &text) { return m_fontMetrics->size(curFont(), text); }
 
   int textWidth(const QString &text) {
-    QFontMetrics metrics = fontMetrics();
-    int w = metrics.horizontalAdvance(text);
-    return w;
+    return m_fontMetrics->horizontalAdvance(curFont(), text);
   }
 
   int charWidth(const QChar &ch) {
-    QFontMetrics metrics = fontMetrics();
-    int w = metrics.horizontalAdvance(ch);
-    return w;
+    return m_fontMetrics->horizontalAdvance(curFont(), String(ch));
   }
 
   int textHeight() {
-    auto fm = fontMetrics();
-    //    auto size = fm.size(Qt::TextSingleLine, "龙");
-    auto h = fm.height();
-    //    return std::max(h, size.height());
-    return h;
-  }
-
-  QFontMetrics fontMetrics() {
-    QFontMetrics fm(curFont());
-    return fm;
+    return m_fontMetrics->height(curFont());
   }
 
   bool currentLineCanDrawText(const QString &text) {
@@ -739,6 +733,8 @@ class LayoutPass
 
   bool m_rewriteFont = true;
   PaintRecordList m_paintRecords;
+  IFontMetricsProvider* m_fontMetrics;
+  bool m_hasGui;
 };
 int VisualLine::height() const { return m_h; }
 SizeType VisualLine::length() const {
@@ -1060,11 +1056,12 @@ int Block::width() const {
   }
   return w;
 }
-Block Render::render(Node *node, sptr<RenderSetting> setting, DocPtr doc) {
+Block Render::render(Node *node, sptr<RenderSetting> setting, DocPtr doc,
+                     IFontMetricsProvider* fontMetrics) {
   Q_ASSERT(node != nullptr);
   Q_ASSERT(doc != nullptr);
   static TexRenderGuard texRenderGuard;
-  LayoutPass render(node, setting, doc);
+  LayoutPass render(node, setting, doc, fontMetrics);
   node->accept(&render);
   auto [block, paintRecords] = render.execute();
   PaintPass paintPass(paintRecords);

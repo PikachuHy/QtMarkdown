@@ -4,16 +4,14 @@
 
 #include "Cell.h"
 
-#include <QFontMetrics>
-
+#include "FontMetricsProvider.h"
 #include "debug.h"
 namespace md::render {
 SizeType TextCell::length() { return m_length; }
 int TextCell::width(SizeType length, DocPtr doc) const {
   ASSERT(length >= 0 && length <= m_length);
   auto s = m_text->toString(doc).mid(m_offset, m_length);
-  QFontMetrics fm(m_font);
-  auto w = fm.horizontalAdvance(s.left(length));
+  auto w = m_fm->horizontalAdvance(m_font, s.left(length));
   return w;
 }
 int InlineLatexCell::width(SizeType length, DocPtr doc) const {

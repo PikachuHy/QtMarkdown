@@ -10,6 +10,7 @@
 #include "parser/Document.h"
 #include "Element.h"
 namespace md::render {
+class IFontMetricsProvider;
 struct RenderSetting {
   bool highlightCurrentLine = false;
   int blockSpacing = 10;
@@ -141,7 +142,8 @@ class QTMARKDOWNSHARED_EXPORT Block {
 
 class QTMARKDOWNSHARED_EXPORT Render {
  public:
-  static Block render(parser::Node* node, sptr<RenderSetting> setting, DocPtr doc);
+  static Block render(parser::Node* node, sptr<RenderSetting> setting, DocPtr doc,
+                      IFontMetricsProvider* fontMetrics = nullptr);
 
  private:
 };

@@ -10,6 +10,7 @@
 #include "mddef.h"
 #include "parser/Text.h"
 namespace md::render {
+class IFontMetricsProvider;
 
 class QTMARKDOWNSHARED_EXPORT Cell {
  public:
@@ -35,8 +36,10 @@ class TextInstruction;
 class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
  public:
   TextCell(parser::Text* text, SizeType offset, SizeType length, Point pos, Size size, const Color& fg,
-           const Font& font)
-      : Cell(pos, size), m_fg(fg), m_font(font), m_text(text), m_offset(offset), m_length(length) {}
+           const Font& font, IFontMetricsProvider* fm)
+      : Cell(pos, size), m_fg(fg), m_font(font), m_text(text), m_offset(offset), m_length(length), m_fm(fm) {
+    Q_ASSERT(fm != nullptr);
+  }
   SizeType length() override;
   int width(SizeType length, DocPtr doc) const override;
 
@@ -46,6 +49,7 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
   parser::Text* m_text;
   SizeType m_offset;
   SizeType m_length;
+  IFontMetricsProvider* m_fm;
   friend class TextInstruction;
   friend class LogicalLine;
 };

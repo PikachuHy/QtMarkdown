@@ -26,6 +26,7 @@ add_test(NAME test_render COMMAND test_render)
 target_compile_definitions(test_render PRIVATE -D_XKEYCHECK_H)
 set_target_properties(test_render PROPERTIES AUTORCC ON)
 set_target_properties(test_render PROPERTIES AUTOMOC ON)
+target_include_directories(test_render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(test_stringutil test_stringutil.cpp)
 target_compile_definitions(test_stringutil PRIVATE -D_XKEYCHECK_H)

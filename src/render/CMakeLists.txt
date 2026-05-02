@@ -17,6 +17,7 @@ target_sources(QtMarkdownRender PRIVATE
         Render.cpp Render.h
         Instruction.cpp Instruction.h
         StringUtil.cpp StringUtil.h
+        FontMetricsProvider.h
         ../../assets/md.qrc)
 target_compile_definitions(QtMarkdownRender PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownRender PUBLIC Qt${QT_VERSION_MAJOR}::Gui QtMarkdownParser microtex-qt microtex)
@@ -32,4 +33,5 @@ install(
 
 markdown_install_headers(QtMarkdownRender PREFIX render
         HEADERS Element.h Cell.h PaintPass.h PaintRecord.h Render.h Instruction.h StringUtil.h mddef.h
+        FontMetricsProvider.h
         )
