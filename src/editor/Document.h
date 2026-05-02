@@ -42,6 +42,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   void renderBlock(SizeType blockNo);
   void removeBlock(SizeType blockNo);
   void mergeBlock(SizeType blockNo1, SizeType blockNo2);
+  void removeTextRange(const CursorCoord& begin, const CursorCoord& end);
 
   void undo(Cursor& cursor);
   void redo(Cursor& cursor);
@@ -64,6 +65,10 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   render::BlockList m_blocks;
   sptr<render::RenderSetting> m_setting;
   sptr<CommandStack> m_commandStack;
+  // Friends are internal implementation classes (visitor/command pattern in
+  // Editor.cpp and Command.cpp). They need direct access to m_parserDoc,
+  // m_blocks, and m_setting for undoable mutations. This is an intentional
+  // design tradeoff to keep the command pattern efficient.
   friend class Editor;
   friend class EditorTest;
   friend class DocumentOperationVisitor;

@@ -118,17 +118,24 @@ class QTMARKDOWNSHARED_EXPORT Block {
   const ElementList& elementList() const { return m_elements; }
 
  private:
-  // Destruction order: m_instructions (non-owning pointers) destroyed BEFORE m_logicalLines.
+  // Destruction order: m_instructions (non-owning raw Cell*) destroyed BEFORE m_logicalLines.
   // m_logicalLines owns cells via VisualLine::vector<unique_ptr<Cell>>.
-  // Instructions are destroyed first, so their raw Cell* pointers dangle only after they are no longer used.
+  // C++ destroys members in reverse declaration order, so m_instructions is destroyed first.
+  // The raw Cell* pointers in Instructions dangle only after the Instructions themselves are gone.
+  //
+  // NOTE: No static_assert with offsetof here — Block is not a standard-layout type
+  // (has std::vector members, members under different access specifiers).
+  // Applying offsetof to non-standard-layout types is conditionally-supported UB in C++17.
   // 逻辑行
   LogicalLineList m_logicalLines;
   // 绘图指令
   InstructionPtrList m_instructions;
   ElementList m_elements;
 
-  // 方便调试用
-  parser::Node* m_node;
+  // Non-owning pointer to the AST node this Block was rendered from.
+  // The AST (parser::Document) must outlive this Block.
+  // For debugging only — prefer Element/Instruction data in production paths.
+  parser::Node* m_node;  // 方便调试用
   friend class LayoutPass;
 };
 

@@ -211,8 +211,9 @@ CursorCoord Document::moveCursorToPos(Point pos) {
     }
     y += line.height();
   }
-  DEBUG << "not handle";
+  DEBUG << "not handle -- falling back to end of document";
   ASSERT(false && "not handle");
+  return moveCursorToEndOfDocument();
 }
 void Document::insertText(Cursor& cursor, const String& text) {
   if (text.isEmpty()) return;
@@ -267,6 +268,12 @@ void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
   ASSERT(blockNo2 >= 0 && blockNo2 < m_parserDoc->root()->children().size());
   auto node1 = node2container(m_parserDoc->root()->children()[blockNo1].get());
   auto node2 = node2container(m_parserDoc->root()->children()[blockNo2].get());
+  ASSERT(node1);
+  ASSERT(node2);
+  if (!node1 || !node2) {
+    DEBUG << "node2container returned null -- skipping merge";
+    return;
+  }
   // 需要对Text结点进行合并
   for (auto& child : node2->children()) {
     if (node1->children().empty()) {
@@ -392,5 +399,40 @@ void Document::upgradeToHeader(const Cursor& cursor, int level) {
   header->setChildren(std::move(paragraphNode->children()));
   replaceBlock(coord.blockNo, std::move(header));
   ensureTrailingParagraph();
+}
+void Document::removeTextRange(const CursorCoord& begin, const CursorCoord& end) {
+  if (end < begin) {
+    removeTextRange(end, begin);
+    return;
+  }
+  ASSERT(begin.blockNo >= 0 && begin.blockNo < m_blocks.size());
+  ASSERT(end.blockNo >= 0 && end.blockNo < m_blocks.size());
+
+  // Phase 1: same block, same line, same Text node — bulk delete
+  if (begin.blockNo == end.blockNo) {
+    const auto& block = m_blocks[begin.blockNo];
+    if (begin.lineNo == end.lineNo) {
+      const auto& line = block.logicalLineAt(begin.lineNo);
+      auto beginPair = line.textAt(begin.offset);
+      auto endPair = line.textAt(end.offset);
+      if (beginPair.first && beginPair.first == endPair.first) {
+        SizeType length = end.offset - begin.offset;
+        if (length > 0) {
+          beginPair.first->remove(beginPair.second, length);
+          renderBlock(begin.blockNo);
+          return;
+        }
+      }
+    }
+  }
+
+  // Fallback: character-by-character (current behavior, creates individual undo commands)
+  Cursor cursor;
+  updateCursor(cursor, end, true);
+  CursorCoord coord = cursor.coord();
+  while (!(coord == begin)) {
+    removeText(cursor);
+    coord = cursor.coord();
+  }
 }
 }  // namespace md::editor

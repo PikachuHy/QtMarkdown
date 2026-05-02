@@ -232,8 +232,9 @@ class LayoutPass
     auto latex = node->code()->toString(m_doc);
     try {
       float textSize = m_setting->latexFontSize;
-      auto render = microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
-                                              textSize / 3.f, 0xff424242);
+      auto render = std::unique_ptr<microtex::Render>(
+          microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
+                                    textSize / 3.f, 0xff424242));
       const QPoint &point = Point(m_curX, m_curY);
       const QSize &size = Size(render->getWidth() + 2, render->getHeight());
       auto cell = std::make_unique<InlineLatexCell>(point, size);
@@ -241,7 +242,6 @@ class LayoutPass
       appendVisualCell(std::move(cell));
       m_paintRecords.push_back(PaintRecord::fromCell(rawCell, latex, textSize));
       m_curX += render->getWidth();
-      delete render;
     } catch (const std::exception &ex) {
       DEBUG << "ERROR" << ex.what();
       DEBUG << "Render LaTeX fail:" << latex;
@@ -255,8 +255,9 @@ class LayoutPass
     auto latex = node->toString(m_doc);
     try {
       float textSize = m_setting->latexFontSize;
-      auto render = microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
-                                              textSize / 3.f, 0xff424242);
+      auto render = std::unique_ptr<microtex::Render>(
+          microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
+                                    textSize / 3.f, 0xff424242));
       const QPoint &point = Point((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY);
       const QSize &size = Size(m_setting->contentMaxWidth(), render->getHeight());
       auto cell = std::make_unique<InlineLatexCell>(point, size);
@@ -264,7 +265,6 @@ class LayoutPass
       appendVisualCell(std::move(cell));
       m_paintRecords.push_back(PaintRecord::fromCell(rawCell, latex, textSize));
       m_curX += render->getWidth();
-      delete render;
     } catch (const std::exception &ex) {
       DEBUG << "ERROR" << ex.what();
       DEBUG << "Render LaTeX fail:" << latex;

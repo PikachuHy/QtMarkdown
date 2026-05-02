@@ -299,6 +299,8 @@ class RemoveTextVisitor
           if (m_cmd) {
             auto prevContainer = m_doc->node2container(m_doc->root()->childAt(coord.blockNo - 1));
             auto curContainer = m_doc->node2container(m_doc->root()->childAt(coord.blockNo));
+            ASSERT(prevContainer);
+            ASSERT(curContainer);
             m_cmd->m_mergePrevChildCount = prevContainer->children().size();
             if (!prevContainer->children().empty()) {
               auto& lastChild = prevContainer->children().back();
@@ -867,6 +869,7 @@ void RemoveTextCommand::undo(Cursor& cursor) {
     auto blockNo = m_finishedCoord.blockNo;
     auto container = m_doc->node2container(
         m_doc->root()->childAt(blockNo));
+    ASSERT(container);
     SizeType splitIndex = m_mergePrevChildCount;
 
     if (m_mergePrevLastTextLen > 0) {

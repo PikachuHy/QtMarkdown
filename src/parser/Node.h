@@ -28,7 +28,7 @@ enum class QTMARKDOWNSHARED_EXPORT NodeType {
   inline_code,
   latex_block,
   inline_latex,
-  checkbox,
+  checkbox,  // Note: corresponding class is CheckboxList, not Checkbox
   checkbox_item,
   ul,
   ul_item,
@@ -91,8 +91,12 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   auto empty() const { return m_children.empty(); }
   [[nodiscard]] auto size() const { return m_children.size(); }
   // Subclasses MUST override accept() to call v->visit(this).
-  // This base implementation provides a safety net: it dispatches as
-  // Container* (so the visitor can still see the node), then iterates children.
+  // Example: class Header : public Container {
+  //   void accept(NodeVisitor* v) override { v->visit(this); }
+  // };
+  // The base implementation dispatches as Container* (type-erased fallback).
+  // If not overridden, visitors see Container* instead of the concrete type,
+  // which typically results in a silent no-op in the visitor.
   void accept(NodeVisitor* v) override {
     v->visit(this);
     for (auto& node : m_children) {

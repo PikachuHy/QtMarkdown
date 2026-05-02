@@ -49,6 +49,11 @@ class SimpleMarkdownVisitor
     node->text()->accept(this);
     m_md += "***";
   }
+  void visit(StrickoutText *node) override {
+    m_md += "~~";
+    node->text()->accept(this);
+    m_md += "~~";
+  }
   void visit(Image *node) override {
     m_md += "![";
     if (node->alt()) {
@@ -164,7 +169,26 @@ class SimpleMarkdownVisitor
     }
     m_md += "\n";
   }
-  void visit(Table *node) override {}
+  void visit(Table *node) override {
+    auto renderRow = [this](const StringList& cells) {
+      m_md += "|";
+      for (const auto& cell : cells) {
+        m_md += " " + cell + " |";
+      }
+      m_md += "\n";
+    };
+    if (node->header().isEmpty() && node->content().isEmpty()) return;
+    renderRow(node->header());
+    m_md += "|";
+    for (int i = 0; i < node->header().size(); ++i) {
+      m_md += " --- |";
+    }
+    m_md += "\n";
+    for (const auto& row : node->content()) {
+      renderRow(row);
+    }
+    m_md += "\n";
+  }
   void visit(LatexBlock *node) override {
     m_md += "\n";
     m_md += "$$\n";
@@ -922,11 +946,8 @@ void Editor::mouseReleaseEvent(Point offset, MouseEvent *event) {
 }
 void Editor::removeSelection() {
   if (!m_hasSelection) return;
-  auto selectionRange = m_selectionRange->range();
-  auto [begin, end] = selectionRange;
-  while (begin.coord() != end.coord()) {
-    m_doc->removeText(end);
-  }
+  auto [begin, end] = m_selectionRange->range();
+  m_doc->removeTextRange(begin.coord(), end.coord());
   m_hasSelection = false;
   m_doc->updateCursor(*m_cursor, begin.coord());
 }

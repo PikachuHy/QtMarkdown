@@ -95,7 +95,7 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   bool m_holdShift = false;
   bool m_mousePressing = false;
   bool m_preediting = false;
-  int m_preeditLength;
+  int m_preeditLength = 0;
   Point m_preeditPos;
   bool m_hasSelection = false;
   sptr<SelectionRange> m_selectionRange;

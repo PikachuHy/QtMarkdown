@@ -15,6 +15,10 @@ struct PaintRecord {
     Type type;
 
     // FromCell
+    // Non-owning raw pointer. Ownership is in VisualLine::m_cells
+    // (owned by Block::m_logicalLines). Valid only for the lifetime
+    // of the PaintRecord's owning Block. Do not store, copy, or
+    // dereference after Block destruction.
     Cell* cell = nullptr;
     String cellLatex;
     int cellFontSize = 0;
