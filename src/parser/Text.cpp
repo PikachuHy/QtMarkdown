@@ -142,15 +142,4 @@ void Text::removeItemAt(SizeType index) {
     ASSERT(index >= 0 && index < m_items.size());
     m_items.erase(m_items.begin() + index);
 }
-
-String LatexBlock::toString(DocPtr const& doc) const {
-  String s;
-  for (auto& node : m_children) {
-    if (node->type() == NodeType::text) {
-      auto text = static_cast<Text*>(node.get());
-      s += text->toString(doc);
-    }
-  }
-  return s;
-}
 }  // namespace md::parser

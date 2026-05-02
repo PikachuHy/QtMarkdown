@@ -21,7 +21,31 @@ target_sources(QtMarkdownParser PRIVATE
         Parser.cpp Parser.h
         Visitor.cpp Visitor.h
         PieceTable.cpp PieceTable.h
-        Text.cpp Text.h)
+        Text.cpp Text.h
+        Node.h
+        Header.h
+        Paragraph.h
+        CheckboxList.h
+        UnorderedList.h
+        OrderedList.h
+        QuoteBlock.h
+        ItalicText.h
+        BoldText.h
+        ItalicBoldText.h
+        StrickoutText.h
+        Image.h
+        Link.h
+        CodeBlock.h
+        InlineCode.h
+        InlineLatex.h
+        Hr.h
+        Table.h
+        Lf.h
+        LatexBlock.h LatexBlock.cpp
+        ListNode.h
+        ParserDetail.h
+        InlineParser.cpp
+        BlockParser.cpp)
 target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
 target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core magic_enum::magic_enum)
 if (BUILD_WITH_BOOST)
@@ -37,5 +61,9 @@ install(
 )
 markdown_install_headers(QtMarkdownParser PREFIX parser HEADERS
         Document.h Token.h Parser.h Visitor.h PieceTable.h Text.h mddef.h
+        Node.h Header.h Paragraph.h CheckboxList.h UnorderedList.h OrderedList.h
+        QuoteBlock.h ItalicText.h BoldText.h ItalicBoldText.h StrickoutText.h
+        Image.h Link.h CodeBlock.h InlineCode.h InlineLatex.h Hr.h Table.h Lf.h
+        LatexBlock.h ListNode.h
         QtMarkdownParser
         )

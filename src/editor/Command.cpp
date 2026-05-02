@@ -93,49 +93,9 @@ class InsertReturnVisitor
     }
     splitNode(node, std::move(oldBlock), std::move(newBlock));
   }
-  void visit(OrderedList* node) override {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
-    const auto& line = block.logicalLineAt(coord.lineNo);
-    if (line.empty()) {
-      splitListNode(node, std::make_unique<OrderedList>(), std::make_unique<OrderedList>());
-      return;
-    }
-    beginInsertReturn();
-    auto [listIndex, itemIndex] = indexOfItem(node);
-    auto originalItem = static_cast<OrderedListItem*>(node->childAt(listIndex));
-    auto oldItem = std::make_unique<OrderedListItem>();
-    auto newItem = std::make_unique<OrderedListItem>();
-    splitListNode(node, originalItem, std::move(oldItem), std::move(newItem), listIndex, itemIndex);
-  }
-  void visit(UnorderedList* node) override {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
-    const auto& line = block.logicalLineAt(coord.lineNo);
-    if (line.empty()) {
-      splitListNode(node, std::make_unique<UnorderedList>(), std::make_unique<UnorderedList>());
-      return;
-    }
-    beginInsertReturn();
-    auto [listIndex, itemIndex] = indexOfItem(node);
-    auto originalItem = static_cast<UnorderedListItem*>(node->childAt(listIndex));
-    auto oldItem = std::make_unique<UnorderedListItem>();
-    auto newItem = std::make_unique<UnorderedListItem>();
-    splitListNode(node, originalItem, std::move(oldItem), std::move(newItem), listIndex, itemIndex);
-  }
-  void visit(CheckboxList* node) override {
-    const auto& block = m_doc->m_blocks[coord.blockNo];
-    const auto& line = block.logicalLineAt(coord.lineNo);
-    if (line.empty()) {
-      splitListNode(node, std::make_unique<CheckboxList>(), std::make_unique<CheckboxList>());
-      return;
-    }
-    beginInsertReturn();
-    auto [listIndex, itemIndex] = indexOfItem(node);
-    auto originalItem = static_cast<CheckboxItem*>(node->childAt(listIndex));
-    auto oldItem = std::make_unique<CheckboxItem>();
-    oldItem->setChecked(originalItem->isChecked());
-    auto newItem = std::make_unique<CheckboxItem>();
-    splitListNode(node, originalItem, std::move(oldItem), std::move(newItem), listIndex, itemIndex);
-  }
+  void visit(OrderedList* node) override { handleInsertReturnInList(node); }
+  void visit(UnorderedList* node) override { handleInsertReturnInList(node); }
+  void visit(CheckboxList* node) override { handleInsertReturnInList(node); }
   void visit(CodeBlock* node) override {
     beginInsertReturn();
     if (!this->hasTextNode) {
@@ -214,6 +174,7 @@ class InsertReturnVisitor
     for (auto& child : listNode->children()) {
       ASSERT(child->type() == NodeType::ol_item || child->type() == NodeType::ul_item ||
              child->type() == NodeType::checkbox_item);
+      ASSERT(dynamic_cast<ListItemNode*>(child.get()) != nullptr);
       auto* containerChild = static_cast<Container*>(child.get());
       if (textNode->parent() == child.get()) {
         itemIndex = containerChild->indexOf(textNode);
@@ -268,6 +229,37 @@ class InsertReturnVisitor
     if (!newListNode->empty()) {
       m_doc->insertBlock(index, std::move(newListNode));
     }
+  }
+  void handleInsertReturnInList(Container* node) {
+    const auto& block = m_doc->m_blocks[coord.blockNo];
+    const auto& line = block.logicalLineAt(coord.lineNo);
+    if (line.empty()) {
+      if (node->type() == NodeType::ol)
+        splitListNode(node, std::make_unique<OrderedList>(), std::make_unique<OrderedList>());
+      else if (node->type() == NodeType::ul)
+        splitListNode(node, std::make_unique<UnorderedList>(), std::make_unique<UnorderedList>());
+      else if (node->type() == NodeType::checkbox)
+        splitListNode(node, std::make_unique<CheckboxList>(), std::make_unique<CheckboxList>());
+      return;
+    }
+    beginInsertReturn();
+    auto [listIndex, itemIndex] = indexOfItem(node);
+    auto originalItem = static_cast<Container*>(node->childAt(listIndex));
+    std::unique_ptr<Container> oldItem;
+    std::unique_ptr<Container> newItem;
+    if (node->type() == NodeType::ol) {
+      oldItem = std::make_unique<OrderedListItem>();
+      newItem = std::make_unique<OrderedListItem>();
+    } else if (node->type() == NodeType::ul) {
+      oldItem = std::make_unique<UnorderedListItem>();
+      newItem = std::make_unique<UnorderedListItem>();
+    } else if (node->type() == NodeType::checkbox) {
+      oldItem = std::make_unique<CheckboxItem>();
+      static_cast<CheckboxItem*>(oldItem.get())->setChecked(
+          static_cast<CheckboxItem*>(originalItem)->isChecked());
+      newItem = std::make_unique<CheckboxItem>();
+    }
+    splitListNode(node, originalItem, std::move(oldItem), std::move(newItem), listIndex, itemIndex);
   }
 
  private:

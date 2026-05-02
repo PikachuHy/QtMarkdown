@@ -4,7 +4,7 @@
 
 #ifndef QTMARKDOWN_TEXT_H
 #define QTMARKDOWN_TEXT_H
-#include "Document.h"
+#include "Node.h"
 #include "PieceTable.h"
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
@@ -34,11 +34,6 @@ class QTMARKDOWNSHARED_EXPORT Text : public Visitable<Text> {
   void removeItemAt(SizeType index);
  private:
   PieceTableItemList m_items;
-};
-class QTMARKDOWNSHARED_EXPORT LatexBlock : public ContainerVisitable<LatexBlock> {
- public:
-  explicit LatexBlock() { m_type = NodeType::latex_block; }
-  [[nodiscard]] String toString(const DocPtr& doc) const;
 };
 }  // namespace md::parser
 #endif  // QTMARKDOWN_TEXT_H

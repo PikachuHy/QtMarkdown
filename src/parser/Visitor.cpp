@@ -3,7 +3,7 @@
 //
 #include "Visitor.h"
 
-#include "Document.h"
+#include "Node.h"
 #include "Text.h"
 #include "mddef.h"
 namespace md::parser {}  // namespace md::parser
