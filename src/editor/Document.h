@@ -9,6 +9,7 @@
 #include "parser/Document.h"
 #include "render/Instruction.h"
 #include "render/Render.h"
+#include "core/Types.h"
 
 namespace md::editor {
 class CommandStack;
@@ -26,9 +27,9 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   CursorCoord moveCursorToLeft(CursorCoord coord);
   CursorCoord moveCursorToBol(CursorCoord coord);
   std::pair<CursorCoord, int> moveCursorToEol(CursorCoord coord);
-  CursorCoord moveCursorToUp(CursorCoord coord, Point pos);
-  CursorCoord moveCursorToDown(CursorCoord coord, Point pos);
-  CursorCoord moveCursorToPos(Point pos);
+  CursorCoord moveCursorToUp(CursorCoord coord, core::Point pos);
+  CursorCoord moveCursorToDown(CursorCoord coord, core::Point pos);
+  CursorCoord moveCursorToPos(core::Point pos);
   CursorCoord moveCursorToBeginOfDocument();
   CursorCoord moveCursorToEndOfDocument();
   void insertText(Cursor& cursor, const String& text);
@@ -59,7 +60,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
    (?execute@InsertTextCommand@editor@md@@UEAAXAEAVCursor@23@@Z) 中引用了该符号
    */
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
-  std::pair<Point, int> mapToScreen(const CursorCoord& coord);
+  std::pair<core::Point, int> mapToScreen(const CursorCoord& coord);
   bool isBol(const CursorCoord& coord) const;
 
   const render::RenderSetting& setting() const { return *m_setting; }

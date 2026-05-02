@@ -18,6 +18,7 @@
 #include <QScrollBar>
 #include <QVariant>
 
+#include "QtAdapters.h"
 #include "debug.h"
 #include "editor/Editor.h"
 namespace md::editor {
@@ -67,11 +68,13 @@ void QtWidgetMarkdownEditor::loadFile(QString path) {
   DEBUG << "viewport size:" << viewport()->sizeHint();
 }
 void QtWidgetMarkdownEditor::paintEvent(QPaintEvent *event) {
-  QPainter painter(viewport());
-  m_editor->drawSelection(m_offset, painter);
-  m_editor->drawDoc(m_offset, painter);
+  QPainter qpainter(viewport());
+  QtPainterAdapter adapter(&qpainter);
+  auto offset = fromQPoint(m_offset);
+  m_editor->drawSelection(adapter, &qpainter, offset);
+  m_editor->drawDoc(adapter, &qpainter, offset);
   if (hasFocus()) {
-    m_editor->drawCursor(m_offset, painter);
+    m_editor->drawCursor(adapter, offset);
   }
 }
 void QtWidgetMarkdownEditor::scrollContentsBy(int dx, int dy) {
@@ -82,16 +85,17 @@ void QtWidgetMarkdownEditor::scrollContentsBy(int dx, int dy) {
 }
 QSize QtWidgetMarkdownEditor::viewportSizeHint() const { return {m_editor->width(), m_editor->height()}; }
 void QtWidgetMarkdownEditor::keyPressEvent(QKeyEvent *event) {
-  m_editor->keyPressEvent(event);
+  QtKeyEvent adapter(event);
+  m_editor->keyPressEvent(adapter);
   viewport()->update();
 }
 QVariant QtWidgetMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) const {
   switch (query) {
     case Qt::ImCursorRectangle: {
-      return m_editor->cursorRect();
+      return toQRect(m_editor->cursorRect());
     }
     case Qt::ImCursorPosition: {
-      return m_editor->cursorPos();
+      return toQPoint(m_editor->cursorPos());
     }
     default: {
     }
@@ -110,20 +114,25 @@ void QtWidgetMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::mousePressEvent(QMouseEvent *event) {
-  m_editor->mousePressEvent(m_offset, event);
+  QtMouseEvent adapter(event);
+  m_editor->mousePressEvent(fromQPoint(m_offset), adapter);
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
+  QtMouseEvent adapter(event);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QPoint pos = event->pos();
 #else
     QPoint pos(event->position().x(), event->position().y());
 #endif
-  CursorShape shape = m_editor->cursorShape(m_offset, pos);
+  CursorShape shape = m_editor->cursorShape(fromQPoint(m_offset), fromQPoint(pos));
   setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
-  m_editor->mouseMoveEvent(m_offset, event);
+  m_editor->mouseMoveEvent(fromQPoint(m_offset), adapter);
   viewport()->update();
 }
 void QtWidgetMarkdownEditor::reload() {}
-void QtWidgetMarkdownEditor::mouseReleaseEvent(QMouseEvent *event) { m_editor->mouseReleaseEvent(m_offset, event); }
+void QtWidgetMarkdownEditor::mouseReleaseEvent(QMouseEvent *event) {
+  QtMouseEvent adapter(event);
+  m_editor->mouseReleaseEvent(fromQPoint(m_offset), adapter);
+}
 }  // namespace md::editor

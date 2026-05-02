@@ -10,6 +10,7 @@
 #include <QClipboard>
 #include <QFile>
 
+#include "QtAdapters.h"
 #include "debug.h"
 namespace md::editor {
 QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPaintedItem(parent) {
@@ -48,15 +49,17 @@ QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPainted
 }
 void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
+  QtPainterAdapter adapter(painter);
+  core::Point offset(0, 0);
 #ifdef Q_OS_ANDROID
-  m_editor->drawDoc(QPoint(0, 0), *painter);
+  m_editor->drawDoc(adapter, painter, offset);
   setImplicitHeight(m_editor->height());
 #else
-  m_editor->drawSelection(QPoint(0, 0), *painter);
-  m_editor->drawDoc(QPoint(0, 0), *painter);
+  m_editor->drawSelection(adapter, painter, offset);
+  m_editor->drawDoc(adapter, painter, offset);
   setImplicitHeight(m_editor->height());
   if (hasActiveFocus()) {
-    m_editor->drawCursor(QPoint(0, 0), *painter);
+    m_editor->drawCursor(adapter, offset);
   }
 #endif
   emit cursorCoordChanged(m_editor->cursorCoord());
@@ -106,11 +109,13 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
     if (!s.isEmpty()) {
       m_editor->insertText(s);
     } else {
-      m_editor->keyPressEvent(event);
+      QtKeyEvent adapter(event);
+      m_editor->keyPressEvent(adapter);
     }
     markContentChanged();
   } else {
-    m_editor->keyPressEvent(event);
+    QtKeyEvent adapter(event);
+    m_editor->keyPressEvent(adapter);
     markContentChanged();
   }
   this->update();
@@ -124,26 +129,28 @@ void QtQuickMarkdownEditor::hoverMoveEvent(QHoverEvent *event) {
 #else
     QPoint pos(event->position().x(), event->position().y());
 #endif
-  CursorShape shape = m_editor->cursorShape(QPoint(0, 0), pos);
+  CursorShape shape = m_editor->cursorShape(core::Point(0, 0), fromQPoint(pos));
   setCursor(QCursor(static_cast<Qt::CursorShape>(shape)));
 }
 void QtQuickMarkdownEditor::mousePressEvent(QMouseEvent *event) {
   forceActiveFocus();
-  m_editor->mousePressEvent(QPoint(0, 0), event);
+  QtMouseEvent adapter(event);
+  m_editor->mousePressEvent(core::Point(0, 0), adapter);
   this->update();
   emit showInputMethod();
 }
 void QtQuickMarkdownEditor::keyReleaseEvent(QKeyEvent *event) {
-  m_editor->keyReleaseEvent(event);
+  QtKeyEvent adapter(event);
+  m_editor->keyReleaseEvent(adapter);
   this->update();
 }
 QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) const {
   switch (query) {
     case Qt::ImCursorRectangle: {
-      return m_editor->cursorRect();
+      return toQRect(m_editor->cursorRect());
     }
     case Qt::ImCursorPosition: {
-      return m_editor->cursorPos();
+      return toQPoint(m_editor->cursorPos());
     }
     default: {
     }
@@ -187,7 +194,8 @@ void QtQuickMarkdownEditor::saveToFile(const QString &path) {
 }
 QString QtQuickMarkdownEditor::title() { return m_editor->title(); }
 void QtQuickMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
-  return m_editor->mouseMoveEvent(Point(0, 0), event);
+  QtMouseEvent adapter(event);
+  m_editor->mouseMoveEvent(core::Point(0, 0), adapter);
   this->update();
 }
 void QtQuickMarkdownEditor::tmpSave() {

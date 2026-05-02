@@ -37,7 +37,7 @@ void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updat
   cursor.setPos(pos);
   cursor.setHeight(h);
 }
-std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
+std::pair<core::Point, int> Document::mapToScreen(const CursorCoord& coord) {
   int y = m_setting->docMargin.top();
   for (int blockNo = 0; blockNo < coord.blockNo; ++blockNo) {
     y += m_setting->blockSpacing;
@@ -51,7 +51,8 @@ std::pair<Point, int> Document::mapToScreen(const CursorCoord& coord) {
   if (h == line.height()) {
     h -= m_setting->lineSpacing;
   }
-  return {pos + Point(0, y), h};
+  auto qtPos = pos + QPoint(0, y);
+  return {core::Point(qtPos.x(), qtPos.y()), h};
 }
 CursorCoord Document::moveCursorToRight(CursorCoord coord) {
   const auto& block = m_blocks[coord.blockNo];
@@ -110,12 +111,12 @@ CursorCoord Document::moveCursorToLeft(CursorCoord coord) {
   }
   return coord;
 }
-CursorCoord Document::moveCursorToUp(CursorCoord coord, Point pos) {
+CursorCoord Document::moveCursorToUp(CursorCoord coord, core::Point pos) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  int x = pos.x();
+  int x = pos.x;
   if (line.canMoveUp(coord.offset, m_parserDoc.get())) {
     coord.offset = line.moveUp(coord.offset, x, m_parserDoc.get());
   } else {
@@ -134,12 +135,12 @@ CursorCoord Document::moveCursorToUp(CursorCoord coord, Point pos) {
   }
   return coord;
 }
-CursorCoord Document::moveCursorToDown(CursorCoord coord, Point pos) {
+CursorCoord Document::moveCursorToDown(CursorCoord coord, core::Point pos) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  int x = pos.x();
+  int x = pos.x;
   if (line.canMoveDown(coord.offset, m_parserDoc.get())) {
     DEBUG << "move down";
     coord.offset = line.moveDown(coord.offset, x, m_parserDoc.get());
@@ -157,12 +158,12 @@ CursorCoord Document::moveCursorToDown(CursorCoord coord, Point pos) {
   }
   return coord;
 }
-CursorCoord Document::moveCursorToPos(Point pos) {
+CursorCoord Document::moveCursorToPos(core::Point pos) {
   // 先找到哪个block
   SizeType blockNo = 0;
   int y = m_setting->docMargin.top();
   // 如果是点在文档上方的空白，也放到第一个位置
-  if (pos.y() <= y) {
+  if (pos.y <= y) {
     CursorCoord coord;
     coord.blockNo = 0;
     coord.lineNo = 0;
@@ -172,7 +173,7 @@ CursorCoord Document::moveCursorToPos(Point pos) {
   bool findBlock = false;
   while (blockNo < m_blocks.size()) {
     int h = m_blocks[blockNo].height();
-    if (pos.y() >= y && y + h >= pos.y()) {
+    if (pos.y >= y && y + h >= pos.y) {
       findBlock = true;
       break;
     }
@@ -202,11 +203,11 @@ CursorCoord Document::moveCursorToPos(Point pos) {
   auto oldY = y;
   for (int lineNo = 0; lineNo < block.countOfLogicalLine(); ++lineNo) {
     auto& line = block.logicalLineAt(lineNo);
-    if (y <= pos.y() && pos.y() <= y + line.height()) {
+    if (y <= pos.y && pos.y <= y + line.height()) {
       CursorCoord coord;
       coord.blockNo = blockNo;
       coord.lineNo = lineNo;
-      coord.offset = line.offsetAt(Point(pos.x(), pos.y() - oldY), m_parserDoc.get(), m_setting->lineSpacing);
+      coord.offset = line.offsetAt(QPoint(pos.x, pos.y - oldY), m_parserDoc.get(), m_setting->lineSpacing);
       return coord;
     }
     y += line.height();

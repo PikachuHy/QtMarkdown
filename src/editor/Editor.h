@@ -10,9 +10,14 @@
 #include "Document.h"
 #include "CursorCoord.h"
 #include "mddef.h"
+#include "core/AbstractPainter.h"
+#include "core/Types.h"
+#include "core/Event.h"
 namespace md::editor {
 class Cursor;
 class SelectionRange;
+class EditorRenderer;
+class EditorInputHandler;
 enum CursorShape {
   ArrowCursor,
   UpArrowCursor,
@@ -44,23 +49,26 @@ enum CursorShape {
 class QTMARKDOWNSHARED_EXPORT Editor {
  public:
   Editor();
+  ~Editor();
   void loadText(const String& text);
   std::pair<bool, String> loadFile(const String& path);
   String title();
   bool saveToFile(const String& path);
-  void drawDoc(Point offset, Painter& painter);
-  void drawCursor(Point offset, Painter& painter);
-  void drawSelection(Point offset, Painter& painter);
-  void keyPressEvent(KeyEvent* event);
-  void keyReleaseEvent(KeyEvent* event);
-  void mousePressEvent(Point offset, MouseEvent* event);
-  void mouseMoveEvent(Point offset, MouseEvent* event);
-  void mouseReleaseEvent(Point offset, MouseEvent* event);
-  CursorShape cursorShape(Point offset, Point pos);
+  void drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
+               const core::Point& offset);
+  void drawCursor(core::AbstractPainter& painter, const core::Point& offset);
+  void drawSelection(core::AbstractPainter& painter, QPainter* nativePainter,
+                     const core::Point& offset);
+  void keyPressEvent(const core::KeyEvent& event);
+  void keyReleaseEvent(const core::KeyEvent& event);
+  void mousePressEvent(const core::Point& offset, const core::MouseEvent& event);
+  void mouseMoveEvent(const core::Point& offset, const core::MouseEvent& event);
+  void mouseReleaseEvent(const core::Point& offset, const core::MouseEvent& event);
+  CursorShape cursorShape(const core::Point& offset, const core::Point& pos);
   [[nodiscard]] int width() const;
   [[nodiscard]] int height() const;
-  [[nodiscard]] Point cursorPos() const;
-  [[nodiscard]] Rect cursorRect() const;
+  [[nodiscard]] core::Point cursorPos() const;
+  [[nodiscard]] core::Rect cursorRect() const;
   void insertText(String str);
   void setPreedit(String str);
   void commitString(String str);
@@ -75,35 +83,36 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void setResPathList(StringList pathList);
   void renderDocument();
 
- private:
-  void selectUp();
-  void selectDown();
-  void selectLeft();
-  void selectRight();
-  void selectBol();
-  void selectEol();
-  void selectAll();
-  void generateSelectionInstruction();
-  void removeSelection();
+  // -- Getters for MousePressVisitor --
+  bool isHoldCtrl() const { return m_holdCtrl; }
+  bool isHoldShift() const { return m_holdShift; }
+  void setHoldCtrl(bool v);
+  void setHoldShift(bool v);
+  void triggerLinkClicked(const String& url);
+  void triggerImageClicked(const String& path);
+  void triggerCopyCodeClicked(const String& code);
+  void triggerCheckBoxClicked();
 
  private:
   sptr<Document> m_doc;
   sptr<Cursor> m_cursor;
   sptr<render::RenderSetting> m_renderSetting;
+  std::unique_ptr<EditorRenderer> m_renderer;
+  std::unique_ptr<EditorInputHandler> m_inputHandler;
   std::vector<InstructionPtr> m_selectionInstructions;
   bool m_holdCtrl = false;
   bool m_holdShift = false;
   bool m_mousePressing = false;
   bool m_preediting = false;
   int m_preeditLength = 0;
-  Point m_preeditPos;
+  core::Point m_preeditPos;
   bool m_hasSelection = false;
   sptr<SelectionRange> m_selectionRange;
   std::function<void(String)> m_linkClickedCallback;
   std::function<void(String)> m_imageClickedCallback;
   std::function<void(String)> m_copyCodeBtnClickedCallback;
   std::function<void()> m_checkBoxClickedCallback;
-  friend class MousePressVisitor;
+  friend class EditorInputHandler;
 };
 }  // namespace md::editor
 

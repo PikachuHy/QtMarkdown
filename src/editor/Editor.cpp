@@ -3,6 +3,8 @@
 //
 
 #include "Editor.h"
+#include "EditorRenderer.h"
+#include "EditorInputHandler.h"
 
 #include <QFile>
 #include <QKeyEvent>
@@ -209,64 +211,6 @@ class SimpleMarkdownVisitor
   String m_md;
   DocPtr m_doc;
 };
-class MousePressVisitor : public NodeVisitor {
- public:
-  MousePressVisitor(Document &doc, Editor &editor, SizeType blockNo)
-      : m_handled(false), m_doc(doc), m_editor(editor), m_blockNo(blockNo) {}
-  void visit(Link *node) override {
-    if (m_editor.m_holdCtrl) {
-      auto url = node->href()->toString(m_doc.parserDoc());
-      m_editor.m_holdCtrl = false;
-      m_editor.m_linkClickedCallback(url);
-      m_handled = true;
-    }
-  }
-  void visit(CheckboxItem *node) override {
-    node->setChecked(!node->isChecked());
-    m_doc.renderBlock(m_blockNo);
-    m_editor.m_checkBoxClickedCallback();
-    m_handled = true;
-  }
-  void visit(Image *node) override {
-    auto path = node->src()->toString(m_doc.parserDoc());
-#if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
-    if (!path.startsWith("/")) {
-      for (const auto& resPath: m_doc.setting().resPathList) {
-        QString newImgPath = resPath + "/" + path;
-        if (QFile(newImgPath).exists()) {
-          path = newImgPath;
-        }
-      }
-    }
-#endif
-    m_editor.m_imageClickedCallback(path);
-    m_handled = true;
-  }
-  void visit(CodeBlock *node) override {
-    String code;
-    for (const auto &child : node->children()) {
-      if (child->type() == NodeType::text) {
-        auto text = static_cast<Text*>(child.get());
-        code += text->toString(m_doc.parserDoc());
-        code += "\n";
-      } else if (child->type() == NodeType::lf) {
-        code += "\n";
-      } else {
-        DEBUG << node->type();
-        ASSERT(false && "not support");
-      }
-    }
-    m_editor.m_copyCodeBtnClickedCallback(code);
-    m_handled = true;
-  }
-  [[nodiscard]] bool handled() const { return m_handled; }
-
- private:
-  bool m_handled;
-  Document &m_doc;
-  Editor &m_editor;
-  SizeType m_blockNo;
-};
 Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
@@ -278,9 +222,12 @@ Editor::Editor() {
   m_copyCodeBtnClickedCallback = [](String s) { DEBUG << "click copy code btn" << s; };
   m_checkBoxClickedCallback = []() { DEBUG << "click check box"; };
 }
+Editor::~Editor() = default;
 void Editor::loadText(const String &text) {
   m_doc = std::make_shared<Document>(text, m_renderSetting);
   m_cursor = std::make_shared<Cursor>();
+  m_renderer = std::make_unique<EditorRenderer>(*m_doc, *m_renderSetting);
+  m_inputHandler = std::make_unique<EditorInputHandler>(*this, *m_doc, *m_cursor, *m_renderSetting);
   m_doc->updateCursor(*m_cursor, m_cursor->coord());
   DEBUG << "load text done";
 }
@@ -324,32 +271,19 @@ bool Editor::saveToFile(const String &path) {
   file.close();
   return true;
 }
-void Editor::drawSelection(Point offset, Painter &painter) {
-  if (!m_hasSelection) return;
-  // DEBUG << "selection" << m_selectionInstructions.size();
-  for (const auto& instruction : m_selectionInstructions) {
-    instruction->run(painter, offset, m_doc->parserDoc());
-  }
+void Editor::drawSelection(core::AbstractPainter& painter, QPainter* nativePainter,
+                           const core::Point& offset) {
+  if (!m_renderer) return;
+  m_renderer->drawSelection(painter, nativePainter, offset,
+                            m_selectionInstructions, *m_doc);
 }
-void Editor::drawDoc(QPoint offset, Painter &painter) {
-  if (!m_doc) return;
-  ASSERT(!m_doc->root()->children().empty() &&
-         m_doc->root()->children().back()->type() == NodeType::paragraph);
-  auto oldOffset = offset;
-  offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (int blockNo = 0; blockNo < m_doc->blocks().size(); ++blockNo) {
-    const auto &block = m_doc->blocks()[blockNo];
-    auto h = block.height();
-    // 把每个指令都画出来
-    for (const auto &instruction : block) {
-      instruction->run(painter, offset, m_doc->parserDoc());
-    }
-    offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
-  }
-#ifdef Q_OS_ANDROID
-#else
-  auto pos = m_cursor->pos();
+void Editor::drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
+                     const core::Point& offset) {
+  if (!m_renderer) return;
+  m_renderer->drawDoc(painter, nativePainter, offset);
+#ifndef Q_OS_ANDROID
   auto coord = m_cursor->coord();
+  if (coord.blockNo < 0 || coord.blockNo >= static_cast<SizeType>(m_doc->blocks().size())) return;
   // 高亮当前Block
   int h = m_renderSetting->docMargin.top();
   for (int i = 0; i < coord.blockNo; ++i) {
@@ -358,250 +292,50 @@ void Editor::drawDoc(QPoint offset, Painter &painter) {
   }
   const auto& block = m_doc->blocks()[coord.blockNo];
   painter.save();
-  painter.setPen(QColor(0, 255, 255));
-  auto highlightPos = Point(m_renderSetting->docMargin.left(), h);
-  auto size = Size(block.width(), block.height() - m_renderSetting->lineSpacing);
-  painter.drawRect(Rect(highlightPos + oldOffset, size));
+  painter.setPen(core::Color(0, 255, 255));
+  auto highlightPos = core::Point(m_renderSetting->docMargin.left(), h);
+  auto highlightSize = core::Size(block.width(), block.height() - m_renderSetting->lineSpacing);
+  painter.drawRect(core::Rect(highlightPos + offset, highlightSize));
   painter.restore();
   auto& node = m_doc->root()->children()[coord.blockNo];
-  auto typePos = Point(0, h) + oldOffset;
-  if (node->type() == NodeType::paragraph) {
+  auto typePos = core::Point(0, h) + offset;
+  if (node->type() == parser::NodeType::paragraph) {
     painter.drawText(typePos, "P");
-  } else if (node->type() == NodeType::header) {
+  } else if (node->type() == parser::NodeType::header) {
     painter.drawText(typePos, "H");
-  } else if (node->type() == NodeType::ol) {
+  } else if (node->type() == parser::NodeType::ol) {
     painter.drawText(typePos, "ol");
-  } else if (node->type() == NodeType::ul) {
+  } else if (node->type() == parser::NodeType::ul) {
     painter.drawText(typePos, "ul");
-  } else if (node->type() == NodeType::checkbox) {
+  } else if (node->type() == parser::NodeType::checkbox) {
     painter.drawText(typePos, "cb");
-  } else if (node->type() == NodeType::latex_block) {
+  } else if (node->type() == parser::NodeType::latex_block) {
     painter.drawText(typePos, "latex");
   }
 #endif
 }
 int Editor::width() const { return m_renderSetting->maxWidth; }
 int Editor::height() const {
-  auto h = 0;
-  for (const auto &instructionGroup : m_doc->blocks()) {
-    h += instructionGroup.height();
-    h += m_renderSetting->blockSpacing;
-  }
-  return h + m_renderSetting->docMargin.top() + m_renderSetting->docMargin.bottom();
+  if (!m_renderer) return 0;
+  return m_renderer->documentHeight();
 }
-void Editor::drawCursor(QPoint offset, Painter &painter) {
-  if (m_hasSelection) return;
-  auto pos = m_cursor->pos();
-  pos += offset;
-  painter.save();
-  painter.setPen(Qt::red);
-  auto x = pos.x();
-  auto y = pos.y();
-  auto h = m_cursor->height();
-  auto delta = 2;
-  painter.drawLine(x - delta, y, x + delta, y);
-  painter.drawLine(x, y, x, y + h);
-  painter.drawLine(x - delta, y + h, x + delta, y + h);
-  painter.restore();
+void Editor::drawCursor(core::AbstractPainter& painter, const core::Point& offset) {
+  if (!m_renderer) return;
+  m_renderer->drawCursor(painter, offset, *m_cursor, m_hasSelection);
 }
-void Editor::keyPressEvent(KeyEvent *event) {
-  int key = event->key();
-  if (key == Qt::Key_Tab) {
-    return;
-  }
-  if (key == Qt::Key_Escape) {
-    return;
-  }
-  if (event->modifiers() & Qt::Modifier::CTRL) {
-    m_holdCtrl = true;
-  }
-  if (event->modifiers() & Qt::Modifier::SHIFT) {
-    m_holdShift = true;
-  }
-  if (key == Qt::Key_A && m_holdCtrl) {
-    this->selectAll();
-    return;
-  }
-  if (key == Qt::Key_Z && m_holdCtrl) {
-    DEBUG << "undo";
-    this->m_doc->undo(*m_cursor);
-    return;
-  }
-  if (key == Qt::Key_Y && m_holdCtrl) {
-    DEBUG << "redo";
-    this->m_doc->redo(*m_cursor);
-    return;
-  }
-  if (m_holdCtrl) {
-    if (key == Qt::Key_1) {
-      m_doc->upgradeToHeader(*m_cursor, 1);
-      m_doc->updateCursor(*m_cursor, m_cursor->coord());
-      return;
-    }
-    if (key == Qt::Key_2) {
-      m_doc->upgradeToHeader(*m_cursor, 2);
-      m_doc->updateCursor(*m_cursor, m_cursor->coord());
-      return;
-    }
-    if (key == Qt::Key_3) {
-      m_doc->upgradeToHeader(*m_cursor, 3);
-      m_doc->updateCursor(*m_cursor, m_cursor->coord());
-      return;
-    }
-    if (key == Qt::Key_4) {
-      m_doc->upgradeToHeader(*m_cursor, 4);
-      m_doc->updateCursor(*m_cursor, m_cursor->coord());
-      return;
-    }
-    if (key == Qt::Key_5) {
-      m_doc->upgradeToHeader(*m_cursor, 5);
-      m_doc->updateCursor(*m_cursor, m_cursor->coord());
-      return;
-    }
-    if (key == Qt::Key_6) {
-      m_doc->upgradeToHeader(*m_cursor, 6);
-      m_doc->updateCursor(*m_cursor, m_cursor->coord());
-      return;
-    }
-  }
-  if (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down) {
-    if (m_hasSelection && !m_holdShift) {
-      auto coord = m_selectionRange->caret.coord();
-      m_doc->updateCursor(*m_cursor, coord);
-      m_hasSelection = false;
-      return;
-    }
-    if (key == Qt::Key_Left) {
-      if (m_holdShift) {
-        if (m_holdCtrl) {
-          selectBol();
-        } else {
-          selectLeft();
-        }
-      } else {
-        if (m_holdCtrl) {
-          auto coord = m_doc->moveCursorToBol(m_cursor->coord());
-          m_doc->updateCursor(*m_cursor, coord, true);
-        } else {
-          auto coord = m_doc->moveCursorToLeft(m_cursor->coord());
-          m_doc->updateCursor(*m_cursor, coord);
-        }
-      }
-      return;
-    }
-    if (key == Qt::Key_Right) {
-      if (m_holdShift) {
-        if (m_holdCtrl) {
-          selectEol();
-        } else {
-          selectRight();
-        }
-      } else {
-        if (m_holdCtrl) {
-          auto [coord, x] = m_doc->moveCursorToEol(m_cursor->coord());
-          m_cursor->setX(x);
-          m_doc->updateCursor(*m_cursor, coord, false);
-        } else {
-          auto coord = m_doc->moveCursorToRight(m_cursor->coord());
-          m_doc->updateCursor(*m_cursor, coord);
-        }
-      }
-      return;
-    }
-    if (key == Qt::Key_Up) {
-      if (m_holdShift) {
-        selectUp();
-      } else {
-        CursorCoord coord;
-        if (m_hasSelection) {
-          coord = m_selectionRange->caret.coord();
-          m_hasSelection = false;
-        } else {
-          coord = m_doc->moveCursorToUp(m_cursor->coord(), m_cursor->pos());
-        }
-        m_doc->updateCursor(*m_cursor, coord);
-      }
-      return;
-    }
-    if (key == Qt::Key_Down) {
-      if (m_holdShift) {
-        selectDown();
-      } else {
-        CursorCoord coord;
-        if (m_hasSelection) {
-          coord = m_selectionRange->caret.coord();
-          m_hasSelection = false;
-        } else {
-          coord = m_doc->moveCursorToDown(m_cursor->coord(), m_cursor->pos());
-        }
-        m_doc->updateCursor(*m_cursor, coord);
-      }
-      return;
-    }
-  }
-  if (key == Qt::Key_Backspace) {
-    if (m_hasSelection) {
-      removeSelection();
-    } else {
-      m_doc->removeText(*m_cursor);
-    }
-  } else if (key == Qt::Key_Return) {
-    if (m_hasSelection) {
-      removeSelection();
-    }
-    // 处理回车，要拆结点
-    m_doc->insertReturn(*m_cursor);
-  } else {
-    if (m_hasSelection) {
-      removeSelection();
-    }
-    auto text = event->text();
-    m_doc->insertText(*m_cursor, text);
-  }
+void Editor::keyPressEvent(const core::KeyEvent& event) {
+  if (!m_inputHandler) return;
+  m_inputHandler->keyPressEvent(event);
 }
-Point Editor::cursorPos() const { return m_preediting ? m_preeditPos : m_cursor->pos(); }
-Rect Editor::cursorRect() const {
+core::Point Editor::cursorPos() const { return m_preediting ? m_preeditPos : m_cursor->pos(); }
+core::Rect Editor::cursorRect() const {
   auto pos = cursorPos();
   auto h = m_cursor->height();
-  return Rect(pos, Size(5, h));
+  return core::Rect(pos, core::Size(5, h));
 }
-void Editor::mousePressEvent(Point offset, MouseEvent *event) {
-#ifdef Q_OS_ANDROID
-  // 安卓有press，但是没有release
-#else
-  m_mousePressing = true;
-#endif
-  if (m_holdShift) {
-    if (!m_hasSelection) {
-      m_selectionRange = std::make_shared<SelectionRange>();
-      m_selectionRange->anchor = *m_cursor;
-      m_hasSelection = true;
-    }
-  } else {
-    m_hasSelection = false;
-  }
-  auto oldOffset = offset;
-  offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (int blockNo = 0; blockNo < m_doc->blocks().size(); ++blockNo) {
-    const auto &block = m_doc->blocks()[blockNo];
-    auto h = block.height();
-    for (const auto &element : block.elementList()) {
-      if (Rect(element.pos + offset, element.size).contains(event->pos())) {
-        MousePressVisitor visitor(*m_doc, *this, blockNo);
-        element.node->accept(&visitor);
-        if (visitor.handled()) {
-          return;
-        }
-      }
-    }
-    offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
-  }
-  auto coord = m_doc->moveCursorToPos(event->pos());
-  m_doc->updateCursor(*m_cursor, coord);
-  if (m_hasSelection) {
-    m_doc->updateCursor(m_selectionRange->caret, coord);
-    generateSelectionInstruction();
-  }
+void Editor::mousePressEvent(const core::Point& offset, const core::MouseEvent& event) {
+  if (!m_inputHandler) return;
+  m_inputHandler->mousePressEvent(offset, event);
 }
 void Editor::insertText(String str) {
   if (str.isEmpty()) return;
@@ -615,12 +349,14 @@ void Editor::insertText(String str) {
 void Editor::reset() {
   m_cursor = std::make_shared<Cursor>();
   m_doc = std::make_shared<Document>("", m_renderSetting);
+  m_renderer = std::make_unique<EditorRenderer>(*m_doc, *m_renderSetting);
+  m_inputHandler = std::make_unique<EditorInputHandler>(*this, *m_doc, *m_cursor, *m_renderSetting);
 }
 String Editor::cursorCoord() const {
   String s;
   auto pos = m_cursor->pos();
   auto coord = m_cursor->coord();
-  s += QString("Cursor: (%1, %2, %3)").arg(pos.x()).arg(pos.y()).arg(m_cursor->height());
+  s += QString("Cursor: (%1, %2, %3)").arg(pos.x).arg(pos.y).arg(m_cursor->height());
   s += "\n";
   s += QString("BlockNo: %1/%2").arg(coord.blockNo).arg(m_doc->blocks().size());
   s += "\n";
@@ -665,27 +401,13 @@ void Editor::renderDocument() {
     m_doc->renderAllBlock();
   }
 }
-CursorShape Editor::cursorShape(Point offset, Point pos) {
-  auto oldOffset = offset;
-  offset.setY(offset.y() + m_renderSetting->docMargin.top());
-  for (const auto &block : m_doc->blocks()) {
-    auto h = block.height();
-    for (const auto &element : block.elementList()) {
-      if (Rect(element.pos + offset, element.size).contains(pos)) {
-        return PointingHandCursor;
-      }
-    }
-    offset.setY(offset.y() + h + m_renderSetting->blockSpacing);
-  }
-  return IBeamCursor;
+CursorShape Editor::cursorShape(const core::Point& offset, const core::Point& pos) {
+  if (!m_inputHandler) return IBeamCursor;
+  return m_inputHandler->cursorShape(offset, pos);
 }
-void Editor::keyReleaseEvent(QKeyEvent *event) {
-  if (event->key() == Qt::Key_Control) {
-    m_holdCtrl = false;
-  }
-  if (event->key() == Qt::Key_Shift) {
-    m_holdShift = false;
-  }
+void Editor::keyReleaseEvent(const core::KeyEvent& event) {
+  if (!m_inputHandler) return;
+  m_inputHandler->keyReleaseEvent(event);
 }
 void Editor::setPreedit(String str) {
   if (m_preediting) {
@@ -728,227 +450,26 @@ String Editor::title() {
   }
   return s;
 }
-void Editor::selectLeft() {
-  CursorCoord coord;
-  if (m_hasSelection) {
-    coord = m_selectionRange->caret.coord();
-  } else {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    coord = m_cursor->coord();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  coord = m_doc->moveCursorToLeft(coord);
-  m_doc->updateCursor(m_selectionRange->caret, coord);
-  generateSelectionInstruction();
+void Editor::mouseMoveEvent(const core::Point& offset, const core::MouseEvent& event) {
+  if (!m_inputHandler) return;
+  m_inputHandler->mouseMoveEvent(offset, event);
 }
-void Editor::selectDown() {
-  CursorCoord coord;
-  Point pos;
-  if (m_hasSelection) {
-    coord = m_selectionRange->caret.coord();
-    pos = m_selectionRange->caret.pos();
-  } else {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    coord = m_cursor->coord();
-    pos = m_cursor->pos();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  // 如果是视觉行开头，则移动到视觉行结尾
-  if (m_doc->isBol(coord)) {
-    auto [_coord, x] = m_doc->moveCursorToEol(coord);
-    m_selectionRange->caret.setX(x);
-    m_doc->updateCursor(m_selectionRange->caret, _coord, false);
-  } else {
-    coord = m_doc->moveCursorToDown(coord, pos);
-    m_doc->updateCursor(m_selectionRange->caret, coord);
-  }
-  generateSelectionInstruction();
+void Editor::mouseReleaseEvent(const core::Point& offset, const core::MouseEvent& event) {
+  if (!m_inputHandler) return;
+  m_inputHandler->mouseReleaseEvent(offset, event);
 }
-void Editor::selectUp() {
-  CursorCoord coord;
-  Point pos;
-  if (m_hasSelection) {
-    coord = m_selectionRange->caret.coord();
-    pos = m_selectionRange->caret.pos();
-  } else {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    coord = m_cursor->coord();
-    pos = m_cursor->pos();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  coord = m_doc->moveCursorToUp(coord, pos);
-  m_doc->updateCursor(m_selectionRange->caret, coord);
-  generateSelectionInstruction();
+void Editor::setHoldCtrl(bool v) { m_holdCtrl = v; }
+void Editor::setHoldShift(bool v) { m_holdShift = v; }
+void Editor::triggerLinkClicked(const String& url) {
+  if (m_linkClickedCallback) m_linkClickedCallback(url);
 }
-void Editor::selectRight() {
-  CursorCoord coord;
-  if (m_hasSelection) {
-    coord = m_selectionRange->caret.coord();
-  } else {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    coord = m_cursor->coord();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  coord = m_doc->moveCursorToRight(coord);
-  m_doc->updateCursor(m_selectionRange->caret, coord);
-  generateSelectionInstruction();
+void Editor::triggerImageClicked(const String& path) {
+  if (m_imageClickedCallback) m_imageClickedCallback(path);
 }
-
-void Editor::selectAll() {
-  CursorCoord coord;
-  m_hasSelection = true;
-  m_selectionRange = std::make_shared<SelectionRange>();
-  coord = m_doc->moveCursorToBeginOfDocument();
-  m_doc->updateCursor(m_selectionRange->anchor, coord);
-  coord = m_doc->moveCursorToEndOfDocument();
-  m_doc->updateCursor(m_selectionRange->caret, coord);
-  generateSelectionInstruction();
+void Editor::triggerCopyCodeClicked(const String& code) {
+  if (m_copyCodeBtnClickedCallback) m_copyCodeBtnClickedCallback(code);
 }
-void Editor::selectBol() {
-  CursorCoord coord;
-  if (m_hasSelection) {
-    coord = m_selectionRange->caret.coord();
-  } else {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    coord = m_cursor->coord();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  coord = m_doc->moveCursorToBol(coord);
-  m_doc->updateCursor(m_selectionRange->caret, coord);
-  generateSelectionInstruction();
-}
-void Editor::selectEol() {
-  CursorCoord coord;
-  if (m_hasSelection) {
-    coord = m_selectionRange->caret.coord();
-  } else {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    coord = m_cursor->coord();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  auto [_coord, x] = m_doc->moveCursorToEol(coord);
-  m_selectionRange->caret.setX(x);
-  m_doc->updateCursor(m_selectionRange->caret, _coord, false);
-  generateSelectionInstruction();
-}
-void Editor::generateSelectionInstruction() {
-  m_selectionInstructions.clear();
-  auto fillRect = [this](Point pos, int w, int h) {
-    QColor bg(187, 214, 251);
-    auto instruction = std::make_unique<render::FillRectInstruction>(pos, Size(w, h), bg);
-    m_selectionInstructions.push_back(std::move(instruction));
-  };
-  auto isBefore = [this](const CursorCoord &coord, SizeType blockNo, SizeType lineNo, SizeType visualLineNo) {
-    if (blockNo < coord.blockNo) return true;
-    if (blockNo > coord.blockNo) return false;
-    if (lineNo < coord.lineNo) return true;
-    if (lineNo > coord.lineNo) return false;
-    const auto &line = this->m_doc->blocks()[blockNo].logicalLineAt(lineNo);
-    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc->parserDoc());
-    if (coordVisualLineNo > visualLineNo) return true;
-    return false;
-  };
-  auto isSameVisualLine = [this](const CursorCoord &coord, SizeType blockNo, SizeType lineNo, SizeType visualLineNo) {
-    if (blockNo < coord.blockNo) return false;
-    if (blockNo > coord.blockNo) return false;
-    if (lineNo < coord.lineNo) return false;
-    if (lineNo > coord.lineNo) return false;
-    const auto &line = this->m_doc->blocks()[blockNo].logicalLineAt(lineNo);
-    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc->parserDoc());
-    if (coordVisualLineNo < visualLineNo) return false;
-    if (coordVisualLineNo > visualLineNo) return false;
-    return true;
-  };
-  // 直接解构begin, end
-  // lambda捕获不到
-  auto selectionRange = m_selectionRange->range();
-  auto [begin, end] = selectionRange;
-  auto totalH = m_renderSetting->docMargin.top();
-  for (int i = 0; i < begin.coord().blockNo; ++i) {
-    const auto &block = m_doc->blocks()[i];
-    totalH += block.height();
-  }
-  bool drawDone = false;
-  for (auto blockNo = begin.coord().blockNo; blockNo <= end.coord().blockNo; ++blockNo) {
-    const auto &block = m_doc->blocks()[blockNo];
-    auto blockOffset = Point(0, totalH);
-    for (int lineNo = 0; lineNo < block.countOfLogicalLine(); ++lineNo) {
-      const auto &line = block.logicalLineAt(lineNo);
-      for (int visualLineNo = 0; visualLineNo < line.countOfVisualLine(); ++visualLineNo) {
-        const auto &visualLine = line.visualLineAt(visualLineNo);
-        // 如果该视觉行在begin之前，直接跳过
-        if (isBefore(begin.coord(), blockNo, lineNo, visualLineNo)) {
-          continue;
-        }
-        auto fixW = [&visualLine, &selectionRange](int &w) {
-          if (w == 0) {
-            if (selectionRange.first.coord() == selectionRange.second.coord()) {
-              // 不用管的确是0
-            } else {
-              // 整行都要画，因为end被调到另外一行到开头
-              w = visualLine.width();
-            }
-          }
-        };
-        auto h = visualLine.height();
-        if (isSameVisualLine(begin.coord(), blockNo, lineNo, visualLineNo)) {
-          auto pos = Point(begin.x(), 0) + Point(0, visualLine.pos().y()) + blockOffset;
-          if (isSameVisualLine(end.coord(), blockNo, lineNo, visualLineNo)) {
-            // 同一个视觉行，从begin画到end
-            auto w = end.pos().x() - begin.pos().x();
-            fixW(w);
-            fillRect(pos, w, h);
-            drawDone = true;
-            break;
-          } else {
-            // 从begin画到视觉行结束
-            auto w = visualLine.width() + visualLine.pos().x() - begin.pos().x();
-            fixW(w);
-            fillRect(pos, w, h);
-            continue;
-          }
-        }
-        if (isSameVisualLine(end.coord(), blockNo, lineNo, visualLineNo)) {
-          auto pos = visualLine.pos() + blockOffset;
-          auto w = end.pos().x() - visualLine.pos().x();
-          fixW(w);
-          fillRect(pos, w, h);
-          drawDone = true;
-          break;
-        }
-        fillRect(visualLine.pos() + blockOffset, visualLine.width(), h);
-      }
-      if (drawDone) break;
-    }
-    totalH += block.height();
-    if (drawDone) break;
-  }
-}
-void Editor::mouseMoveEvent(Point offset, MouseEvent *event) {
-  if (!m_mousePressing) return;
-  if (!m_hasSelection) {
-    m_selectionRange = std::make_shared<SelectionRange>();
-    m_selectionRange->anchor = *m_cursor;
-    m_hasSelection = true;
-  }
-  auto coord = m_doc->moveCursorToPos(event->pos() + offset);
-  m_doc->updateCursor(m_selectionRange->caret, coord);
-  generateSelectionInstruction();
-}
-void Editor::mouseReleaseEvent(Point offset, MouseEvent *event) {
-    m_mousePressing = false;
-}
-void Editor::removeSelection() {
-  if (!m_hasSelection) return;
-  auto [begin, end] = m_selectionRange->range();
-  m_doc->removeTextRange(begin.coord(), end.coord());
-  m_hasSelection = false;
-  m_doc->updateCursor(*m_cursor, begin.coord());
+void Editor::triggerCheckBoxClicked() {
+  if (m_checkBoxClickedCallback) m_checkBoxClickedCallback();
 }
 }  // namespace md::editor
