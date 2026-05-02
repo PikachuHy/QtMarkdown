@@ -15,7 +15,9 @@ class Token;
 class Document;
 class Container;
 }  // namespace parser
-using NodePtrList = QList<parser::Node*>;
+// NodePtrList is now defined in parser/Node.h as std::vector<std::unique_ptr<Node>>
+// The alias here is kept for backward compatibility with external code
+// Prefer including parser/Node.h for the canonical definition
 using TokenList = std::vector<parser::Token>;
 using String = QString;
 using StringList = QStringList;

@@ -452,7 +452,19 @@ class LayoutPass
       item->accept(this);
     }
   }
-  void visit(Hr *node) override { Q_ASSERT(node != nullptr); }
+  void visit(Hr *node) override {
+    Q_ASSERT(node != nullptr);
+    save();
+    beginBlock();
+    int lineY = m_curY + m_setting->lineSpacing;
+    m_paintRecords.push_back(
+        PaintRecord::fillRect(Point(m_setting->docMargin.left(), lineY),
+                              Size(m_setting->contentMaxWidth() - m_setting->docMargin.left(), 1),
+                              QColor(200, 200, 200)));
+    m_curY = lineY + m_setting->lineSpacing;
+    endBlock();
+    restore();
+  }
   void visit(QuoteBlock *node) override {
     Q_ASSERT(node != nullptr);
     beginBlock(false);
@@ -471,7 +483,37 @@ class LayoutPass
     m_paintRecords.push_back(PaintRecord::fillRect(pos, Size(5, endY - startY), bgColor));
     endBlock();
   }
-  void visit(Table *node) override { Q_ASSERT(node != nullptr); }
+  void visit(Table *node) override {
+    Q_ASSERT(node != nullptr);
+    save();
+    beginBlock();
+    auto font = curFont();
+    setFont(font);
+    // Render header
+    if (!node->header().isEmpty()) {
+      String headerLine;
+      for (const auto& cell : node->header()) {
+        headerLine += cell + QStringLiteral(" | ");
+      }
+      auto size = textSize(headerLine);
+      m_paintRecords.push_back(
+          PaintRecord::staticText(headerLine, Point(m_curX, m_curY), size, curPen(), curFont()));
+      m_curY += size.height() + m_setting->lineSpacing;
+    }
+    // Render content rows
+    for (const auto& row : node->content()) {
+      String rowLine;
+      for (const auto& cell : row) {
+        rowLine += cell + QStringLiteral(" | ");
+      }
+      auto size = textSize(rowLine);
+      m_paintRecords.push_back(
+          PaintRecord::staticText(rowLine, Point(m_curX, m_curY), size, curPen(), curFont()));
+      m_curY += size.height() + m_setting->lineSpacing;
+    }
+    endBlock();
+    restore();
+  }
   void visit(Lf *node) override {
     Q_ASSERT(node != nullptr);
     save();

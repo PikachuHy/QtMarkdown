@@ -111,7 +111,7 @@ class SimpleMarkdownVisitor
   void visit(CheckboxList *node) override {
     for (auto& child : node->children()) {
       ASSERT(child->type() == NodeType::checkbox_item);
-      auto item = (CheckboxItem *)child.get();
+      auto item = static_cast<CheckboxItem*>(child.get());
       m_md += "- [";
       if (item->isChecked()) {
         m_md += "x";
@@ -222,7 +222,7 @@ class MousePressVisitor : public NodeVisitor {
     String code;
     for (const auto &child : node->children()) {
       if (child->type() == NodeType::text) {
-        auto text = (Text *)child.get();
+        auto text = static_cast<Text*>(child.get());
         code += text->toString(m_doc.parserDoc());
         code += "\n";
       } else if (child->type() == NodeType::lf) {
@@ -694,12 +694,12 @@ String Editor::title() {
   if (m_doc->root()->empty()) return "";
   auto node = m_doc->root()->childAt(0);
   if (node->type() != NodeType::header) return "";
-  auto header = (Header *)node;
+  auto header = static_cast<Header*>(node);
   if (header->level() != 1) return "";
   String s;
   for (auto& child : header->children()) {
     if (child->type() != NodeType::text) continue;
-    auto textNode = (Text *)child.get();
+    auto textNode = static_cast<Text*>(child.get());
     s += textNode->toString(m_doc->parserDoc());
   }
   return s;
@@ -929,38 +929,5 @@ void Editor::removeSelection() {
   }
   m_hasSelection = false;
   m_doc->updateCursor(*m_cursor, begin.coord());
-#if 0
-  auto isBefore = [](const CursorCoord& coord, SizeType blockNo, SizeType lineNo) {
-    if (blockNo < coord.blockNo) return true;
-    if (blockNo > coord.blockNo) return false;
-    if (lineNo < coord.lineNo) return true;
-    return false;
-  };
-  auto isSameLine = [](const CursorCoord& coord, SizeType blockNo, SizeType lineNo) {
-    if (blockNo < coord.blockNo) return false;
-    if (blockNo > coord.blockNo) return false;
-    return lineNo == coord.lineNo;
-  };
-  for (auto blockNo = begin.coord().blockNo; blockNo <= end.coord().blockNo; ++blockNo) {
-    const auto &block = m_doc->m_blocks[blockNo];
-    for (SizeType lineNo = 0; lineNo < block.countOfLogicalLine(); ++lineNo) {
-      if (isBefore(begin.coord(), blockNo, lineNo)) continue;
-      if (isSameLine(begin.coord(), blockNo, lineNo)) {
-        if (isSameLine(end.coord(), blockNo, lineNo)) {
-          // 将光标移动到end
-          m_doc->updateCursor(*m_cursor, end.coord());
-          for (SizeType offset = begin.coord().offset; offset < end.coord().offset; ++offset) {
-            m_doc->removeText()
-          }
-        } else {
-
-        }
-      }
-      if (isSameLine(end.coord(), blockNo, lineNo)) {
-
-      }
-    }
-  }
-#endif
 }
 }  // namespace md::editor

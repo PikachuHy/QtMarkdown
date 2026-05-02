@@ -224,7 +224,9 @@ void Document::insertText(Cursor& cursor, const String& text) {
 void Document::removeText(Cursor& cursor) {
   auto command = std::make_unique<RemoveTextCommand>(this, cursor.coord());
   command->execute(cursor);
-  m_commandStack->push(std::move(command));
+  if (command->hasUndoAction()) {
+    m_commandStack->push(std::move(command));
+  }
   ensureTrailingParagraph();
 }
 void Document::insertReturn(Cursor& cursor) {
@@ -287,31 +289,31 @@ void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
 parser::Container* Document::node2container(parser::Node* node) {
   ASSERT(node != nullptr);
   if (node->type() == NodeType::header) {
-    return (Header*)node;
+    return static_cast<Header*>(node);
   }
   if (node->type() == NodeType::paragraph) {
-    return (Paragraph*)node;
+    return static_cast<Paragraph*>(node);
   }
   if (node->type() == NodeType::ol) {
-    return (OrderedList*)node;
+    return static_cast<OrderedList*>(node);
   }
   if (node->type() == NodeType::ol_item) {
-    return (OrderedListItem*)node;
+    return static_cast<OrderedListItem*>(node);
   }
   if (node->type() == NodeType::ul) {
-    return (UnorderedList*)node;
+    return static_cast<UnorderedList*>(node);
   }
   if (node->type() == NodeType::ul_item) {
-    return (UnorderedListItem*)node;
+    return static_cast<UnorderedListItem*>(node);
   }
   if (node->type() == NodeType::checkbox_item) {
-    return (CheckboxItem*)node;
+    return static_cast<CheckboxItem*>(node);
   }
   if (node->type() == NodeType::checkbox) {
-    return (CheckboxList*)node;
+    return static_cast<CheckboxList*>(node);
   }
   if (node->type() == NodeType::code_block) {
-    return (CodeBlock*)node;
+    return static_cast<CodeBlock*>(node);
   }
   DEBUG << node->type();
   ASSERT(false && "node convert not support");

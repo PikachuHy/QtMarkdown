@@ -27,15 +27,7 @@ Header::Header(int level) : m_level(level) { m_type = NodeType::header; }
 Document::Document(const String &str) : m_originalBuffer(str), m_root(Parser::parse(str)) {}
 
 String Document::toHtml() {
-#if 0
-  auto visitor = new SimpleHtmlVisitor(m_originalBuffer);
-  for (auto& it : m_root->children()) {
-    it->accept(visitor);
-  }
-  auto ret = visitor->html();
-  delete visitor;
-  return ret;
-#endif
+  // HTML export not yet implemented
   return {};
 }
 

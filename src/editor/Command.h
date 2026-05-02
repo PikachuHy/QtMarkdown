@@ -51,6 +51,7 @@ class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
   bool merge(Command* command) override { return false; }
   void execute(Cursor& cursor) override;
   void undo(Cursor& cursor) override;
+  [[nodiscard]] bool hasUndoAction() const { return m_undoAction != none; }
 
  private:
   friend class RemoveTextVisitor;
@@ -82,7 +83,7 @@ class QTMARKDOWNSHARED_EXPORT CommandStack {
 
  private:
   std::vector<std::unique_ptr<Command>> m_commands;
-  int m_top = 0;
+  size_t m_top = 0;
 };
 }  // namespace md::editor
 #endif  // QTMARKDOWN_COMMAND_H

@@ -388,10 +388,10 @@ class RemoveTextVisitor
         coord.offset = block.logicalLineAt(coord.lineNo - 1).length();
         auto text1 = node->childAt(coord.lineNo - 1);
         ASSERT(text1->type() == NodeType::text);
-        auto text1Node = (Text*)text1;
+        auto text1Node = static_cast<Text*>(text1);
         auto text2 = node->childAt(coord.lineNo);
         ASSERT(text2->type() == NodeType::text);
-        auto text2Node = (Text*)text2;
+        auto text2Node = static_cast<Text*>(text2);
         text1Node->merge(*text2Node);
         node->removeChildAt(coord.lineNo);
         coord.lineNo--;
@@ -459,6 +459,7 @@ class RemoveTextVisitor
     }
   }
   void removeTextInNode(Text* textNode, SizeType leftOffset) {
+    if (leftOffset == 0) return;
     auto s = textNode->toString(m_doc->parserDoc());
     if (leftOffset - 1 > 0) {
       auto ch = s[leftOffset - 2].unicode();
@@ -675,7 +676,7 @@ class InsertTextVisitor
           // 如果还有结点，需要重新渲染
           renderBlock(coord.blockNo + 1);
         }
-      } else if (coord.lineNo == block.countOfLogicalLine()) {
+      } else if (coord.lineNo == block.countOfLogicalLine() - 1) {
         insertBlock(coord.blockNo + 1, std::move(checkbox));
         node->removeChildAt(coord.lineNo);
       } else {
@@ -913,19 +914,6 @@ void InsertReturnCommand::execute(Cursor& cursor) {
   auto coord = m_coord;
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->m_blocks.size());
   const auto& block = m_doc->m_blocks[coord.blockNo];
-#if 0
-  ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
-  auto& line = block.logicalLineAt(coord.lineNo);
-  if (line.empty()) {
-    auto newBlock = new Paragraph();
-    m_doc->insertBlock(coord.blockNo + 1, newBlock);
-    coord.blockNo++;
-    coord.lineNo = 0;
-    coord.offset = 0;
-    m_doc->updateCursor(cursor, coord);
-    return;
-  }
-#endif
   InsertReturnVisitor visitor(cursor, m_doc);
   auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
@@ -953,13 +941,13 @@ void CommandStack::push(std::unique_ptr<Command> command) {
   m_top = m_commands.size();
 }
 void CommandStack::undo(Cursor& cursor) {
-  ASSERT(m_top >= 0 && m_top <= m_commands.size());
+  ASSERT(m_top <= m_commands.size());
   if (m_top == 0) return;
   m_commands[m_top - 1]->undo(cursor);
   m_top--;
 }
 void CommandStack::redo(Cursor& cursor) {
-  ASSERT(m_top >= 0 && m_top <= m_commands.size());
+  ASSERT(m_top <= m_commands.size());
   if (m_top == m_commands.size()) return;
   m_commands[m_top]->execute(cursor);
   m_top++;

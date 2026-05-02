@@ -8,6 +8,7 @@
 namespace md::parser {
 
 // Forward declarations for all concrete node types
+class Container;
 class Header;
 class Paragraph;
 class Text;
@@ -35,6 +36,7 @@ class Lf;
 struct NodeVisitor {
   virtual ~NodeVisitor() = default;
 
+  virtual void visit(Container*) {}
   virtual void visit(Header*) {}
   virtual void visit(Paragraph*) {}
   virtual void visit(Text*) {}

@@ -62,13 +62,6 @@ void QtWidgetMarkdownEditor::loadFile(QString path) {
   QSize widgetSize = this->size();
   verticalScrollBar()->setPageStep(areaSize.height());
   horizontalScrollBar()->setPageStep(areaSize.width());
-#if 0
-  verticalScrollBar()->setPageStep(areaSize.height());
-  horizontalScrollBar()->setPageStep(areaSize.width());
-  verticalScrollBar()->setRange(0, widgetSize.height() - areaSize.height());
-  horizontalScrollBar()->setRange(0, widgetSize.width() - areaSize.width());
-#endif
-
   verticalScrollBar()->setRange(0, m_editor->height() - areaSize.height());
   horizontalScrollBar()->setRange(0, m_editor->width() - areaSize.width());
   DEBUG << "viewport size:" << viewport()->sizeHint();

@@ -8,6 +8,8 @@
 #include "editor/Editor.h"
 #include "parser/Document.h"
 #include "parser/Text.h"
+#include "parser/nodes/UnorderedList.h"
+#include "parser/nodes/CheckboxList.h"
 #undef protected
 #undef private
 #include <QGuiApplication>
@@ -15,8 +17,10 @@
 #include "debug.h"
 using namespace md::editor;
 using md::parser::NodeType;
+using md::parser::CheckboxList;
 using md::parser::Paragraph;
 using md::parser::Text;
+using md::parser::UnorderedList;
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
@@ -1189,6 +1193,49 @@ a
     auto text = static_cast<Text*>(p->childAt(0));
     CHECK(text->toString(doc->parserDoc()) == "ac");
   }
+}
+
+TEST_CASE("UlEditTest, UpgradeToCheckboxMultiItem") {
+  Editor editor;
+  editor.loadText("- item1\n- item2\n");
+  auto doc = editor.document();
+  auto& blocks = doc->m_blocks;
+  auto& cursor = *editor.m_cursor;
+  CHECK(blocks.size() == 2);
+  CHECK(doc->root()->size() == 2);
+
+  // Move cursor to the start of "item2" in the second list item
+  auto coord = CursorCoord{0, 1, 0};
+  doc->updateCursor(cursor, coord);
+  editor.insertText("[ ]");
+  editor.insertText(" ");
+  // After converting the last item to checkbox, root has:
+  // [UnorderedList(1 item), CheckboxList, trailingParagraph] = 3
+  CHECK(doc->root()->size() == 3);
+
+  // First block should still be UnorderedList with only "item1"
+  auto node1 = doc->root()->childAt(0);
+  CHECK(node1->type() == NodeType::ul);
+  // Second block should be CheckboxList with "item2"
+  auto node2 = doc->root()->childAt(1);
+  CHECK(node2->type() == NodeType::checkbox);
+}
+
+TEST_CASE("RemoveTextTest, BackspaceAtStartOfWrappedLine") {
+  // This should not crash — regression test for Bug #2
+  Editor editor;
+  // Load a long single-line paragraph that will wrap
+  editor.loadText("a very long line that should wrap across multiple visual lines when rendered in the editor");
+  auto doc = editor.document();
+  auto& cursor = *editor.m_cursor;
+  // Move to start of document then right a few characters to be in the text
+  auto coord = doc->moveCursorToBeginOfDocument();
+  doc->updateCursor(cursor, coord);
+  doc->moveCursorToRight(coord);
+  // Pressing backspace at this position should not crash
+  doc->removeText(cursor);
+  // Verify document is still valid
+  CHECK(doc->root()->size() > 0);
 }
 
 int main(int argc, char** argv) {

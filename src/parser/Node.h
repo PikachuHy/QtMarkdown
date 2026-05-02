@@ -90,7 +90,11 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   const std::unique_ptr<Node>& operator[](SizeType index) const;
   auto empty() const { return m_children.empty(); }
   [[nodiscard]] auto size() const { return m_children.size(); }
+  // Subclasses MUST override accept() to call v->visit(this).
+  // This base implementation provides a safety net: it dispatches as
+  // Container* (so the visitor can still see the node), then iterates children.
   void accept(NodeVisitor* v) override {
+    v->visit(this);
     for (auto& node : m_children) {
       node->accept(v);
     }

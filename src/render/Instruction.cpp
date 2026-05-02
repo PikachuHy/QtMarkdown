@@ -17,17 +17,6 @@ void TextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
   auto s = m_cell->m_text->toString(doc).mid(m_cell->m_offset, m_cell->m_length);
   Rect rect(m_cell->m_pos + offset, m_cell->m_size);
   painter.drawText(rect, s);
-#if 0
-  // debug用
-  QRect debugRect(rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2);
-  painter.drawRect(debugRect);
-  //  DEBUG << s << rect << debugRect;
-  auto font = painter.font();
-  font.setPixelSize(6);
-  painter.setFont(font);
-  painter.setPen(Qt::red);
-  painter.drawText(rect.x(), rect.y(), QString("%1, %2").arg(rect.width()).arg(rect.height()));
-#endif
   painter.restore();
 }
 void StaticTextInstruction::run(Painter& painter, Point offset, DocPtr doc) const {
@@ -37,17 +26,6 @@ void StaticTextInstruction::run(Painter& painter, Point offset, DocPtr doc) cons
   painter.setFont(m_font);
   auto rect = Rect(m_pos + offset, m_size);
   painter.drawText(rect, m_text);
-#if 0
-  // debug用
-  QRect debugRect(rect.x() - 1, rect.y() - 1, rect.width() + 2, rect.height() + 2);
-  painter.drawRect(debugRect);
-  //  DEBUG << s << rect << debugRect;
-  auto font = painter.font();
-  font.setPixelSize(6);
-  painter.setFont(font);
-  painter.setPen(Qt::red);
-  painter.drawText(rect.x(), rect.y(), QString("%1, %2").arg(rect.width()).arg(rect.height()));
-#endif
   painter.restore();
 }
 void ImageInstruction::run(Painter& painter, Point offset, DocPtr doc) const {

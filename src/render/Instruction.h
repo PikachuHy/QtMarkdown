@@ -11,7 +11,6 @@
 #include <vector>
 #include "QtMarkdown_global.h"
 #include "mddef.h"
-#include "parser/PieceTable.h"
 #include "Cell.h"
 namespace md::parser {
 class Text;
