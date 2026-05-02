@@ -15,6 +15,8 @@ class QTMARKDOWNSHARED_EXPORT OrderedList : public ListNode {
   void accept(VisitorNode* v) override {
     if (auto p = dynamic_cast<Visitor<OrderedList>*>(v); p) {
       p->visit(this);
+    } else {
+      ListNode::accept(v);
     }
   }
 };
@@ -25,6 +27,8 @@ class QTMARKDOWNSHARED_EXPORT OrderedListItem : public ListItemNode {
   void accept(VisitorNode* v) override {
     if (auto p = dynamic_cast<Visitor<OrderedListItem>*>(v); p) {
       p->visit(this);
+    } else {
+      ListItemNode::accept(v);
     }
   }
 };

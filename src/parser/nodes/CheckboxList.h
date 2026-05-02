@@ -17,6 +17,8 @@ class QTMARKDOWNSHARED_EXPORT CheckboxItem : public ListItemNode {
   void accept(VisitorNode* v) override {
     if (auto p = dynamic_cast<Visitor<CheckboxItem>*>(v); p) {
       p->visit(this);
+    } else {
+      ListItemNode::accept(v);
     }
   }
 
@@ -30,6 +32,8 @@ class QTMARKDOWNSHARED_EXPORT CheckboxList : public ListNode {
   void accept(VisitorNode* v) override {
     if (auto p = dynamic_cast<Visitor<CheckboxList>*>(v); p) {
       p->visit(this);
+    } else {
+      ListNode::accept(v);
     }
   }
 };
