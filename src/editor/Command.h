@@ -42,6 +42,11 @@ class QTMARKDOWNSHARED_EXPORT InsertTextCommand : public Command {
   bool m_maySkipChar;
   String m_targetSkipChar;
   CursorCoord m_finishedCoord;
+  // Block type conversion tracking for undo (set by InsertTextVisitor)
+  bool m_hasBlockConversion = false;
+  parser::NodeType m_convertedBlockType = parser::NodeType::none;
+  int m_headerLevel = 0;  // for header→paragraph reversal
+  friend class InsertTextVisitor;
 };
 class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
  public:

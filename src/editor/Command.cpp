@@ -491,14 +491,15 @@ class InsertTextVisitor
       public DocumentOperationVisitor {
  public:
   InsertTextVisitor(Cursor& cursor, Document* doc, SizeType offset, SizeType length, SizeType cursorOffsetDelta,
-                    bool isSpace, bool maySkipChar, String targetSkipChar)
+                    bool isSpace, bool maySkipChar, String targetSkipChar, InsertTextCommand* cmd = nullptr)
       : DocumentOperationVisitor(cursor, doc),
         offset(offset),
         length(length),
         cursorOffsetDelta(cursorOffsetDelta),
         isSpace(isSpace),
         maySkipChar(maySkipChar),
-        targetSkipChar(targetSkipChar) {}
+        targetSkipChar(targetSkipChar),
+        m_cmd(cmd) {}
   void visit(Paragraph* node) override {
     auto coord = cursor.coord();
     ASSERT(coord.blockNo >= 0 && coord.blockNo < m_doc->blocks().size());
@@ -524,6 +525,11 @@ class InsertTextVisitor
         if (!prefix.isEmpty() && prefix.count('#') == prefix.size()) {
           // 说明是header
           // 将段落转换为标题
+          if (m_cmd) {
+            m_cmd->m_hasBlockConversion = true;
+            m_cmd->m_convertedBlockType = NodeType::header;
+            m_cmd->m_headerLevel = prefix.size();
+          }
           auto header = std::make_unique<Header>(prefix.size());
           header->appendChildren(std::move(node->children()));
           textNode->remove(0, prefix.size());
@@ -539,6 +545,10 @@ class InsertTextVisitor
         } else if (prefix == "-") {
           // 说明是无序列表
           // 将段落转换为无序列表
+          if (m_cmd) {
+            m_cmd->m_hasBlockConversion = true;
+            m_cmd->m_convertedBlockType = NodeType::ul;
+          }
           auto ul = std::make_unique<UnorderedList>();
           auto ulItem = std::make_unique<UnorderedListItem>();
           auto* ulItemRaw = ulItem.get();
@@ -557,6 +567,10 @@ class InsertTextVisitor
         } else if (prefix == "1.") {
           // 说明是有序列表
           // 将段落转换为有序列表
+          if (m_cmd) {
+            m_cmd->m_hasBlockConversion = true;
+            m_cmd->m_convertedBlockType = NodeType::ol;
+          }
           auto ol = std::make_unique<OrderedList>();
           auto olItem = std::make_unique<OrderedListItem>();
           auto* olItemRaw = olItem.get();
@@ -575,6 +589,10 @@ class InsertTextVisitor
         } else if (prefix == ">") {
           // 说明是引用块
           // 将段落转换为引用块
+          if (m_cmd) {
+            m_cmd->m_hasBlockConversion = true;
+            m_cmd->m_convertedBlockType = NodeType::quote_block;
+          }
           auto quoteBlock = std::make_unique<QuoteBlock>();
           quoteBlock->appendChildren(std::move(node->children()));
           textNode->remove(0, prefix.size());
@@ -759,12 +777,51 @@ class InsertTextVisitor
   bool maySkipChar;
   String targetSkipChar;
   SizeType cursorOffsetDelta;
+  InsertTextCommand* m_cmd = nullptr;
 };
 
 void InsertTextCommand::undo(Cursor& cursor) {
+  if (m_hasBlockConversion) {
+    auto node = m_doc->root()->childAt(m_coord.blockNo);
+    auto paragraph = std::make_unique<Paragraph>();
+    switch (m_convertedBlockType) {
+      case NodeType::header: {
+        auto headerNode = static_cast<Header*>(node);
+        paragraph->setChildren(std::move(headerNode->children()));
+        break;
+      }
+      case NodeType::ul: {
+        auto ulNode = static_cast<UnorderedList*>(node);
+        if (!ulNode->children().empty()) {
+          auto item = static_cast<Container*>(ulNode->childAt(0));
+          paragraph->setChildren(std::move(item->children()));
+        }
+        break;
+      }
+      case NodeType::ol: {
+        auto olNode = static_cast<OrderedList*>(node);
+        if (!olNode->children().empty()) {
+          auto item = static_cast<Container*>(olNode->childAt(0));
+          paragraph->setChildren(std::move(item->children()));
+        }
+        break;
+      }
+      case NodeType::quote_block: {
+        auto quoteNode = static_cast<QuoteBlock*>(node);
+        paragraph->setChildren(std::move(quoteNode->children()));
+        break;
+      }
+      default:
+        ASSERT(false && "unknown converted block type");
+        break;
+    }
+    m_doc->replaceBlock(m_coord.blockNo, std::move(paragraph));
+    m_doc->updateCursor(cursor, m_coord);
+    return;
+  }
+
   DEBUG << m_coord << m_finishedCoord;
   m_doc->updateCursor(cursor, m_finishedCoord);
-  // 无法处理block的升降级
   while (cursor.coord() != m_coord) {
     RemoveTextVisitor visitor(cursor, m_doc);
     auto node = m_doc->root()->childAt(m_coord.blockNo);
@@ -774,7 +831,7 @@ void InsertTextCommand::undo(Cursor& cursor) {
 void InsertTextCommand::execute(Cursor& cursor) {
   m_doc->updateCursor(cursor, m_coord);
   InsertTextVisitor visitor(cursor, m_doc, m_offset, m_length, m_cursorOffsetDelta, m_isSpace, m_maySkipChar,
-                            m_targetSkipChar);
+                            m_targetSkipChar, this);
   auto node = m_doc->root()->childAt(m_coord.blockNo);
   node->accept(&visitor);
   m_finishedCoord = cursor.coord();
@@ -807,6 +864,7 @@ InsertTextCommand::InsertTextCommand(Document* doc, CursorCoord coord, String te
 bool InsertTextCommand::merge(Command* command) {
   if (this->type() != command->type()) return false;
   auto insertTextCommand = (InsertTextCommand*)command;
+  if (insertTextCommand->m_hasBlockConversion) return false;
   if (m_finishedCoord != insertTextCommand->m_coord) return false;
   if (m_offset + m_length != insertTextCommand->m_offset) return false;
   m_length += insertTextCommand->m_length;

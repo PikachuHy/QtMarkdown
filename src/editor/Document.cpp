@@ -351,6 +351,9 @@ parser::Container* Document::node2container(parser::Node* node) {
   if (node->type() == NodeType::code_block) {
     return static_cast<CodeBlock*>(node);
   }
+  if (node->type() == NodeType::quote_block) {
+    return static_cast<QuoteBlock*>(node);
+  }
   DEBUG << node->type();
   ASSERT(false && "node convert not support");
   return nullptr;
