@@ -43,6 +43,7 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
   }
   SizeType length() override;
   int width(SizeType length, const parser::IBufferProvider& doc) const override;
+  parser::Text* text() const { return m_text; }
 
  private:
   Color m_fg;

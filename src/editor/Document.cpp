@@ -20,6 +20,21 @@ Document::Document(const String& str, sptr<RenderSetting> setting)
 void Document::assertBlocksInSync() {
   ASSERT(m_blocks.size() == m_parserDoc->root()->children().size());
 }
+#ifdef QT_DEBUG
+static void assertBlockTextCellsValid(const render::Block& block) {
+  for (const auto& logicalLine : block.lines()) {
+    for (const auto* cell : logicalLine.cells()) {
+      auto* textCell = dynamic_cast<const render::TextCell*>(cell);
+      if (textCell) {
+        auto* textNode = textCell->text();
+        ASSERT(textNode != nullptr);
+        ASSERT(textNode->type() == parser::NodeType::text);
+        ASSERT(textNode->parent() != nullptr);
+      }
+    }
+  }
+}
+#endif
 void Document::ensureTrailingParagraph() {
   auto& children = m_parserDoc->root()->children();
   if (children.empty() || children.back()->type() != NodeType::paragraph) {
@@ -252,6 +267,10 @@ void Document::replaceBlock(SizeType blockNo, std::unique_ptr<parser::Node> node
   auto* rawNode = node.get();
   m_parserDoc->root()->setChild(blockNo, std::move(node));
   m_blocks[blockNo] = Render::render(rawNode, m_setting, *m_parserDoc);
+  assertBlocksInSync();
+#ifdef QT_DEBUG
+  assertBlockTextCellsValid(m_blocks[blockNo]);
+#endif
 }
 void Document::insertBlock(SizeType blockNo, std::unique_ptr<parser::Node> node) {
   ASSERT(blockNo >= 0 && blockNo <= m_parserDoc->root()->children().size());
@@ -259,10 +278,18 @@ void Document::insertBlock(SizeType blockNo, std::unique_ptr<parser::Node> node)
   auto* rawNode = node.get();
   m_parserDoc->root()->insertChild(blockNo, std::move(node));
   m_blocks.insert(m_blocks.begin() + blockNo, Render::render(rawNode, m_setting, *m_parserDoc));
+  assertBlocksInSync();
+#ifdef QT_DEBUG
+  assertBlockTextCellsValid(m_blocks[blockNo]);
+#endif
 }
 void Document::renderBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_parserDoc->root()->children().size());
   m_blocks[blockNo] = Render::render(m_parserDoc->root()->children()[blockNo].get(), m_setting, *m_parserDoc);
+  assertBlocksInSync();
+#ifdef QT_DEBUG
+  assertBlockTextCellsValid(m_blocks[blockNo]);
+#endif
 }
 void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
   ASSERT(blockNo1 >= 0 && blockNo1 < m_parserDoc->root()->children().size());
@@ -293,6 +320,7 @@ void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
   m_parserDoc->root()->removeChildAt(blockNo2);
   m_blocks.erase(m_blocks.begin() + blockNo2);
   renderBlock(blockNo1);
+  assertBlocksInSync();
 }
 parser::Container* Document::node2container(parser::Node* node) {
   ASSERT(node != nullptr);
@@ -348,6 +376,7 @@ void Document::removeBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_blocks.size());
   m_blocks.erase(m_blocks.begin() + blockNo);
   m_parserDoc->root()->children().erase(m_parserDoc->root()->children().begin() + blockNo);
+  assertBlocksInSync();
 }
 CursorCoord Document::moveCursorToEndOfDocument() {
   CursorCoord coord;
@@ -389,51 +418,20 @@ void Document::redo(Cursor& cursor) {
   m_commandStack->redo(cursor);
   ensureTrailingParagraph();
 }
-void Document::upgradeToHeader(const Cursor& cursor, int level) {
+void Document::upgradeToHeader(Cursor& cursor, int level) {
   ASSERT(level >= 1 && level <= 6);
-  auto coord = cursor.coord();
-  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_parserDoc->root()->size());
-  auto node = m_parserDoc->root()->childAt(coord.blockNo);
-  if (node->type() != NodeType::paragraph) return;
-  auto paragraphNode = static_cast<Paragraph*>(node);
-  auto header = std::make_unique<Header>(level);
-  header->setChildren(std::move(paragraphNode->children()));
-  replaceBlock(coord.blockNo, std::move(header));
+  auto command = std::make_unique<UpgradeToHeaderCommand>(this, cursor.coord(), level);
+  command->execute(cursor);
+  m_commandStack->push(std::move(command));
   ensureTrailingParagraph();
 }
 void Document::removeTextRange(const CursorCoord& begin, const CursorCoord& end) {
-  if (end < begin) {
-    removeTextRange(end, begin);
-    return;
-  }
-  ASSERT(begin.blockNo >= 0 && begin.blockNo < m_blocks.size());
-  ASSERT(end.blockNo >= 0 && end.blockNo < m_blocks.size());
-
-  // Phase 1: same block, same line, same Text node — bulk delete
-  if (begin.blockNo == end.blockNo) {
-    const auto& block = m_blocks[begin.blockNo];
-    if (begin.lineNo == end.lineNo) {
-      const auto& line = block.logicalLineAt(begin.lineNo);
-      auto beginPair = line.textAt(begin.offset);
-      auto endPair = line.textAt(end.offset);
-      if (beginPair.first && beginPair.first == endPair.first) {
-        SizeType length = end.offset - begin.offset;
-        if (length > 0) {
-          beginPair.first->remove(beginPair.second, length);
-          renderBlock(begin.blockNo);
-          return;
-        }
-      }
-    }
-  }
-
-  // Fallback: character-by-character (current behavior, creates individual undo commands)
+  auto command = std::make_unique<RemoveTextRangeCommand>(this, begin, end);
   Cursor cursor;
-  updateCursor(cursor, end, true);
-  CursorCoord coord = cursor.coord();
-  while (!(coord == begin)) {
-    removeText(cursor);
-    coord = cursor.coord();
+  command->execute(cursor);
+  if (command->hasUndoAction()) {
+    m_commandStack->push(std::move(command));
   }
+  ensureTrailingParagraph();
 }
 }  // namespace md::editor

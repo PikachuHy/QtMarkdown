@@ -153,32 +153,26 @@ void EditorInputHandler::keyPressEvent(const core::KeyEvent &event) {
   if (m_editor.isHoldCtrl()) {
     if (key == static_cast<int>(core::Key::Key_1)) {
       m_doc.upgradeToHeader(m_cursor, 1);
-      m_doc.updateCursor(m_cursor, m_cursor.coord());
       return;
     }
     if (key == static_cast<int>(core::Key::Key_2)) {
       m_doc.upgradeToHeader(m_cursor, 2);
-      m_doc.updateCursor(m_cursor, m_cursor.coord());
       return;
     }
     if (key == static_cast<int>(core::Key::Key_3)) {
       m_doc.upgradeToHeader(m_cursor, 3);
-      m_doc.updateCursor(m_cursor, m_cursor.coord());
       return;
     }
     if (key == static_cast<int>(core::Key::Key_4)) {
       m_doc.upgradeToHeader(m_cursor, 4);
-      m_doc.updateCursor(m_cursor, m_cursor.coord());
       return;
     }
     if (key == static_cast<int>(core::Key::Key_5)) {
       m_doc.upgradeToHeader(m_cursor, 5);
-      m_doc.updateCursor(m_cursor, m_cursor.coord());
       return;
     }
     if (key == static_cast<int>(core::Key::Key_6)) {
       m_doc.upgradeToHeader(m_cursor, 6);
-      m_doc.updateCursor(m_cursor, m_cursor.coord());
       return;
     }
   }

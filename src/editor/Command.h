@@ -14,7 +14,7 @@
 namespace md::editor {
 class QTMARKDOWNSHARED_EXPORT Command {
  public:
-  enum Type { insert_text, remove_text, insert_return };
+  enum Type { insert_text, remove_text, insert_return, upgrade_to_header, remove_text_range };
   Command(Document* doc) : m_doc(doc) {}
   virtual ~Command() = default;
   [[nodiscard]] virtual Type type() const = 0;
@@ -74,6 +74,34 @@ class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
  private:
   CursorCoord m_coord;
   CursorCoord m_finishedCoord;
+};
+class QTMARKDOWNSHARED_EXPORT UpgradeToHeaderCommand : public Command {
+ public:
+  UpgradeToHeaderCommand(Document* doc, CursorCoord coord, int level);
+  [[nodiscard]] Type type() const override { return upgrade_to_header; }
+  void execute(Cursor& cursor) override;
+  void undo(Cursor& cursor) override;
+  bool merge(Command* command) override { return false; }
+  bool hasUndoAction() const { return true; }
+  CursorCoord finishedCoord() const { return m_finishedCoord; }
+ private:
+  CursorCoord m_coord;
+  CursorCoord m_finishedCoord;
+  int m_level;
+};
+class QTMARKDOWNSHARED_EXPORT RemoveTextRangeCommand : public Command {
+ public:
+  RemoveTextRangeCommand(Document* doc, CursorCoord begin, CursorCoord end);
+  [[nodiscard]] Type type() const override { return remove_text_range; }
+  void execute(Cursor& cursor) override;
+  void undo(Cursor& cursor) override;
+  bool merge(Command* command) override { return false; }
+  bool hasUndoAction() const { return m_hasAction; }
+ private:
+  CursorCoord m_begin;
+  CursorCoord m_end;
+  bool m_hasAction = false;
+  String m_deletedText;
 };
 class QTMARKDOWNSHARED_EXPORT CommandStack {
  public:

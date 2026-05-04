@@ -926,6 +926,97 @@ void InsertReturnCommand::undo(Cursor& cursor) {
   auto node = m_doc->root()->childAt(cursor.coord().blockNo);
   node->accept(&visitor);
 }
+UpgradeToHeaderCommand::UpgradeToHeaderCommand(Document* doc, CursorCoord coord, int level)
+    : Command(doc), m_coord(coord), m_level(level) {}
+void UpgradeToHeaderCommand::execute(Cursor& cursor) {
+  auto node = m_doc->root()->childAt(m_coord.blockNo);
+  if (node->type() != NodeType::paragraph) return;
+  auto paragraphNode = static_cast<Paragraph*>(node);
+  auto header = std::make_unique<Header>(m_level);
+  header->setChildren(std::move(paragraphNode->children()));
+  m_doc->replaceBlock(m_coord.blockNo, std::move(header));
+  m_doc->ensureTrailingParagraph();
+  m_finishedCoord = CursorCoord{m_coord.blockNo, 0, 0};
+  m_doc->updateCursor(cursor, m_finishedCoord);
+}
+void UpgradeToHeaderCommand::undo(Cursor& cursor) {
+  auto node = m_doc->root()->childAt(m_coord.blockNo);
+  ASSERT(node->type() == NodeType::header);
+  auto headerNode = static_cast<Header*>(node);
+  auto paragraph = std::make_unique<Paragraph>();
+  paragraph->setChildren(std::move(headerNode->children()));
+  m_doc->replaceBlock(m_coord.blockNo, std::move(paragraph));
+  m_doc->ensureTrailingParagraph();
+  m_doc->updateCursor(cursor, m_coord);
+}
+RemoveTextRangeCommand::RemoveTextRangeCommand(Document* doc, CursorCoord begin, CursorCoord end)
+    : Command(doc), m_begin(begin), m_end(end) {}
+void RemoveTextRangeCommand::execute(Cursor& cursor) {
+  if (m_end < m_begin) {
+    std::swap(m_begin, m_end);
+  }
+  CursorCoord coord = m_end;
+
+  // Phase 1: same block, same line, same Text node -- bulk delete
+  if (m_begin.blockNo == m_end.blockNo) {
+    const auto& block = m_doc->blocks()[m_begin.blockNo];
+    if (m_begin.lineNo == m_end.lineNo) {
+      const auto& line = block.logicalLineAt(m_begin.lineNo);
+      auto beginPair = line.textAt(m_begin.offset);
+      auto endPair = line.textAt(m_end.offset);
+      if (beginPair.first && beginPair.first == endPair.first) {
+        SizeType length = m_end.offset - m_begin.offset;
+        if (length > 0) {
+          m_deletedText = beginPair.first->toString(m_doc->bufferProvider()).mid(beginPair.second, length);
+          beginPair.first->remove(beginPair.second, length);
+          m_doc->renderBlock(m_begin.blockNo);
+          m_hasAction = true;
+          m_doc->updateCursor(cursor, m_begin);
+          return;
+        }
+      }
+    }
+  }
+
+  // Phase 2: character-by-character in reverse
+  m_doc->updateCursor(cursor, m_end);
+  String reversed;
+  while (!(coord == m_begin)) {
+    const auto& block = m_doc->blocks()[coord.blockNo];
+    const auto& line = block.logicalLineAt(coord.lineNo);
+    auto [textNode, textOffset] = line.textAt(coord.offset);
+    if (textNode && textOffset > 0) {
+      String ch = textNode->toString(m_doc->bufferProvider()).mid(textOffset - 1, 1);
+      reversed += ch;
+    }
+    RemoveTextVisitor visitor(cursor, m_doc, nullptr);
+    auto node = m_doc->root()->childAt(coord.blockNo);
+    node->accept(&visitor);
+    m_doc->updateCursor(cursor, cursor.coord());
+    coord = cursor.coord();
+  }
+  std::reverse(reversed.begin(), reversed.end());
+  m_deletedText = reversed;
+  m_hasAction = !m_deletedText.isEmpty();
+}
+void RemoveTextRangeCommand::undo(Cursor& cursor) {
+  if (m_deletedText.isEmpty()) return;
+  m_doc->updateCursor(cursor, m_begin);
+
+  SizeType addOffset = m_doc->appendToAddBuffer(m_deletedText);
+
+  InsertTextVisitor visitor(
+      cursor, m_doc,
+      addOffset,
+      m_deletedText.size(),
+      m_deletedText.size(),
+      false,
+      false,
+      "");
+  auto node = m_doc->root()->childAt(cursor.coord().blockNo);
+  node->accept(&visitor);
+  m_doc->updateCursor(cursor, m_begin);
+}
 void CommandStack::push(std::unique_ptr<Command> command) {
   while (m_commands.size() != m_top) {
     m_commands.pop_back();

@@ -11,8 +11,6 @@
 #include <vector>
 
 #include "Instruction.h"
-#include "PaintPass.h"
-#include "PaintRecord.h"
 #include "StringUtil.h"
 #include "FontMetricsProvider.h"
 #include "debug.h"
@@ -56,7 +54,7 @@ class LayoutPass
  public:
   explicit LayoutPass(Node *node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
                       IFontMetricsProvider* fontMetrics = nullptr)
-      : m_block(node), m_setting(setting), m_doc(doc),
+      : m_block(), m_setting(setting), m_doc(doc),
         m_fontMetrics(fontMetrics ? fontMetrics : &s_defaultFontMetrics),
         m_hasGui(fontMetrics == nullptr) {
     Q_ASSERT(m_fontMetrics != nullptr);
@@ -125,7 +123,7 @@ class LayoutPass
       // 画不下，就强制加一个连字符
       auto hyphenPos = Point(m_curX, m_curY);
       auto hyphenSize = textSize("-");
-      m_paintRecords.push_back(PaintRecord::staticText(String("-"), hyphenPos, hyphenSize, Qt::black, curFont()));
+      m_instructions.push_back(std::make_unique<StaticTextInstruction>(String("-"), hyphenPos, hyphenSize, Qt::black, curFont()));
       moveToNewLine();
     }
   }
@@ -194,7 +192,7 @@ class LayoutPass
     int y = m_curY;
     if (currentLineCanDrawText(codeStr)) {
       auto size = textSize(codeStr);
-      m_paintRecords.push_back(PaintRecord::fillRect(
+      m_instructions.push_back(std::make_unique<FillRectInstruction>(
           Point(x - 2, y - 2), Size(size.width() + 4, size.height() + 4), QColor(249, 249, 249)));
       node->code()->accept(this);
     }
@@ -212,7 +210,7 @@ class LayoutPass
 
     int lineH = textHeight();
     int estimatedH = node->size() * lineH + (node->size() - 1) * m_setting->lineSpacing;
-    m_paintRecords.push_back(PaintRecord::fillRect(
+    m_instructions.push_back(std::make_unique<FillRectInstruction>(
         Point(x - 3, y - 3), Size(w + 6, estimatedH + 6), QColor(249, 249, 249)));
 
     for (int i = 0; i < node->size(); ++i) {
@@ -228,7 +226,7 @@ class LayoutPass
       ASSERT(copyBtnFile.exists());
       QPixmap copyBtnImg(copyBtnFilePath);
       Point pos(x + w - copyBtnImg.width(), y);
-      m_paintRecords.push_back(PaintRecord::staticImage(copyBtnFilePath, pos, copyBtnImg.size()));
+      m_instructions.push_back(std::make_unique<StaticImageInstruction>(copyBtnFilePath, pos, copyBtnImg.size()));
       m_block.appendElement({node, pos, copyBtnImg.size()});
     }
     restore();
@@ -247,7 +245,7 @@ class LayoutPass
       auto cell = std::make_unique<InlineLatexCell>(point, size);
       auto* rawCell = cell.get();
       appendVisualCell(std::move(cell));
-      m_paintRecords.push_back(PaintRecord::fromCell(rawCell, latex, textSize));
+      m_instructions.push_back(std::make_unique<LatexInstruction>(rawCell, latex, textSize));
       m_curX += render->getWidth();
     } catch (const std::exception &ex) {
       DEBUG << "ERROR" << ex.what();
@@ -270,7 +268,7 @@ class LayoutPass
       auto cell = std::make_unique<InlineLatexCell>(point, size);
       auto* rawCell = cell.get();
       appendVisualCell(std::move(cell));
-      m_paintRecords.push_back(PaintRecord::fromCell(rawCell, latex, textSize));
+      m_instructions.push_back(std::make_unique<LatexInstruction>(rawCell, latex, textSize));
       m_curX += render->getWidth();
     } catch (const std::exception &ex) {
       DEBUG << "ERROR" << ex.what();
@@ -344,7 +342,7 @@ class LayoutPass
     }
     image = image.scaledToWidth(imgWidth);
     const QPoint &pos = Point(m_curX, m_curY);
-    m_paintRecords.push_back(PaintRecord::image(imgPath, pos, image.size()));
+    m_instructions.push_back(std::make_unique<ImageInstruction>(imgPath, pos, image.size()));
     m_curY += image.height();
     m_block.appendElement({node, pos, image.size()});
     // TODO: 需要重新考虑图片
@@ -362,7 +360,7 @@ class LayoutPass
     // 播放图标放在中心位置
     int x = (image.width() - playImage.width()) / 2 + pos.x();
     int y = (image.height() - playImage.height()) / 2 + pos.y();
-    m_paintRecords.push_back(PaintRecord::staticImage(playIconPath, Point(x, y), playImage.size()));
+    m_instructions.push_back(std::make_unique<StaticImageInstruction>(playIconPath, Point(x, y), playImage.size()));
   }
   void visit(CheckboxList *node) override {
     Q_ASSERT(node != nullptr);
@@ -388,11 +386,11 @@ class LayoutPass
     const QSize &size = Size(h1, h1);
     if (node->isChecked()) {
       QString imagePath = ":icon/checkbox-selected_64x64.png";
-      m_paintRecords.push_back(PaintRecord::staticImage(imagePath, pos, size));
+      m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
 
     } else {
       QString imagePath = ":icon/checkbox-unselected_64x64.png";
-      m_paintRecords.push_back(PaintRecord::staticImage(imagePath, pos, size));
+      m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
     }
     m_block.appendElement({node, pos, size});
     m_curX += h1 + 10;
@@ -417,7 +415,7 @@ class LayoutPass
       auto h = textHeight();
       auto size = 5;
       auto y = m_curY + (h - size) / 2 + 2;
-      m_paintRecords.push_back(PaintRecord::ellipse(Point(m_curX, y), Size(size, size), Qt::black));
+      m_instructions.push_back(std::make_unique<EllipseInstruction>(Point(m_curX, y), Size(size, size), Qt::black));
       m_curX += 15;
       m_block.m_logicalLines.back().m_padding = m_curX - oldX;
       beginVisualLine();
@@ -444,7 +442,7 @@ class LayoutPass
       QString numStr = QString("%1.  ").arg(i);
       const Size &size = textSize(numStr);
       const QPoint &pos = Point(m_curX, m_curY);
-      m_paintRecords.push_back(PaintRecord::staticText(numStr, pos, size, Qt::black, curFont()));
+      m_instructions.push_back(std::make_unique<StaticTextInstruction>(numStr, pos, size, Qt::black, curFont()));
       m_curX += size.width();
       m_block.m_logicalLines.back().m_padding = m_curX - oldX;
       beginVisualLine();
@@ -464,10 +462,10 @@ class LayoutPass
     save();
     beginBlock();
     int lineY = m_curY + m_setting->lineSpacing;
-    m_paintRecords.push_back(
-        PaintRecord::fillRect(Point(m_setting->docMargin.left(), lineY),
-                              Size(m_setting->contentMaxWidth() - m_setting->docMargin.left(), 1),
-                              QColor(200, 200, 200)));
+    m_instructions.push_back(std::make_unique<FillRectInstruction>(
+        Point(m_setting->docMargin.left(), lineY),
+        Size(m_setting->contentMaxWidth() - m_setting->docMargin.left(), 1),
+        QColor(200, 200, 200)));
     m_curY = lineY + m_setting->lineSpacing;
     endBlock();
     restore();
@@ -487,7 +485,7 @@ class LayoutPass
     }
     QColor bgColor(238, 238, 238);
     Point pos(m_setting->docMargin.left() - m_setting->quoteMargin.left(), startY);
-    m_paintRecords.push_back(PaintRecord::fillRect(pos, Size(5, endY - startY), bgColor));
+    m_instructions.push_back(std::make_unique<FillRectInstruction>(pos, Size(5, endY - startY), bgColor));
     endBlock();
   }
   void visit(Table *node) override {
@@ -503,8 +501,8 @@ class LayoutPass
         headerLine += cell + QStringLiteral(" | ");
       }
       auto size = textSize(headerLine);
-      m_paintRecords.push_back(
-          PaintRecord::staticText(headerLine, Point(m_curX, m_curY), size, curPen(), curFont()));
+      m_instructions.push_back(std::make_unique<StaticTextInstruction>(
+          headerLine, Point(m_curX, m_curY), size, curPen(), curFont()));
       m_curY += size.height() + m_setting->lineSpacing;
     }
     // Render content rows
@@ -514,8 +512,8 @@ class LayoutPass
         rowLine += cell + QStringLiteral(" | ");
       }
       auto size = textSize(rowLine);
-      m_paintRecords.push_back(
-          PaintRecord::staticText(rowLine, Point(m_curX, m_curY), size, curPen(), curFont()));
+      m_instructions.push_back(std::make_unique<StaticTextInstruction>(
+          rowLine, Point(m_curX, m_curY), size, curPen(), curFont()));
       m_curY += size.height() + m_setting->lineSpacing;
     }
     endBlock();
@@ -530,14 +528,15 @@ class LayoutPass
     auto font = curFont();
     font.setPixelSize(12);
     auto size = textSize(enterStr);
-    m_paintRecords.push_back(PaintRecord::staticText(enterStr, Point(m_curX, m_curY), size, Qt::blue, font));
+    m_instructions.push_back(std::make_unique<StaticTextInstruction>(enterStr, Point(m_curX, m_curY), size, Qt::blue, font));
 #endif
     endLogicalLine();
     beginLogicalLine();
     restore();
   }
-  [[nodiscard]] std::pair<Block, PaintRecordList> execute() {
-    return {std::move(m_block), std::move(m_paintRecords)};
+  [[nodiscard]] Block execute() {
+    m_block.setInstructions(std::move(m_instructions));
+    return std::move(m_block);
   }
 
  private:
@@ -549,7 +548,7 @@ class LayoutPass
     setFont(font);
     auto size = textSize(prefix);
     auto x = m_curX - size.width() - 1;
-    m_paintRecords.push_back(PaintRecord::staticText(prefix, Point(x, m_curY), size, Qt::black, font));
+    m_instructions.push_back(std::make_unique<StaticTextInstruction>(prefix, Point(x, m_curY), size, Qt::black, font));
     restore();
   }
 
@@ -571,7 +570,7 @@ class LayoutPass
     auto cell = std::make_unique<TextCell>(node, offset, length, Point(m_curX, m_curY), size, curPen(), curFont(), m_fontMetrics);
     auto* rawCell = cell.get();
     appendVisualCell(std::move(cell));
-    m_paintRecords.push_back(PaintRecord::fromCell(rawCell));
+    m_instructions.push_back(std::make_unique<TextInstruction>(rawCell));
     restore();
     m_curX += size.width();
   }
@@ -731,7 +730,7 @@ class LayoutPass
   sptr<RenderSetting> m_setting;
 
   bool m_rewriteFont = true;
-  PaintRecordList m_paintRecords;
+  InstructionPtrList m_instructions;
   IFontMetricsProvider* m_fontMetrics;
   bool m_hasGui;
 };
@@ -1061,9 +1060,7 @@ Block Render::render(Node *node, sptr<RenderSetting> setting, const parser::IBuf
   static TexRenderGuard texRenderGuard;
   LayoutPass render(node, setting, doc, fontMetrics);
   node->accept(&render);
-  auto [block, paintRecords] = render.execute();
-  PaintPass paintPass(paintRecords);
-  block.setInstructions(paintPass.execute());
-  return std::move(block);
+  Block block = render.execute();
+  return block;
 }
 }  // namespace md::render

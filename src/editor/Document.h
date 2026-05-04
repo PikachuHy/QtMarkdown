@@ -13,6 +13,7 @@
 #include "core/Types.h"
 
 namespace md::editor {
+class Command;
 class CommandStack;
 class Cursor;
 struct CursorCoord;
@@ -53,7 +54,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   void undo(Cursor& cursor);
   void redo(Cursor& cursor);
 
-  void upgradeToHeader(const Cursor& cursor, int level);
+  void upgradeToHeader(Cursor& cursor, int level);
 
   parser::Container* node2container(parser::Node* node);
   // FIXME: 在win上使用编译的dll错误
@@ -67,11 +68,11 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
   std::pair<core::Point, int> mapToScreen(const CursorCoord& coord);
   bool isBol(const CursorCoord& coord) const;
+  void ensureTrailingParagraph();
 
   const render::RenderSetting& setting() const { return *m_setting; }
 
  private:
-  void ensureTrailingParagraph();
   void assertBlocksInSync();
   std::unique_ptr<parser::Document> m_parserDoc;
   render::BlockList m_blocks;
