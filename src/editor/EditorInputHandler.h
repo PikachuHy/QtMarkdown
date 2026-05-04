@@ -35,6 +35,12 @@ public:
     void mouseReleaseEvent(const core::Point& offset, const core::MouseEvent& event);
     CursorShape cursorShape(const core::Point& offset, const core::Point& pos);
 
+    // IME support
+    void setPreedit(const String& str);
+    void commitString(const String& str);
+    bool isPreediting() const;
+    core::Point preeditPos() const;
+
 private:
     // Selection helpers
     void selectUp();
@@ -46,6 +52,11 @@ private:
     void selectAll();
     void removeSelection();
     void generateSelectionInstruction();
+
+    // IME state
+    bool m_preediting = false;
+    int m_preeditLength = 0;
+    core::Point m_preeditPos;
 
     // Shared state references
     Editor& m_editor;

@@ -18,6 +18,7 @@ class Cursor;
 class SelectionRange;
 class EditorRenderer;
 class EditorInputHandler;
+class FileManager;
 enum CursorShape {
   ArrowCursor,
   UpArrowCursor,
@@ -70,8 +71,8 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   [[nodiscard]] core::Point cursorPos() const;
   [[nodiscard]] core::Rect cursorRect() const;
   void insertText(String str);
-  void setPreedit(String str);
-  void commitString(String str);
+  void setPreedit(const String& str);
+  void commitString(const String& str);
   void reset();
   [[nodiscard]] String cursorCoord() const;
   [[nodiscard]] sptr<Document> document() const { return m_doc; }
@@ -103,9 +104,6 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   bool m_holdCtrl = false;
   bool m_holdShift = false;
   bool m_mousePressing = false;
-  bool m_preediting = false;
-  int m_preeditLength = 0;
-  core::Point m_preeditPos;
   bool m_hasSelection = false;
   sptr<SelectionRange> m_selectionRange;
   std::function<void(String)> m_linkClickedCallback;

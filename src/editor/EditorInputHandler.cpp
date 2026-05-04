@@ -85,6 +85,43 @@ EditorInputHandler::EditorInputHandler(Editor& editor, Document& doc, Cursor& cu
                                        const render::RenderSetting& setting)
     : m_editor(editor), m_doc(doc), m_cursor(cursor), m_setting(setting) {}
 
+void EditorInputHandler::setPreedit(const String& str) {
+    if (m_preediting) {
+        for (int i = 0; i < m_preeditLength; ++i) {
+            m_doc.removeText(m_cursor);
+        }
+    } else {
+        m_preeditPos = m_cursor.pos();
+    }
+    if (str.isEmpty()) {
+        m_preediting = false;
+        m_preeditLength = 0;
+    } else {
+        m_preediting = true;
+        m_preeditLength = str.length();
+        m_doc.insertText(m_cursor, str);
+    }
+}
+
+void EditorInputHandler::commitString(const String& str) {
+    if (m_preediting) {
+        for (int i = 0; i < m_preeditLength; ++i) {
+            m_doc.removeText(m_cursor);
+        }
+    }
+    m_doc.insertText(m_cursor, str);
+    m_preediting = false;
+    m_preeditLength = 0;
+}
+
+bool EditorInputHandler::isPreediting() const {
+    return m_preediting;
+}
+
+core::Point EditorInputHandler::preeditPos() const {
+    return m_preeditPos;
+}
+
 void EditorInputHandler::keyPressEvent(const core::KeyEvent &event) {
   int key = static_cast<int>(event.key());
   if (key == static_cast<int>(core::Key::Tab)) {

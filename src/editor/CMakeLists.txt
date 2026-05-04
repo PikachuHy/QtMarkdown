@@ -14,6 +14,8 @@ target_sources(QtMarkdownEditorCore PRIVATE
         Editor.cpp Editor.h
         EditorRenderer.cpp EditorRenderer.h
         EditorInputHandler.cpp EditorInputHandler.h
+        MarkdownSerializer.cpp MarkdownSerializer.h
+        FileManager.cpp FileManager.h
         Document.cpp Document.h
         Command.cpp Command.h
         CursorCoord.cpp CursorCoord.h
@@ -68,6 +70,6 @@ install(
         RUNTIME DESTINATION bin
 )
 
-markdown_install_headers(QtMarkdownEditorCore PREFIX editor HEADERS Command.h Cursor.h CursorCoord.h Document.h Editor.h EditorInputHandler.h mddef.h QtAdapters.h core/Types.h core/Event.h core/AbstractPainter.h core/Timer.h)
+markdown_install_headers(QtMarkdownEditorCore PREFIX editor HEADERS Command.h Cursor.h CursorCoord.h Document.h Editor.h EditorInputHandler.h EditorRenderer.h MarkdownSerializer.h FileManager.h mddef.h QtAdapters.h core/Types.h core/Event.h core/AbstractPainter.h core/Timer.h)
 markdown_install_headers(QtWidgetMarkdownEditor PREFIX editor HEADERS QtWidgetMarkdownEditor.h)
 markdown_install_headers(QtQuickMarkdownEditor PREFIX editor HEADERS QtQuickMarkdownEditor.h)

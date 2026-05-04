@@ -5,212 +5,18 @@
 #include "Editor.h"
 #include "EditorRenderer.h"
 #include "EditorInputHandler.h"
+#include "FileManager.h"
 
-#include <QFile>
-#include <QKeyEvent>
-#include <QMouseEvent>
 #include <QStringList>
 #include <memory>
 #include <vector>
 
 #include "Cursor.h"
 #include "debug.h"
-#include "parser/Text.h"
 #include "render/Instruction.h"
 #include "render/Render.h"
 using namespace md::parser;
 namespace md::editor {
-class SimpleMarkdownVisitor
-    : public NodeVisitor {
- public:
-  explicit SimpleMarkdownVisitor(DocPtr doc) : m_doc(doc) {}
-  void visit(Header *node) override {
-    for (int i = 0; i < node->level(); ++i) {
-      m_md += "#";
-    }
-    m_md += " ";
-    for (auto& it : node->children()) {
-      it->accept(this);
-    }
-    m_md += "\n";
-    m_md += "\n";
-  }
-  void visit(Text *node) override { m_md += node->toString(m_doc); }
-  void visit(ItalicText *node) override {
-    m_md += "*";
-    node->text()->accept(this);
-    m_md += "*";
-  }
-  void visit(BoldText *node) override {
-    m_md += "**";
-    node->text()->accept(this);
-    m_md += "**";
-  }
-  void visit(ItalicBoldText *node) override {
-    m_md += "***";
-    node->text()->accept(this);
-    m_md += "***";
-  }
-  void visit(StrickoutText *node) override {
-    m_md += "~~";
-    node->text()->accept(this);
-    m_md += "~~";
-  }
-  void visit(Image *node) override {
-    m_md += "![";
-    if (node->alt()) {
-      node->alt()->accept(this);
-    } else {
-      qDebug() << "image alt is null";
-    }
-    m_md += "]";
-    m_md += "(";
-    if (node->src()) {
-      node->src()->accept(this);
-    } else {
-      qDebug() << "image src is null";
-    }
-    m_md += ")";
-  }
-  void visit(Link *node) override {
-    m_md += "[";
-    if (node->href()) {
-      node->href()->accept(this);
-    } else {
-      qDebug() << "link href is null";
-    }
-    m_md += "]";
-    m_md += "(";
-    if (node->content()) {
-      node->content()->accept(this);
-    } else {
-      qDebug() << "link content is null";
-    }
-    m_md += ")";
-  }
-  void visit(CodeBlock *node) override {
-    m_md += "```";
-    node->name()->accept(this);
-    m_md += "\n";
-    for (auto& child : node->children()) {
-      child->accept(this);
-      m_md += "\n";
-    }
-    m_md += "```";
-    m_md += "\n";
-    m_md += "\n";
-  }
-  void visit(InlineCode *node) override {
-    m_md += "`";
-    if (auto code = node->code(); code) {
-      code->accept(this);
-    }
-    m_md += "`";
-  }
-  void visit(Paragraph *node) override {
-    if (node->children().empty()) return;
-    for (auto& it : node->children()) {
-      it->accept(this);
-    }
-    m_md += "\n";
-    m_md += "\n";
-  }
-  void visit(CheckboxList *node) override {
-    for (auto& child : node->children()) {
-      ASSERT(child->type() == NodeType::checkbox_item);
-      auto item = static_cast<CheckboxItem*>(child.get());
-      m_md += "- [";
-      if (item->isChecked()) {
-        m_md += "x";
-      } else {
-        m_md += " ";
-      }
-      m_md += "] ";
-      item->accept(this);
-      m_md += "\n";
-    }
-  }
-  void visit(CheckboxItem *node) override {
-    for (auto& it : node->children()) {
-      it->accept(this);
-    }
-  }
-  void visit(UnorderedList *node) override {
-    for (auto& it : node->children()) {
-      m_md += "- ";
-      it->accept(this);
-      m_md += "\n";
-    }
-  }
-  void visit(OrderedList *node) override {
-    int i = 1;
-    for (auto& it : node->children()) {
-      m_md += QString("%1. ").arg(i);
-      it->accept(this);
-      m_md += "\n";
-      i++;
-    }
-  }
-  void visit(OrderedListItem *node) override {
-    for (auto& child : node->children()) {
-      child->accept(this);
-    }
-  }
-  void visit(UnorderedListItem *node) override {
-    for (auto& child : node->children()) {
-      child->accept(this);
-    }
-  }
-  void visit(Hr *node) override { m_md += "---\n"; }
-  void visit(Lf *node) override { m_md += "\n"; }
-  void visit(QuoteBlock *node) override {
-    m_md += "> ";
-    for (auto& it : node->children()) {
-      it->accept(this);
-      m_md += "\n";
-    }
-    m_md += "\n";
-  }
-  void visit(Table *node) override {
-    auto renderRow = [this](const StringList& cells) {
-      m_md += "|";
-      for (const auto& cell : cells) {
-        m_md += " " + cell + " |";
-      }
-      m_md += "\n";
-    };
-    if (node->header().isEmpty() && node->content().isEmpty()) return;
-    renderRow(node->header());
-    m_md += "|";
-    for (int i = 0; i < node->header().size(); ++i) {
-      m_md += " --- |";
-    }
-    m_md += "\n";
-    for (const auto& row : node->content()) {
-      renderRow(row);
-    }
-    m_md += "\n";
-  }
-  void visit(LatexBlock *node) override {
-    m_md += "\n";
-    m_md += "$$\n";
-    for (auto& it : node->children()) {
-      it->accept(this);
-    }
-    m_md += "$$\n";
-    m_md += "\n";
-  }
-  void visit(InlineLatex *node) override {
-    m_md += "$";
-    node->code()->accept(this);
-    m_md += "$";
-  }
-  String markdown() { return m_md; }
-
- private:
-  String m_md;
-  DocPtr m_doc;
-};
 Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
@@ -232,44 +38,16 @@ void Editor::loadText(const String &text) {
   DEBUG << "load text done";
 }
 std::pair<bool, String> Editor::loadFile(const String &path) {
-  DEBUG << path;
-  String notePath = path;
-  String prefix = "file://";
-  if (path.startsWith(prefix)) {
-    notePath = path.mid(prefix.size());
-  }
-  QFile file(notePath);
-  if (!file.exists()) {
-    DEBUG << "file not exist:" << notePath;
-    return {false, ""};
-  }
-  if (!file.open(QIODevice::ReadOnly)) {
-    DEBUG << "file open fail:" << notePath;
-    return {false, ""};
-  }
-  auto mdText = file.readAll();
+  auto [ok, mdText] = FileManager::loadFile(path);
+  if (!ok) return {false, ""};
   loadText(mdText);
-  DEBUG << "load" << path << "done!!!";
   return {true, this->title()};
 }
 
 bool Editor::saveToFile(const String &path) {
-  String notePath = path;
-  if (!notePath.endsWith(".md")) {
-    notePath += ".md";
-  }
-  DEBUG << "note path" << notePath;
-  QFile file(notePath);
-  if (!file.open(QIODevice::WriteOnly)) {
-    DEBUG << "file open fail:" << notePath;
-    return false;
-  }
-  SimpleMarkdownVisitor visitor(m_doc->parserDoc());
-  m_doc->accept(&visitor);
-  auto mdText = visitor.markdown();
-  file.write(mdText.toUtf8());
-  file.close();
-  return true;
+  if (!m_doc) return false;
+  FileManager fm(*m_doc);
+  return fm.saveToFile(path);
 }
 void Editor::drawSelection(core::AbstractPainter& painter, QPainter* nativePainter,
                            const core::Point& offset) {
@@ -327,7 +105,10 @@ void Editor::keyPressEvent(const core::KeyEvent& event) {
   if (!m_inputHandler) return;
   m_inputHandler->keyPressEvent(event);
 }
-core::Point Editor::cursorPos() const { return m_preediting ? m_preeditPos : m_cursor->pos(); }
+core::Point Editor::cursorPos() const {
+  if (!m_inputHandler) return {};
+  return m_inputHandler->isPreediting() ? m_inputHandler->preeditPos() : m_cursor->pos();
+}
 core::Rect Editor::cursorRect() const {
   auto pos = cursorPos();
   auto h = m_cursor->height();
@@ -378,7 +159,7 @@ String Editor::cursorCoord() const {
     s += "NO";
   s += "\n";
   s += QString("Pre Editing: ");
-  if (m_preediting)
+  if (m_inputHandler && m_inputHandler->isPreediting())
     s += "YES";
   else
     s += "NO";
@@ -409,46 +190,18 @@ void Editor::keyReleaseEvent(const core::KeyEvent& event) {
   if (!m_inputHandler) return;
   m_inputHandler->keyReleaseEvent(event);
 }
-void Editor::setPreedit(String str) {
-  if (m_preediting) {
-    for (int i = 0; i < m_preeditLength; ++i) {
-      m_doc->removeText(*m_cursor);
-    }
-  } else {
-    m_preeditPos = m_cursor->pos();
-  }
-  if (str.isEmpty()) {
-    m_preediting = false;
-    m_preeditLength = 0;
-  } else {
-    m_preediting = true;
-    m_preeditLength = str.length();
-    m_doc->insertText(*m_cursor, str);
-  }
+void Editor::setPreedit(const String& str) {
+  if (!m_inputHandler) return;
+  m_inputHandler->setPreedit(str);
 }
-void Editor::commitString(String str) {
-  if (m_preediting) {
-    for (int i = 0; i < m_preeditLength; ++i) {
-      m_doc->removeText(*m_cursor);
-    }
-  }
-  m_doc->insertText(*m_cursor, str);
-  m_preediting = false;
-  m_preeditLength = 0;
+void Editor::commitString(const String& str) {
+  if (!m_inputHandler) return;
+  m_inputHandler->commitString(str);
 }
 String Editor::title() {
-  if (m_doc->root()->empty()) return "";
-  auto node = m_doc->root()->childAt(0);
-  if (node->type() != NodeType::header) return "";
-  auto header = static_cast<Header*>(node);
-  if (header->level() != 1) return "";
-  String s;
-  for (auto& child : header->children()) {
-    if (child->type() != NodeType::text) continue;
-    auto textNode = static_cast<Text*>(child.get());
-    s += textNode->toString(m_doc->parserDoc());
-  }
-  return s;
+  if (!m_doc) return "";
+  FileManager fm(*m_doc);
+  return fm.title();
 }
 void Editor::mouseMoveEvent(const core::Point& offset, const core::MouseEvent& event) {
   if (!m_inputHandler) return;
