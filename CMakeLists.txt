@@ -3,8 +3,13 @@ project(QtMarkdown
         VERSION 1.0.0
         DESCRIPTION "A simple markdown editor"
         )
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# CMake 4.1.2 doesn't yet know AppleClang 17 supports C++26.
+# Work around by telling the compiler directly and telling CMake
+# to skip its own compiler-feature check for this dialect.
+set(CMAKE_CXX26_STANDARD_COMPILE_OPTION "-std=c++26")
+set(CMAKE_CXX26_EXTENSION_COMPILE_OPTION "-std=c++26")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(QT ON)
 add_subdirectory(3rd)
