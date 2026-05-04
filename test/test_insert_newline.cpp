@@ -1,14 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
-#define private public
-#define protected public
 #include "editor/Cursor.h"
 #include "editor/Document.h"
 #include "editor/Editor.h"
 #include "parser/Document.h"
 #include "parser/Text.h"
-#undef protected
-#undef private
 #include <QGuiApplication>
 
 #include "debug.h"
@@ -24,12 +20,12 @@ code
 
 )");
   auto doc = editor.document();
-  auto& cursor = *editor.m_cursor;
+  auto& cursor = editor.cursor();
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
-  doc->insertReturn(*editor.m_cursor);
+  doc->insertReturn(editor.cursor());
   // https://github.com/PikachuHy/QtMarkdown/issues/9
-  doc->insertReturn(*editor.m_cursor);
+  doc->insertReturn(editor.cursor());
 }
 int main(int argc, char** argv) {
   // 必须加这一句

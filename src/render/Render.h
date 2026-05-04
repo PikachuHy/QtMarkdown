@@ -89,9 +89,7 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   auto countOfVisualLine() const { return m_lines.size(); }
   bool isBol(SizeType offset, const parser::IBufferProvider& doc) const;
 
-#ifdef QT_DEBUG
   const std::vector<Cell*>& cells() const { return m_cells; }
-#endif
 
  private:
   SizeType totalOffset(Cell* cell, SizeType delta) const;

@@ -9,7 +9,7 @@
 
 #include "editor/Editor.h"
 namespace md::editor {
-class QTMARKDOWNSHARED_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
+class QTQUICKMARKDOWNEDITOR_EXPORT QtQuickMarkdownEditor : public QQuickPaintedItem {
   Q_OBJECT
   Q_PROPERTY(QString text READ text WRITE setText)
   Q_PROPERTY(QString source READ source WRITE setSource)

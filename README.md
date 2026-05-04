@@ -10,7 +10,7 @@
 - [x] Image交互，如播放GIF动画
 - [ ] Image地址编辑
 - [ ] 粘贴图片
-- [ ] Redo & Undo
+- [x] Redo & Undo
 
 ## 快照
 

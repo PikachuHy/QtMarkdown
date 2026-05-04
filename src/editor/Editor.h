@@ -84,6 +84,10 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void setResPathList(StringList pathList);
   void renderDocument();
 
+  // -- Public accessors for tests --
+  Cursor& cursor() const { return *m_cursor; }
+  bool hasSelection() const { return m_hasSelection; }
+
   // -- Getters for MousePressVisitor --
   bool isHoldCtrl() const { return m_holdCtrl; }
   bool isHoldShift() const { return m_holdShift; }

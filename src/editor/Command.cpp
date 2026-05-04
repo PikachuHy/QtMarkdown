@@ -321,23 +321,11 @@ class RemoveTextVisitor
       }
       auto [textNode, leftOffset] = line.textAt(coord.offset);
       removeTextInNode(textNode, leftOffset);
-      // TODO: 处理深层次的空结点
       if (textNode->empty()) {
         if (textNode->parent() == node) {
           node->removeChild(textNode);
         } else {
-          auto p = textNode->parent();
-          if (p->type() == NodeType::link) {
-            if (p->parent() == node) {
-              node->removeChild(p);
-            } else {
-              DEBUG << p->parent()->type();
-              ASSERT(false && "too deep hierarchy");
-            }
-          } else {
-            DEBUG << p->type();
-            ASSERT(false && "un support now");
-          }
+          node->removeChild(textNode->parent());
         }
       }
       endRemoveText();
@@ -371,7 +359,7 @@ class RemoveTextVisitor
         if (textNode->parent() == node) {
           node->removeChild(textNode);
         } else {
-          DEBUG << "unhandled empty text node";
+          node->removeChild(textNode->parent());
         }
       }
       endRemoveText();
@@ -1027,6 +1015,10 @@ void CommandStack::push(std::unique_ptr<Command> command) {
     // 判断和栈顶元素能不能合并
     auto* topCommand = m_commands.back().get();
     if (!topCommand->merge(command.get())) {
+      if (m_commands.size() >= kMaxCommands) {
+        m_commands.erase(m_commands.begin());
+        if (m_top > 0) --m_top;
+      }
       m_commands.push_back(std::move(command));
     }
   }

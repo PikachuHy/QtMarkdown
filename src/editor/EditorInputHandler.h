@@ -53,6 +53,11 @@ private:
     void removeSelection();
     void generateSelectionInstruction();
 
+    // Key event helpers (extracted from keyPressEvent)
+    bool handleShortcutKeys(const core::KeyEvent& event);
+    bool handleArrowKeys(const core::KeyEvent& event);
+    void handleTextInput(const core::KeyEvent& event);
+
     // IME state
     bool m_preediting = false;
     int m_preeditLength = 0;

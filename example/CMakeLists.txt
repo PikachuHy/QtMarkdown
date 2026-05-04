@@ -1,5 +1,5 @@
-find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Quick QuickControls2 Qml Widgets Concurrent REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Quick QuickControls2 Qml Widgets Concurrent REQUIRED)
+find_package(QT NAMES Qt6 Qt5 COMPONENTS Core Gui Quick QuickControls2 Qml Widgets REQUIRED)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core Gui Quick QuickControls2 Qml Widgets REQUIRED)
 if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtMarkdownParserExample
             MANUAL_FINALIZATION

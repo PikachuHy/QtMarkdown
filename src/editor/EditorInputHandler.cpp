@@ -136,121 +136,140 @@ void EditorInputHandler::keyPressEvent(const core::KeyEvent &event) {
   if ((event.modifiers() & core::Modifier::Shift) != core::Modifier::None) {
     m_editor.setHoldShift(true);
   }
+  if (handleShortcutKeys(event)) return;
+  if (handleArrowKeys(event)) return;
+  handleTextInput(event);
+}
+
+bool EditorInputHandler::handleShortcutKeys(const core::KeyEvent &event) {
+  int key = static_cast<int>(event.key());
   if (key == static_cast<int>(core::Key::A) && m_editor.isHoldCtrl()) {
     selectAll();
-    return;
+    return true;
   }
   if (key == static_cast<int>(core::Key::Z) && m_editor.isHoldCtrl()) {
     DEBUG << "undo";
     m_doc.undo(m_cursor);
-    return;
+    return true;
   }
   if (key == static_cast<int>(core::Key::Y) && m_editor.isHoldCtrl()) {
     DEBUG << "redo";
     m_doc.redo(m_cursor);
-    return;
+    return true;
   }
   if (m_editor.isHoldCtrl()) {
     if (key == static_cast<int>(core::Key::Key_1)) {
       m_doc.upgradeToHeader(m_cursor, 1);
-      return;
+      return true;
     }
     if (key == static_cast<int>(core::Key::Key_2)) {
       m_doc.upgradeToHeader(m_cursor, 2);
-      return;
+      return true;
     }
     if (key == static_cast<int>(core::Key::Key_3)) {
       m_doc.upgradeToHeader(m_cursor, 3);
-      return;
+      return true;
     }
     if (key == static_cast<int>(core::Key::Key_4)) {
       m_doc.upgradeToHeader(m_cursor, 4);
-      return;
+      return true;
     }
     if (key == static_cast<int>(core::Key::Key_5)) {
       m_doc.upgradeToHeader(m_cursor, 5);
-      return;
+      return true;
     }
     if (key == static_cast<int>(core::Key::Key_6)) {
       m_doc.upgradeToHeader(m_cursor, 6);
-      return;
+      return true;
     }
   }
-  if (key == static_cast<int>(core::Key::Left) || key == static_cast<int>(core::Key::Right) || key == static_cast<int>(core::Key::Up) || key == static_cast<int>(core::Key::Down)) {
-    if (m_editor.m_hasSelection && !m_editor.isHoldShift()) {
-      auto coord = m_editor.m_selectionRange->caret.coord();
+  return false;
+}
+
+bool EditorInputHandler::handleArrowKeys(const core::KeyEvent &event) {
+  int key = static_cast<int>(event.key());
+  if (key != static_cast<int>(core::Key::Left) && key != static_cast<int>(core::Key::Right) &&
+      key != static_cast<int>(core::Key::Up) && key != static_cast<int>(core::Key::Down)) {
+    return false;
+  }
+  if (m_editor.m_hasSelection && !m_editor.isHoldShift()) {
+    auto coord = m_editor.m_selectionRange->caret.coord();
+    m_doc.updateCursor(m_cursor, coord);
+    m_editor.m_hasSelection = false;
+    return true;
+  }
+  if (key == static_cast<int>(core::Key::Left)) {
+    if (m_editor.isHoldShift()) {
+      if (m_editor.isHoldCtrl()) {
+        selectBol();
+      } else {
+        selectLeft();
+      }
+    } else {
+      if (m_editor.isHoldCtrl()) {
+        auto coord = m_doc.moveCursorToBol(m_cursor.coord());
+        m_doc.updateCursor(m_cursor, coord, true);
+      } else {
+        auto coord = m_doc.moveCursorToLeft(m_cursor.coord());
+        m_doc.updateCursor(m_cursor, coord);
+      }
+    }
+    return true;
+  }
+  if (key == static_cast<int>(core::Key::Right)) {
+    if (m_editor.isHoldShift()) {
+      if (m_editor.isHoldCtrl()) {
+        selectEol();
+      } else {
+        selectRight();
+      }
+    } else {
+      if (m_editor.isHoldCtrl()) {
+        auto [coord, x] = m_doc.moveCursorToEol(m_cursor.coord());
+        m_cursor.setX(x);
+        m_doc.updateCursor(m_cursor, coord, false);
+      } else {
+        auto coord = m_doc.moveCursorToRight(m_cursor.coord());
+        m_doc.updateCursor(m_cursor, coord);
+      }
+    }
+    return true;
+  }
+  if (key == static_cast<int>(core::Key::Up)) {
+    if (m_editor.isHoldShift()) {
+      selectUp();
+    } else {
+      CursorCoord coord;
+      if (m_editor.m_hasSelection) {
+        coord = m_editor.m_selectionRange->caret.coord();
+        m_editor.m_hasSelection = false;
+      } else {
+        coord = m_doc.moveCursorToUp(m_cursor.coord(), m_cursor.pos());
+      }
       m_doc.updateCursor(m_cursor, coord);
-      m_editor.m_hasSelection = false;
-      return;
     }
-    if (key == static_cast<int>(core::Key::Left)) {
-      if (m_editor.isHoldShift()) {
-        if (m_editor.isHoldCtrl()) {
-          selectBol();
-        } else {
-          selectLeft();
-        }
-      } else {
-        if (m_editor.isHoldCtrl()) {
-          auto coord = m_doc.moveCursorToBol(m_cursor.coord());
-          m_doc.updateCursor(m_cursor, coord, true);
-        } else {
-          auto coord = m_doc.moveCursorToLeft(m_cursor.coord());
-          m_doc.updateCursor(m_cursor, coord);
-        }
-      }
-      return;
-    }
-    if (key == static_cast<int>(core::Key::Right)) {
-      if (m_editor.isHoldShift()) {
-        if (m_editor.isHoldCtrl()) {
-          selectEol();
-        } else {
-          selectRight();
-        }
-      } else {
-        if (m_editor.isHoldCtrl()) {
-          auto [coord, x] = m_doc.moveCursorToEol(m_cursor.coord());
-          m_cursor.setX(x);
-          m_doc.updateCursor(m_cursor, coord, false);
-        } else {
-          auto coord = m_doc.moveCursorToRight(m_cursor.coord());
-          m_doc.updateCursor(m_cursor, coord);
-        }
-      }
-      return;
-    }
-    if (key == static_cast<int>(core::Key::Up)) {
-      if (m_editor.isHoldShift()) {
-        selectUp();
-      } else {
-        CursorCoord coord;
-        if (m_editor.m_hasSelection) {
-          coord = m_editor.m_selectionRange->caret.coord();
-          m_editor.m_hasSelection = false;
-        } else {
-          coord = m_doc.moveCursorToUp(m_cursor.coord(), m_cursor.pos());
-        }
-        m_doc.updateCursor(m_cursor, coord);
-      }
-      return;
-    }
-    if (key == static_cast<int>(core::Key::Down)) {
-      if (m_editor.isHoldShift()) {
-        selectDown();
-      } else {
-        CursorCoord coord;
-        if (m_editor.m_hasSelection) {
-          coord = m_editor.m_selectionRange->caret.coord();
-          m_editor.m_hasSelection = false;
-        } else {
-          coord = m_doc.moveCursorToDown(m_cursor.coord(), m_cursor.pos());
-        }
-        m_doc.updateCursor(m_cursor, coord);
-      }
-      return;
-    }
+    return true;
   }
+  if (key == static_cast<int>(core::Key::Down)) {
+    if (m_editor.isHoldShift()) {
+      selectDown();
+    } else {
+      CursorCoord coord;
+      if (m_editor.m_hasSelection) {
+        coord = m_editor.m_selectionRange->caret.coord();
+        m_editor.m_hasSelection = false;
+      } else {
+        coord = m_doc.moveCursorToDown(m_cursor.coord(), m_cursor.pos());
+      }
+      m_doc.updateCursor(m_cursor, coord);
+    }
+    return true;
+  }
+  return true;
+}
+
+void EditorInputHandler::handleTextInput(const core::KeyEvent &event) {
+  int key = static_cast<int>(event.key());
   if (key == static_cast<int>(core::Key::Backspace)) {
     if (m_editor.m_hasSelection) {
       removeSelection();

@@ -105,6 +105,7 @@ class QTMARKDOWNSHARED_EXPORT RemoveTextRangeCommand : public Command {
 };
 class QTMARKDOWNSHARED_EXPORT CommandStack {
  public:
+  static constexpr size_t kMaxCommands = 500;
   void push(std::unique_ptr<Command> command);
   void undo(Cursor& cursor);
   void redo(Cursor& cursor);

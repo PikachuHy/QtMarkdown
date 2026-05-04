@@ -1,8 +1,6 @@
 //
 // Created by PikachuHy on 2021/11/13.
 //
-#define private public
-#define protected public
 #include "editor/Cursor.h"
 #include "editor/Document.h"
 #include "editor/Editor.h"
@@ -10,8 +8,6 @@
 #include "parser/Text.h"
 #include "parser/nodes/UnorderedList.h"
 #include "parser/nodes/CheckboxList.h"
-#undef protected
-#undef private
 #include <QGuiApplication>
 
 #include "debug.h"
@@ -28,7 +24,7 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
   editor.loadText("");
   editor.insertText("a");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
+  auto& blocks = doc->blocks();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   auto p = doc->root()->childAt(0);
@@ -46,8 +42,8 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertReturn") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
-  doc->insertReturn(*editor.m_cursor);
-  auto& blocks = doc->m_blocks;
+  doc->insertReturn(editor.cursor());
+  auto& blocks = doc->blocks();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   {
@@ -69,8 +65,8 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertTextAndRemoveText") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   editor.insertText("a");
@@ -110,8 +106,8 @@ a
 b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto coord = cursor.coord();
@@ -141,8 +137,8 @@ TEST_CASE("ParagraphEditTest,  RemoveEmoji") {
 a😊b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   CHECK(cursor.coord().offset == 4);
@@ -176,8 +172,8 @@ TEST_CASE("ParagraphEditTest,  RemoveEmoji2") {
 a [666](www.baidu.com) b 😊
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
   {
@@ -200,8 +196,8 @@ TEST_CASE("ParagraphEditTest,  RemoveText") {
 ab
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -218,8 +214,8 @@ TEST_CASE("ParagraphEditTest,  RemoveEmptyLink") {
 a[b](c)d
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -235,8 +231,8 @@ TEST_CASE("ParagraphEditTest,  UpgradeToHeader") {
   Editor editor;
   editor.loadText("#");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
@@ -257,8 +253,8 @@ TEST_CASE("ParagraphEditTest,  UpgradeToHeaderAndDegradeToParagraphAndRemoveText
 a
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   doc->insertText(cursor, "#");
   CHECK(blocks.size() == 1);
@@ -322,8 +318,8 @@ TEST_CASE("ParagraphEditTest,  UpgradeToUl") {
   Editor editor;
   editor.loadText("-");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
@@ -344,8 +340,8 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlock") {
   Editor editor;
   editor.loadText("```");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToEndOfDocument();
@@ -365,8 +361,8 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlockWithOtherText") {
   Editor editor;
   editor.loadText("```asdfasdf");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   auto coord = doc->moveCursorToBol(cursor.coord());
@@ -403,13 +399,13 @@ TEST_CASE("UlEditTest,  DegradeToParagraph") {
   Editor editor;
   editor.loadText("- ");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
-  doc->removeText(*editor.m_cursor);
+  doc->removeText(editor.cursor());
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto node = doc->root()->childAt(0);
@@ -421,8 +417,8 @@ TEST_CASE("UlEditTest,  InsertSpace") {
   Editor editor;
   editor.loadText("- []");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto coord = doc->moveCursorToEndOfDocument();
@@ -453,8 +449,8 @@ TEST_CASE("UlEditTest,  UpgradeToCheckbox") {
   Editor editor;
   editor.loadText("- ");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto coord = doc->moveCursorToEndOfDocument();
@@ -478,8 +474,8 @@ TEST_CASE("UlEditTest,  InsertReturn") {
 - GIF啊
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   {
     CHECK(blocks.size() == 2);
     CHECK(doc->root()->size() == 2);
@@ -526,15 +522,15 @@ TEST_CASE("CheckboxEditTest,  DegradeToParagraph") {
   Editor editor;
   editor.loadText("- [ ] ");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   CHECK(blocks[0].countOfLogicalLine() == 1);
-  CHECK(blocks[0].logicalLineAt(0).m_cells.size() == 0);
+  CHECK(blocks[0].logicalLineAt(0).cells().size() == 0);
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
-  doc->removeText(*editor.m_cursor);
+  doc->removeText(editor.cursor());
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto node = doc->root()->childAt(0);
@@ -546,15 +542,15 @@ TEST_CASE("CheckboxEditTest,  DegradeToParagraph2") {
   Editor editor;
   editor.loadText("- [ ] 666");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   CHECK(blocks[0].countOfLogicalLine() == 1);
-  CHECK(blocks[0].logicalLineAt(0).m_cells.size() == 1);
+  CHECK(blocks[0].logicalLineAt(0).cells().size() == 1);
   auto coord = doc->moveCursorToBeginOfDocument();
   doc->updateCursor(cursor, coord);
-  doc->removeText(*editor.m_cursor);
+  doc->removeText(editor.cursor());
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   auto node = doc->root()->childAt(0);
@@ -570,8 +566,8 @@ TEST_CASE("CheckboxEditTest,  EmptyCheckBoxInsertReturn") {
 - [ ] b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   {
@@ -604,8 +600,8 @@ TEST_CASE("EditorTest,  HeaderReturn") {
   Editor editor;
   editor.loadText("");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   editor.insertText("#");
@@ -639,8 +635,8 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
 ```
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
   {
@@ -732,8 +728,8 @@ TEST_CASE("CursorMoveTest,  Emoji") {
 a😊b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 0);
@@ -762,8 +758,8 @@ TEST_CASE("PreeditTest,  ShowPreedit") {
   editor.loadText(R"()");
   editor.setPreedit("a");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 1);
   CHECK(doc->root()->size() == 1);
   CHECK(cursor.coord().offset == 1);
@@ -793,8 +789,8 @@ TEST_CASE("PreeditTest,  ShowPreedit2") {
 )");
 
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CursorCoord coord;
   coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -830,8 +826,8 @@ c
 # b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
 
   CHECK(blocks.size() == 4);
   CHECK(doc->root()->size() == 4);
@@ -855,8 +851,8 @@ TEST_CASE("UndoTest,  InsertReturn") {
 ab
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   {
     auto coord = doc->moveCursorToEndOfDocument();
     doc->updateCursor(cursor, coord);
@@ -926,8 +922,8 @@ TEST_CASE("UndoTest, RemoveText") {
 ab
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
 
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -966,8 +962,8 @@ a
 b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
 
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
@@ -1031,8 +1027,8 @@ TEST_CASE("UndoTest, RemoveTextEmoji") {
 a😊b
 )");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
 
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -1061,7 +1057,7 @@ TEST_CASE("RedoTest, InsertTextRedo") {
 ab
 )");
   auto doc = editor.document();
-  auto& cursor = *editor.m_cursor;
+  auto& cursor = editor.cursor();
 
   // Type 'c' at end
   auto coord = doc->moveCursorToEndOfDocument();
@@ -1107,7 +1103,7 @@ TEST_CASE("RedoTest, RemoveTextRedo") {
 ab
 )");
   auto doc = editor.document();
-  auto& cursor = *editor.m_cursor;
+  auto& cursor = editor.cursor();
 
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -1145,7 +1141,7 @@ TEST_CASE("RedoTest, RedoAtTopDoesNothing") {
 ab
 )");
   auto doc = editor.document();
-  auto& cursor = *editor.m_cursor;
+  auto& cursor = editor.cursor();
 
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -1168,7 +1164,7 @@ TEST_CASE("RedoTest, NewActionClearsRedoHistory") {
 a
 )");
   auto doc = editor.document();
-  auto& cursor = *editor.m_cursor;
+  auto& cursor = editor.cursor();
 
   // Type 'b' at end: "a" -> "ab"
   auto coord = doc->moveCursorToEndOfDocument();
@@ -1199,8 +1195,8 @@ TEST_CASE("UlEditTest, UpgradeToCheckboxMultiItem") {
   Editor editor;
   editor.loadText("- item1\n- item2\n");
   auto doc = editor.document();
-  auto& blocks = doc->m_blocks;
-  auto& cursor = *editor.m_cursor;
+  auto& blocks = doc->blocks();
+  auto& cursor = editor.cursor();
   CHECK(blocks.size() == 2);
   CHECK(doc->root()->size() == 2);
 
@@ -1227,7 +1223,7 @@ TEST_CASE("RemoveTextTest, BackspaceAtStartOfWrappedLine") {
   // Load a long single-line paragraph that will wrap
   editor.loadText("a very long line that should wrap across multiple visual lines when rendered in the editor");
   auto doc = editor.document();
-  auto& cursor = *editor.m_cursor;
+  auto& cursor = editor.cursor();
   // Move to start of document then right a few characters to be in the text
   auto coord = doc->moveCursorToBeginOfDocument();
   doc->updateCursor(cursor, coord);

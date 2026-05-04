@@ -1,14 +1,10 @@
 //
 // Created by PikachuHy on 2021/11/15.
 //
-#define private public
-#define protected public
 #include "parser/Document.h"
 #include "parser/Parser.h"
 #include "parser/Text.h"
 #include "render/Render.h"
-#undef protected
-#undef private
 #include "SimpleFontMetricsProvider.h"
 
 #include "debug.h"
@@ -34,7 +30,7 @@ a
 b
 ```
 )");
-  auto root = doc->m_root;
+  auto root = doc->root();
   REQUIRE(root->size() == 1);
   {
     auto node = root->childAt(0);
