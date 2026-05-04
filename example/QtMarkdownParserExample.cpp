@@ -6,7 +6,7 @@ using namespace md;
 using namespace md::parser;
 
 struct SimpleHtmlVisitor : NodeVisitor {
-  explicit SimpleHtmlVisitor(DocPtr doc) : m_doc(doc) {}
+  explicit SimpleHtmlVisitor(const IBufferProvider& doc) : m_doc(doc) {}
   void visit(Header *node) override {
     auto hn = "h" + String::number(node->level());
     m_html += "<" + hn + ">";
@@ -166,7 +166,7 @@ struct SimpleHtmlVisitor : NodeVisitor {
 
  private:
   String m_html;
-  DocPtr m_doc;
+  const IBufferProvider& m_doc;
 };
 
 int main() {
@@ -181,7 +181,7 @@ int main() {
   mdFile.close();
   qDebug().noquote().nospace() << mdText;
   Document doc(mdText);
-  auto htmlVisitor = SimpleHtmlVisitor(&doc);
+  auto htmlVisitor = SimpleHtmlVisitor(doc);
   doc.accept(&htmlVisitor);
   auto html = htmlVisitor.html();
   qDebug().noquote() << html;

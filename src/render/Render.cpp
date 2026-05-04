@@ -54,12 +54,11 @@ struct LayoutConfig {
 class LayoutPass
     : public NodeVisitor {
  public:
-  explicit LayoutPass(Node *node, sptr<RenderSetting> setting, DocPtr doc,
+  explicit LayoutPass(Node *node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
                       IFontMetricsProvider* fontMetrics = nullptr)
       : m_block(node), m_setting(setting), m_doc(doc),
         m_fontMetrics(fontMetrics ? fontMetrics : &s_defaultFontMetrics),
         m_hasGui(fontMetrics == nullptr) {
-    Q_ASSERT(doc != nullptr);
     Q_ASSERT(m_fontMetrics != nullptr);
     m_config.font.setPixelSize(16 + 2);
     m_config.pen = Qt::black;
@@ -724,7 +723,7 @@ class LayoutPass
  private:
   std::vector<LayoutConfig> m_configs;
   LayoutConfig m_config;
-  DocPtr m_doc;
+  const parser::IBufferProvider& m_doc;
   Block m_block;
 
   int m_curX = 0;
@@ -744,7 +743,7 @@ SizeType VisualLine::length() const {
   }
   return l;
 }
-std::pair<Cell *, int> VisualLine::cellAtX(int x, DocPtr doc) const {
+std::pair<Cell *, int> VisualLine::cellAtX(int x, const parser::IBufferProvider& doc) const {
   if (m_cells.empty()) {
     return {nullptr, 0};
   }
@@ -783,7 +782,7 @@ int VisualLine::width() const {
   return w;
 }
 int LogicalLine::height() const { return m_h; }
-std::pair<Point, int> LogicalLine::cursorAt(SizeType offset, DocPtr doc) const {
+std::pair<Point, int> LogicalLine::cursorAt(SizeType offset, const parser::IBufferProvider& doc) const {
   if (m_cells.empty()) {
     return {Point(m_pos.x() + m_padding, m_pos.y()), m_h};
   }
@@ -838,7 +837,7 @@ std::pair<parser::Text *, int> LogicalLine::textAt(SizeType offset) const {
   DEBUG << m_cells.size() << offset << totalOffset;
   ASSERT(false && "text not in cell");
 }
-String LogicalLine::left(SizeType length, DocPtr doc) const {
+String LogicalLine::left(SizeType length, const parser::IBufferProvider& doc) const {
   ASSERT(length >= 0 && length <= this->length());
   if (length == 0) return String();
   String s;
@@ -851,7 +850,7 @@ String LogicalLine::left(SizeType length, DocPtr doc) const {
   DEBUG << this->length() << length << s;
   ASSERT(false && "length");
 }
-bool LogicalLine::canMoveDown(SizeType offset, DocPtr doc) const {
+bool LogicalLine::canMoveDown(SizeType offset, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
   auto totalOffset = 0;
   for (int i = 0; i < m_lines.size(); ++i) {
@@ -867,7 +866,7 @@ bool LogicalLine::canMoveDown(SizeType offset, DocPtr doc) const {
   DEBUG << this->length() << offset;
   ASSERT(false && "no cell in line");
 }
-bool LogicalLine::canMoveUp(SizeType offset, DocPtr doc) const {
+bool LogicalLine::canMoveUp(SizeType offset, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
   if (m_cells.empty()) return false;
   auto totalOffset = 0;
@@ -884,7 +883,7 @@ bool LogicalLine::canMoveUp(SizeType offset, DocPtr doc) const {
   DEBUG << this->length() << offset;
   ASSERT(false && "no cell in line");
 }
-SizeType LogicalLine::moveDown(SizeType offset, int x, DocPtr doc) const {
+SizeType LogicalLine::moveDown(SizeType offset, int x, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
   auto totalOffset = 0;
   for (int visualLineNo = 0; visualLineNo < m_lines.size(); ++visualLineNo) {
@@ -898,7 +897,7 @@ SizeType LogicalLine::moveDown(SizeType offset, int x, DocPtr doc) const {
   }
   return this->length();
 }
-SizeType LogicalLine::moveUp(SizeType offset, int x, DocPtr doc) const {
+SizeType LogicalLine::moveUp(SizeType offset, int x, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
   auto totalOffset = 0;
   for (int i = 0; i < m_lines.size(); ++i) {
@@ -931,7 +930,7 @@ SizeType LogicalLine::totalOffset(Cell *cell, SizeType delta) const {
   }
   ASSERT(false && "no cell in line");
 }
-SizeType LogicalLine::moveToX(int x, DocPtr doc, bool lastLine) const {
+SizeType LogicalLine::moveToX(int x, const parser::IBufferProvider& doc, bool lastLine) const {
   auto &line = lastLine ? m_lines.back() : m_lines.front();
   auto [cell, delta] = line.cellAtX(x, doc);
   return totalOffset(cell, delta);
@@ -943,7 +942,7 @@ int LogicalLine::width() const {
   }
   return w + m_padding;
 }
-SizeType LogicalLine::moveToBol(SizeType offset, DocPtr doc) const {
+SizeType LogicalLine::moveToBol(SizeType offset, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
   if (m_cells.empty()) return 0;
   SizeType totalOffset = 0;
@@ -959,7 +958,7 @@ SizeType LogicalLine::moveToBol(SizeType offset, DocPtr doc) const {
   }
   ASSERT(false && "no offset in line");
 }
-std::pair<SizeType, int> LogicalLine::moveToEol(SizeType offset, DocPtr) const {
+std::pair<SizeType, int> LogicalLine::moveToEol(SizeType offset, const parser::IBufferProvider& /*doc*/) const {
   ASSERT(offset >= 0 && offset <= this->length());
   if (m_cells.empty()) return {0, m_pos.x()};
   SizeType totalOffset = 0;
@@ -976,7 +975,7 @@ std::pair<SizeType, int> LogicalLine::moveToEol(SizeType offset, DocPtr) const {
   }
   ASSERT(false && "no offset in line");
 }
-SizeType LogicalLine::offsetAt(Point pos, DocPtr doc, int lineSpacing) const {
+SizeType LogicalLine::offsetAt(Point pos, const parser::IBufferProvider& doc, int lineSpacing) const {
   int y = m_pos.y();
   // -1表示没有算出offset
   SizeType offset = -1;
@@ -1010,7 +1009,7 @@ SizeType LogicalLine::offsetAt(Point pos, DocPtr doc, int lineSpacing) const {
   DEBUG << pos << m_pos << this->width() << this->height();
   ASSERT(false && "no pos in line");
 }
-int LogicalLine::visualLineAt(SizeType offset, DocPtr doc) const {
+int LogicalLine::visualLineAt(SizeType offset, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
   SizeType totalOffset = 0;
   for (int i = 0; i < m_lines.size(); ++i) {
@@ -1029,7 +1028,7 @@ const VisualLine &LogicalLine::visualLineAt(int index) const {
   ASSERT(index >= 0 && index < m_lines.size());
   return m_lines[index];
 }
-bool LogicalLine::isBol(SizeType offset, const DocPtr doc) const {
+bool LogicalLine::isBol(SizeType offset, const parser::IBufferProvider& doc) const {
   if (offset == 0) return true;
   SizeType totalOffset = 0;
   for (const auto &line : m_lines) {
@@ -1056,10 +1055,9 @@ int Block::width() const {
   }
   return w;
 }
-Block Render::render(Node *node, sptr<RenderSetting> setting, DocPtr doc,
+Block Render::render(Node *node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
                      IFontMetricsProvider* fontMetrics) {
   Q_ASSERT(node != nullptr);
-  Q_ASSERT(doc != nullptr);
   static TexRenderGuard texRenderGuard;
   LayoutPass render(node, setting, doc, fontMetrics);
   node->accept(&render);

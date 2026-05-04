@@ -14,6 +14,7 @@
 #include "Visitor.h"
 #include "mddef.h"
 
+#include "IBufferProvider.h"
 #include "Node.h"
 #include "nodes/Header.h"
 #include "nodes/Paragraph.h"
@@ -36,14 +37,15 @@
 #include "nodes/LatexBlock.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Document {
+class QTMARKDOWNSHARED_EXPORT Document : public IBufferProvider {
  public:
   explicit Document(const String& str);
   String toHtml();
   void accept(NodeVisitor* visitor);
   Container* root() const { return m_root.get(); }
   String& addBuffer() { return m_addBuffer; }
-  const String& addBuffer() const { return m_addBuffer; }
+  const String& addBuffer() const override { return m_addBuffer; }
+  const String& originalBuffer() const override { return m_originalBuffer; }
 
  protected:
   String m_originalBuffer;
@@ -51,7 +53,6 @@ class QTMARKDOWNSHARED_EXPORT Document {
   sptr<Container> m_root;
   friend class Parser;
   friend class Text;
-  friend class PieceTableItem;
 };
 
 }  // namespace md::parser

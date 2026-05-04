@@ -41,7 +41,7 @@ b
     CHECK(node->type() == NodeType::code_block);
     auto codeBlock = node2codeBlock(node);
     CHECK(codeBlock->size() == 2);
-    auto block = Render::render(codeBlock, setting, doc, &fm);
+    auto block = Render::render(codeBlock, setting, *doc, &fm);
     CHECK(block.countOfLogicalLine() == 2);
   }
 }

@@ -71,7 +71,7 @@ install(
         RUNTIME DESTINATION bin
 )
 markdown_install_headers(QtMarkdownParser PREFIX parser HEADERS
-        Document.h Token.h Parser.h Visitor.h PieceTable.h Text.h mddef.h
+        Document.h Token.h Parser.h Visitor.h PieceTable.h Text.h mddef.h IBufferProvider.h
         Node.h
         nodes/Header.h nodes/Paragraph.h nodes/CheckboxList.h
         nodes/UnorderedList.h nodes/OrderedList.h nodes/QuoteBlock.h

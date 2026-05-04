@@ -26,7 +26,7 @@ class MousePressVisitor : public NodeVisitor {
       : m_handled(false), m_doc(doc), m_editor(editor), m_blockNo(blockNo) {}
   void visit(Link *node) override {
     if (m_editor.isHoldCtrl()) {
-      auto url = node->href()->toString(m_doc.parserDoc());
+      auto url = node->href()->toString(m_doc.bufferProvider());
       m_editor.setHoldCtrl(false);
       m_editor.triggerLinkClicked(url);
       m_handled = true;
@@ -39,7 +39,7 @@ class MousePressVisitor : public NodeVisitor {
     m_handled = true;
   }
   void visit(Image *node) override {
-    auto path = node->src()->toString(m_doc.parserDoc());
+    auto path = node->src()->toString(m_doc.bufferProvider());
 #if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
     if (!path.startsWith("/")) {
       for (const auto& resPath: m_doc.setting().resPathList) {
@@ -58,7 +58,7 @@ class MousePressVisitor : public NodeVisitor {
     for (const auto &child : node->children()) {
       if (child->type() == NodeType::text) {
         auto text = static_cast<Text*>(child.get());
-        code += text->toString(m_doc.parserDoc());
+        code += text->toString(m_doc.bufferProvider());
         code += "\n";
       } else if (child->type() == NodeType::lf) {
         code += "\n";
@@ -497,7 +497,7 @@ void EditorInputHandler::generateSelectionInstruction() {
     if (lineNo < coord.lineNo) return true;
     if (lineNo > coord.lineNo) return false;
     const auto &line = m_doc.blocks()[blockNo].logicalLineAt(lineNo);
-    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc.parserDoc());
+    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc.bufferProvider());
     if (coordVisualLineNo > visualLineNo) return true;
     return false;
   };
@@ -507,7 +507,7 @@ void EditorInputHandler::generateSelectionInstruction() {
     if (lineNo < coord.lineNo) return false;
     if (lineNo > coord.lineNo) return false;
     const auto &line = m_doc.blocks()[blockNo].logicalLineAt(lineNo);
-    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc.parserDoc());
+    auto coordVisualLineNo = line.visualLineAt(coord.offset, m_doc.bufferProvider());
     if (coordVisualLineNo < visualLineNo) return false;
     if (coordVisualLineNo > visualLineNo) return false;
     return true;

@@ -21,7 +21,7 @@ using namespace md;
 using namespace md::parser;
 class DocxRender : public NodeVisitor {
  public:
-  DocxRender(DocPtr doc, QXmlStreamWriter& writer) : m_doc(doc), m_writer(writer) {}
+  DocxRender(const IBufferProvider& doc, QXmlStreamWriter& writer) : m_doc(doc), m_writer(writer) {}
   void writeElement(String name, std::function<void()> fn) {
     m_writer.writeStartElement(name);
     fn();
@@ -74,7 +74,7 @@ class DocxRender : public NodeVisitor {
     m_writer.writeCharacters(str);
   }
 
-  DocPtr m_doc;
+  const IBufferProvider& m_doc;
   QXmlStreamWriter& m_writer;
 };
 void makeSureDirExist(const QFile& file) {
@@ -321,7 +321,7 @@ void writeWord(String mdPath, String output) {
     stream.writeEndElement(); // w:sectPr
   */
   Document doc(mdText);
-  DocxRender render(&doc, stream);
+  DocxRender render(doc, stream);
   doc.accept(&render);
 
   stream.writeEndElement();  // w:body

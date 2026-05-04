@@ -5,6 +5,7 @@
 #ifndef QTMARKDOWN_PIECETABLE_H
 #define QTMARKDOWN_PIECETABLE_H
 #include "QtMarkdown_global.h"
+#include "IBufferProvider.h"
 #include "mddef.h"
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT PieceTableItem {
@@ -13,7 +14,7 @@ class QTMARKDOWNSHARED_EXPORT PieceTableItem {
   BufferType bufferType;
   SizeType offset;
   SizeType length;
-  [[nodiscard]] String toString(const DocPtr& doc) const;
+  [[nodiscard]] String toString(const IBufferProvider& doc) const;
 };
 QDebug operator<<(QDebug debug, const PieceTableItem& item);
 }  // namespace md::parser

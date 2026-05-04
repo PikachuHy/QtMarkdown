@@ -8,6 +8,7 @@
 #include "Instruction.h"
 #include "mddef.h"
 #include "parser/Document.h"
+#include "parser/IBufferProvider.h"
 #include "Element.h"
 namespace md::render {
 class IFontMetricsProvider;
@@ -45,7 +46,7 @@ class QTMARKDOWNSHARED_EXPORT VisualLine {
   int height() const;
   int width() const;
   SizeType length() const;
-  std::pair<Cell*, int> cellAtX(int x, DocPtr doc) const;
+  std::pair<Cell*, int> cellAtX(int x, const parser::IBufferProvider& doc) const;
   Point pos() const { return m_pos; }
 
  private:
@@ -66,27 +67,27 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   LogicalLine& operator=(LogicalLine&&) noexcept = default;
   int height() const;
   int width() const;
-  std::pair<Point, int> cursorAt(SizeType offset, DocPtr doc) const;
+  std::pair<Point, int> cursorAt(SizeType offset, const parser::IBufferProvider& doc) const;
   bool hasTextAt(SizeType offset) const;
   // 第一个Text是当前offset所在Text结点
   // 第二个int是当前offset在结点中还有的offset
   std::pair<parser::Text*, int> textAt(SizeType offset) const;
   SizeType length() const;
-  String left(SizeType length, DocPtr doc) const;
-  bool canMoveDown(SizeType offset, DocPtr doc) const;
-  bool canMoveUp(SizeType offset, DocPtr doc) const;
-  SizeType moveDown(SizeType offset, int x, DocPtr doc) const;
-  SizeType moveUp(SizeType offset, int x, DocPtr doc) const;
-  SizeType moveToX(int x, DocPtr doc, bool lastLine = false) const;
-  SizeType moveToBol(SizeType offset, DocPtr doc) const;
-  std::pair<SizeType, int> moveToEol(SizeType offset, DocPtr) const;
+  String left(SizeType length, const parser::IBufferProvider& doc) const;
+  bool canMoveDown(SizeType offset, const parser::IBufferProvider& doc) const;
+  bool canMoveUp(SizeType offset, const parser::IBufferProvider& doc) const;
+  SizeType moveDown(SizeType offset, int x, const parser::IBufferProvider& doc) const;
+  SizeType moveUp(SizeType offset, int x, const parser::IBufferProvider& doc) const;
+  SizeType moveToX(int x, const parser::IBufferProvider& doc, bool lastLine = false) const;
+  SizeType moveToBol(SizeType offset, const parser::IBufferProvider& doc) const;
+  std::pair<SizeType, int> moveToEol(SizeType offset, const parser::IBufferProvider& /*doc*/) const;
   auto empty() const { return m_cells.empty(); }
-  SizeType offsetAt(Point pos, DocPtr doc, int lineSpacing) const;
-  int visualLineAt(SizeType offset, DocPtr doc) const;
+  SizeType offsetAt(Point pos, const parser::IBufferProvider& doc, int lineSpacing) const;
+  int visualLineAt(SizeType offset, const parser::IBufferProvider& doc) const;
   VisualLine& visualLineAt(int index);
   const VisualLine& visualLineAt(int index) const;
   auto countOfVisualLine() const { return m_lines.size(); }
-  bool isBol(SizeType offset, const DocPtr doc) const;
+  bool isBol(SizeType offset, const parser::IBufferProvider& doc) const;
 
  private:
   SizeType totalOffset(Cell* cell, SizeType delta) const;
@@ -142,7 +143,7 @@ class QTMARKDOWNSHARED_EXPORT Block {
 
 class QTMARKDOWNSHARED_EXPORT Render {
  public:
-  static Block render(parser::Node* node, sptr<RenderSetting> setting, DocPtr doc,
+  static Block render(parser::Node* node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
                       IFontMetricsProvider* fontMetrics = nullptr);
 
  private:

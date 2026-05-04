@@ -6,7 +6,7 @@
 
 #include "debug.h"
 namespace md::parser {
-String Text::toString(const DocPtr& doc) const {
+String Text::toString(const IBufferProvider& doc) const {
   String s;
   for (auto item : m_items) {
     s += item.toString(doc);

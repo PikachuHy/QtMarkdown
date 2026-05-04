@@ -5,10 +5,11 @@
 #include "PieceTable.h"
 
 #include "Document.h"
+#include "IBufferProvider.h"
 #include "debug.h"
 namespace md::parser {
-String PieceTableItem::toString(const DocPtr& doc) const {
-  auto s = bufferType == original ? doc->m_originalBuffer.mid(offset, length) : doc->m_addBuffer.mid(offset, length);
+String PieceTableItem::toString(const IBufferProvider& doc) const {
+  auto s = bufferType == original ? doc.originalBuffer().mid(offset, length) : doc.addBuffer().mid(offset, length);
   if (s.endsWith("\n")) {
     DEBUG << "换行";
   }

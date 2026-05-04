@@ -11,7 +11,7 @@ using namespace md::parser;
 
 namespace md::editor {
 
-MarkdownSerializer::MarkdownSerializer(DocPtr doc) : m_doc(doc) {}
+MarkdownSerializer::MarkdownSerializer(const parser::IBufferProvider& doc) : m_doc(doc) {}
 
 String MarkdownSerializer::markdown() const { return m_md; }
 

@@ -56,7 +56,7 @@ class InsertReturnVisitor
     beginInsertReturn();
     std::unique_ptr<Container> oldBlock;
     std::unique_ptr<Container> newBlock;
-    String prefix = line.left(coord.offset, m_doc->parserDoc());
+    String prefix = line.left(coord.offset, m_doc->bufferProvider());
     if (prefix.startsWith("```")) {
       leftTextNode->remove(0, 3);
       oldBlock = std::make_unique<CodeBlock>(std::move(leftTextNode));
@@ -86,7 +86,7 @@ class InsertReturnVisitor
       updateCursor(cursor, coord);
       return;
     }
-    if (rightTextNode->toString(m_doc->parserDoc()).isEmpty()) {
+    if (rightTextNode->toString(m_doc->bufferProvider()).isEmpty()) {
       newBlock = std::make_unique<Paragraph>();
     } else {
       newBlock = std::make_unique<Header>(node->level());
@@ -305,7 +305,7 @@ class RemoveTextVisitor
             if (!prevContainer->children().empty()) {
               auto& lastChild = prevContainer->children().back();
               if (lastChild->type() == NodeType::text && !curContainer->children().empty() && curContainer->children().front()->type() == NodeType::text) {
-                m_cmd->m_mergePrevLastTextLen = static_cast<Text*>(lastChild.get())->toString(m_doc->parserDoc()).length();
+                m_cmd->m_mergePrevLastTextLen = static_cast<Text*>(lastChild.get())->toString(m_doc->bufferProvider()).length();
               }
             }
             m_cmd->m_undoAction = RemoveTextCommand::UndoAction::block_merge;
@@ -462,7 +462,7 @@ class RemoveTextVisitor
   }
   void removeTextInNode(Text* textNode, SizeType leftOffset) {
     if (leftOffset == 0) return;
-    auto s = textNode->toString(m_doc->parserDoc());
+    auto s = textNode->toString(m_doc->bufferProvider());
     if (leftOffset - 1 > 0) {
       auto ch = s[leftOffset - 2].unicode();
       // 如果是emoji的开始标志，两个都要删除
@@ -532,7 +532,7 @@ class InsertTextVisitor
     ASSERT(ppNode == m_doc->root() && "node hierarchy error");
     if (isSpace) {
       if (coord.offset <= 6) {
-        auto prefix = line.left(coord.offset, m_doc->parserDoc());
+        auto prefix = line.left(coord.offset, m_doc->bufferProvider());
         if (!prefix.isEmpty() && prefix.count('#') == prefix.size()) {
           // 说明是header
           // 将段落转换为标题
@@ -641,7 +641,7 @@ class InsertTextVisitor
     ASSERT(parentNode != nullptr);
     auto ppNode = parentNode->parent();
     ASSERT(ppNode == node && "node hierarchy error");
-    String s = line.left(coord.offset, m_doc->parserDoc());
+    String s = line.left(coord.offset, m_doc->bufferProvider());
     auto prefix = s.left(coord.offset);
     auto listItem = static_cast<UnorderedListItem*>(node->childAt(coord.lineNo));
     if (prefix == "[ ]" || prefix == "[x]") {
@@ -656,7 +656,7 @@ class InsertTextVisitor
       for (auto& child : listItem->children()) {
         if (child->type() == NodeType::text) {
           auto textNode = static_cast<Text*>(child.get());
-          auto s = textNode->toString(m_doc->parserDoc());
+          auto s = textNode->toString(m_doc->bufferProvider());
           if (s.length() <= leftLength) {
             leftLength -= s.length();
             continue;
@@ -725,7 +725,7 @@ class InsertTextVisitor
  private:
   void insertTextInNode(Text* textNode, int leftOffset) {
     if (maySkipChar) {
-      auto s = textNode->toString(m_doc->parserDoc());
+      auto s = textNode->toString(m_doc->bufferProvider());
       ASSERT(leftOffset >= 0 && leftOffset < s.size());
       auto ch = s[leftOffset];
       if (ch == targetSkipChar) {
@@ -812,10 +812,9 @@ InsertTextCommand::InsertTextCommand(Document* doc, CursorCoord coord, String te
   } else {
     m_isSpace = false;
   }
-  m_offset = m_doc->addBuffer().size();
+  m_offset = m_doc->appendToAddBuffer(textToInsert);
   m_length = textToInsert.size();
   m_cursorOffsetDelta = text.size();
-  m_doc->addBuffer().append(textToInsert);
 }
 bool InsertTextCommand::merge(Command* command) {
   if (this->type() != command->type()) return false;
@@ -845,8 +844,7 @@ void RemoveTextCommand::undo(Cursor& cursor) {
       return;
     }
 
-    SizeType offset = m_doc->addBuffer().size();
-    m_doc->addBuffer().append(m_deletedText);
+    SizeType offset = m_doc->appendToAddBuffer(m_deletedText);
 
     m_doc->updateCursor(cursor, m_finishedCoord);
 

@@ -13,6 +13,7 @@ namespace parser {
 class Node;
 class Token;
 class Document;
+class IBufferProvider;
 class Container;
 }  // namespace parser
 // NodePtrList is now defined in parser/Node.h as std::vector<std::unique_ptr<Node>>
@@ -26,7 +27,6 @@ using String = QString;
 using StringList = QStringList;
 template <typename T>
 using sptr = std::shared_ptr<T>;
-using DocPtr = parser::Document*;
 using ContainerPtr = sptr<parser::Container>;
 using Char = QChar;
 using SizeType = qsizetype;

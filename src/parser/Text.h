@@ -19,7 +19,7 @@ class QTMARKDOWNSHARED_EXPORT Text : public Node {
     m_items.emplace_back(PieceTableItem{type, offset, length});
   }
   bool empty() const;
-  [[nodiscard]] String toString(const DocPtr& doc) const;
+  [[nodiscard]] String toString(const IBufferProvider& doc) const;
   void insert(SizeType totalOffset, PieceTableItem item);
   void remove(SizeType totalOffset, SizeType length);
   std::pair<std::unique_ptr<Text>, std::unique_ptr<Text>> split(SizeType totalOffset);

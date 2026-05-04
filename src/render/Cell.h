@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "mddef.h"
+#include "parser/IBufferProvider.h"
 #include "parser/Text.h"
 namespace md::render {
 class IFontMetricsProvider;
@@ -23,7 +24,7 @@ class QTMARKDOWNSHARED_EXPORT Cell {
   // 像素高度
   [[nodiscard]] int height() const { return m_size.height(); };
   // 如果长度为length的子串，占用像素宽度
-  [[nodiscard]] virtual int width(SizeType length, DocPtr doc) const = 0;
+  [[nodiscard]] virtual int width(SizeType length, const parser::IBufferProvider& doc) const = 0;
 
  protected:
   Point m_pos;
@@ -41,7 +42,7 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
     Q_ASSERT(fm != nullptr);
   }
   SizeType length() override;
-  int width(SizeType length, DocPtr doc) const override;
+  int width(SizeType length, const parser::IBufferProvider& doc) const override;
 
  private:
   Color m_fg;
@@ -58,7 +59,7 @@ class QTMARKDOWNSHARED_EXPORT InlineLatexCell : public Cell {
  public:
   InlineLatexCell(Point pos, Size size) : Cell(pos, size) {}
   SizeType length() override { return 1; }
-  int width(SizeType length, DocPtr doc) const override;
+  int width(SizeType length, const parser::IBufferProvider& doc) const override;
 
  private:
   friend class LatexInstruction;

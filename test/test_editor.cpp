@@ -39,7 +39,7 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertText") {
   auto child = paragraphNode->childAt(0);
   CHECK(child->type() == NodeType::text);
   auto textNode = (md::parser::Text*)child;
-  auto s = textNode->toString(doc->parserDoc());
+  auto s = textNode->toString(doc->bufferProvider());
   CHECK(s == "a");
 }
 TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertReturn") {
@@ -86,7 +86,7 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertTextAndRemoveText") {
     auto node = paragraphNode->childAt(0);
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == "abc");
   }
   doc->removeText(cursor);
@@ -98,7 +98,7 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertTextAndRemoveText") {
     auto node = paragraphNode->childAt(0);
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("ac"));
   }
 }
@@ -131,7 +131,7 @@ b
     auto node = paragraphNode->childAt(0);
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("ab"));
   }
 }
@@ -270,7 +270,7 @@ a
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("#a"));
   }
   doc->insertText(cursor, " ");
@@ -283,7 +283,7 @@ a
     auto child = headerNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
     CursorCoord _coord;
     _coord.blockNo = 0;
@@ -301,7 +301,7 @@ a
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
   }
   doc->removeText(cursor);
@@ -314,7 +314,7 @@ a
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
   }
 }
@@ -395,7 +395,7 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlockWithOtherText") {
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("asdfasdf"));
   }
 }
@@ -445,7 +445,7 @@ TEST_CASE("UlEditTest,  InsertSpace") {
     auto child = ulItemNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("[ ]"));
   }
 }
@@ -494,7 +494,7 @@ TEST_CASE("UlEditTest,  InsertReturn") {
     auto text = ulItemNode->childAt(0);
     CHECK(text->type() == NodeType::text);
     auto textNode = (md::parser::Text*)text;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("GIF啊"));
     auto& line = blocks[0].logicalLineAt(0);
     CHECK(line.length() == 4);
@@ -516,7 +516,7 @@ TEST_CASE("UlEditTest,  InsertReturn") {
     auto text = ulItemNode->childAt(0);
     CHECK(text->type() == NodeType::text);
     auto textNode = (md::parser::Text*)text;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("GIF啊"));
     auto& line = blocks[0].logicalLineAt(0);
     CHECK(line.length() == 4);
@@ -660,7 +660,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
   }
   doc->insertReturn(cursor);
@@ -672,7 +672,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
     CHECK(blocks[0].countOfLogicalLine() == 2);
   }
@@ -687,14 +687,14 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
       auto child = codeBlockNode->childAt(0);
       CHECK(child->type() == md::parser::NodeType::text);
       auto textNode = (md::parser::Text*)child;
-      auto s = textNode->toString(doc->parserDoc());
+      auto s = textNode->toString(doc->bufferProvider());
       CHECK(s == QString("a"));
     }
     {
       auto child = codeBlockNode->childAt(1);
       CHECK(child->type() == md::parser::NodeType::text);
       auto textNode = (md::parser::Text*)child;
-      auto s = textNode->toString(doc->parserDoc());
+      auto s = textNode->toString(doc->bufferProvider());
       CHECK(s == QString("b"));
     }
   }
@@ -707,7 +707,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
     CHECK(blocks[0].countOfLogicalLine() == 2);
   }
@@ -720,7 +720,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     auto child = codeBlockNode->childAt(0);
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
     CHECK(blocks[0].countOfLogicalLine() == 1);
   }
@@ -817,7 +817,7 @@ TEST_CASE("PreeditTest,  ShowPreedit2") {
     CHECK(header->size() == 1);
     CHECK(header->childAt(0)->type() == NodeType::text);
     auto textNode = (md::parser::Text*)header->childAt(0);
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
   }
 }
@@ -873,7 +873,7 @@ ab
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("a"));
   }
   {
@@ -884,7 +884,7 @@ ab
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("b"));
   }
   doc->undo(cursor);
@@ -897,7 +897,7 @@ ab
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("ab"));
   }
   {
@@ -915,7 +915,7 @@ ab
     auto child = paragraphNode->childAt(0);
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
-    auto s = textNode->toString(doc->parserDoc());
+    auto s = textNode->toString(doc->bufferProvider());
     CHECK(s == QString("ab"));
   }
 }
@@ -941,7 +941,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "a");
+    CHECK(text->toString(doc->bufferProvider()) == "a");
   }
   CHECK(cursor.coord().offset == 1);
 
@@ -953,7 +953,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "ab");
+    CHECK(text->toString(doc->bufferProvider()) == "ab");
   }
   CHECK(cursor.coord().offset == 2);
 }
@@ -977,7 +977,7 @@ b
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "a");
+    CHECK(text->toString(doc->bufferProvider()) == "a");
   }
   {
     auto node = doc->root()->childAt(1);
@@ -985,7 +985,7 @@ b
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "b");
+    CHECK(text->toString(doc->bufferProvider()) == "b");
   }
 
   CursorCoord coord;
@@ -1002,7 +1002,7 @@ b
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "ab");
+    CHECK(text->toString(doc->bufferProvider()) == "ab");
   }
 
   doc->undo(cursor);
@@ -1013,7 +1013,7 @@ b
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "a");
+    CHECK(text->toString(doc->bufferProvider()) == "a");
   }
   {
     auto node = doc->root()->childAt(1);
@@ -1021,7 +1021,7 @@ b
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "b");
+    CHECK(text->toString(doc->bufferProvider()) == "b");
   }
 }
 
@@ -1051,7 +1051,7 @@ a😊b
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "a😊");
+    CHECK(text->toString(doc->bufferProvider()) == "a😊");
   }
 }
 
@@ -1074,7 +1074,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "abc");
+    CHECK(text->toString(doc->bufferProvider()) == "abc");
   }
 
   // Undo: back to "ab"
@@ -1085,7 +1085,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "ab");
+    CHECK(text->toString(doc->bufferProvider()) == "ab");
   }
 
   // Redo: back to "abc"
@@ -1096,7 +1096,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "abc");
+    CHECK(text->toString(doc->bufferProvider()) == "abc");
   }
   CHECK(cursor.coord().offset == 3);
 }
@@ -1122,7 +1122,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "ab");
+    CHECK(text->toString(doc->bufferProvider()) == "ab");
   }
   CHECK(cursor.coord().offset == 2);
 
@@ -1134,7 +1134,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "a");
+    CHECK(text->toString(doc->bufferProvider()) == "a");
   }
   CHECK(cursor.coord().offset == 1);
 }
@@ -1158,7 +1158,7 @@ ab
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "ab");
+    CHECK(text->toString(doc->bufferProvider()) == "ab");
   }
 }
 
@@ -1191,7 +1191,7 @@ a
     auto p = static_cast<Paragraph*>(node);
     CHECK(p->size() == 1);
     auto text = static_cast<Text*>(p->childAt(0));
-    CHECK(text->toString(doc->parserDoc()) == "ac");
+    CHECK(text->toString(doc->bufferProvider()) == "ac");
   }
 }
 

@@ -46,8 +46,8 @@ bool FileManager::saveToFile(const String& path) const {
         DEBUG << "file open fail:" << notePath;
         return false;
     }
-    MarkdownSerializer serializer(m_doc.parserDoc());
-    m_doc.parserDoc()->accept(&serializer);
+    MarkdownSerializer serializer(m_doc.bufferProvider());
+    m_doc.accept(&serializer);
     auto mdText = serializer.markdown();
     file.write(mdText.toUtf8());
     file.close();
@@ -64,7 +64,7 @@ String FileManager::title() const {
     for (auto& child : header->children()) {
         if (child->type() != NodeType::text) continue;
         auto textNode = static_cast<Text*>(child.get());
-        s += textNode->toString(m_doc.parserDoc());
+        s += textNode->toString(m_doc.bufferProvider());
     }
     return s;
 }

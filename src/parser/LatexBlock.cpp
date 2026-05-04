@@ -6,7 +6,7 @@
 #include "Text.h"
 
 namespace md::parser {
-String LatexBlock::toString(DocPtr const& doc) const {
+String LatexBlock::toString(const IBufferProvider& doc) const {
   String s;
   for (auto& node : m_children) {
     if (node->type() == NodeType::text) {

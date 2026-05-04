@@ -21,7 +21,7 @@ void EditorRenderer::drawDoc(core::AbstractPainter& /*painter*/, QPainter* nativ
     for (const auto& block : m_doc.blocks()) {
         int h = block.height();
         for (const auto& instruction : block) {
-            instruction->run(*nativePainter, qOffset, m_doc.parserDoc());
+            instruction->run(*nativePainter, qOffset, m_doc.bufferProvider());
         }
         qOffset.setY(qOffset.y() + h + m_setting.blockSpacing);
     }
@@ -51,7 +51,7 @@ void EditorRenderer::drawSelection(core::AbstractPainter& /*painter*/, QPainter*
     if (selectionInstructions.empty()) return;
     QPoint qOffset = toQPoint(offset);
     for (const auto& instruction : selectionInstructions) {
-        instruction->run(*nativePainter, qOffset, doc.parserDoc());
+        instruction->run(*nativePainter, qOffset, doc.bufferProvider());
     }
 }
 

@@ -7,6 +7,7 @@
 #include "QtMarkdown_global.h"
 #include "mddef.h"
 #include "parser/Document.h"
+#include "parser/IBufferProvider.h"
 #include "render/Instruction.h"
 #include "render/Render.h"
 #include "core/Types.h"
@@ -19,10 +20,14 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
  public:
   explicit Document(const String& str, sptr<render::RenderSetting> setting);
   parser::Container* root() const { return m_parserDoc->root(); }
-  String& addBuffer() { return m_parserDoc->addBuffer(); }
   const String& addBuffer() const { return m_parserDoc->addBuffer(); }
-  parser::Document* parserDoc() const { return m_parserDoc.get(); }
-  void accept(parser::NodeVisitor* visitor) { m_parserDoc->accept(visitor); }
+  const parser::IBufferProvider& bufferProvider() const { return *m_parserDoc; }
+  void accept(parser::NodeVisitor* visitor) const { m_parserDoc->accept(visitor); }
+  SizeType appendToAddBuffer(const String& text) {
+    SizeType offset = m_parserDoc->addBuffer().size();
+    m_parserDoc->addBuffer().append(text);
+    return offset;
+  }
   CursorCoord moveCursorToRight(CursorCoord coord);
   CursorCoord moveCursorToLeft(CursorCoord coord);
   CursorCoord moveCursorToBol(CursorCoord coord);

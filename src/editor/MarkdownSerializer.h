@@ -7,13 +7,14 @@
 
 #include "QtMarkdown_global.h"
 #include "mddef.h"
+#include "parser/IBufferProvider.h"
 #include "parser/Visitor.h"
 
 namespace md::editor {
 
 class QTMARKDOWNSHARED_EXPORT MarkdownSerializer : public parser::NodeVisitor {
 public:
-    explicit MarkdownSerializer(DocPtr doc);
+    explicit MarkdownSerializer(const parser::IBufferProvider& doc);
     String markdown() const;
 
     // Visitor overrides
@@ -43,7 +44,7 @@ public:
 
 private:
     String m_md;
-    DocPtr m_doc;
+    const parser::IBufferProvider& m_doc;
 };
 
 } // namespace md::editor
