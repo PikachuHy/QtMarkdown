@@ -68,6 +68,7 @@ cc_library(
     ],
     copts = [
         "-DQtMarkdown_LIBRARY",
+        "-std=c++26",
     ],
     deps = [
         "@magic_enum",

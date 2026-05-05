@@ -11,6 +11,12 @@ local_path_override(
     path = "3rd/magic_enum",
 )
 
+bazel_dep(name = "microtex", version = "1.0.0")
+local_path_override(
+    module_name = "microtex",
+    path = "3rd/MicroTeX",
+)
+
 # To enable tests, clone doctest and uncomment:
 #   git clone --depth 1 --branch v2.4.11 https://github.com/doctest/doctest.git 3rd/doctest
 # bazel_dep(name = "doctest", version = "2.4.11")

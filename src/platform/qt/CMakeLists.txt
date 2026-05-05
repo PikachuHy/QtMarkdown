@@ -8,7 +8,9 @@ target_sources(QtMarkdownPlatform PRIVATE
     QtImageProvider.h
     QtFontMetricsProvider.h
     QtLatexPlatform.h
+    ../../../assets/md.qrc
 )
+set_target_properties(QtMarkdownPlatform PROPERTIES AUTORCC ON)
 target_link_libraries(QtMarkdownPlatform PUBLIC
     Qt${QT_VERSION_MAJOR}::Gui
     microtex-qt

@@ -1,7 +1,3 @@
-# C++26
-build --cxxopt=-std=c++26
-build --host_cxxopt=-std=c++26
-
 # Platform-specific
 build:macos --cxxopt=-stdlib=libc++
 
@@ -10,3 +6,4 @@ build --cxxopt=-Wno-gnu-zero-variadic-macro-arguments
 
 # Output
 build --show_timestamps
+build --macos_minimum_os=14.0

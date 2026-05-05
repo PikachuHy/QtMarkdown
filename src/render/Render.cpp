@@ -15,7 +15,7 @@
 #include "parser/Text.h"
 #include "core/IImageProvider.h"
 #include "core/Utf8Util.h"
-#include "platform/qt/QtFontMetricsProvider.h"
+#include "DefaultFontMetrics.h"
 using namespace md::parser;
 namespace md::render {
 // Render内部配置

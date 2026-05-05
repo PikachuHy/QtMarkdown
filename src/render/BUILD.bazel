@@ -1,0 +1,37 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "QtMarkdownRender",
+    srcs = [
+        "Cell.cpp",
+        "DefaultFontMetrics.h",
+        "Element.cpp",
+        "Instruction.cpp",
+        "Render.cpp",
+        "StringUtil.cpp",
+    ],
+    hdrs = [
+        "Cell.h",
+        "Element.h",
+        "FontMetricsProvider.h",
+        "Instruction.h",
+        "Render.h",
+        "StringUtil.h",
+        "mddef.h",
+    ],
+    includes = [
+        ".",
+        "..",
+        "../editor",
+    ],
+    copts = [
+        "-DQtMarkdown_LIBRARY",
+        "-std=c++26",
+    ],
+    deps = [
+        "//src:QtMarkdownParser",
+        "//src/editor/core:editor-core-types",
+        "@microtex//lib:microtex",
+    ],
+    visibility = ["//visibility:public"],
+)

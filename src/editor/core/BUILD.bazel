@@ -1,0 +1,16 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "editor-core-types",
+    hdrs = [
+        "AbstractPainter.h",
+        "Event.h",
+        "IImageProvider.h",
+        "Timer.h",
+        "Types.h",
+    ],
+    copts = ["-std=c++26"],
+    includes = ["."],
+    deps = ["//src:QtMarkdownParser"],
+    visibility = ["//visibility:public"],
+)
