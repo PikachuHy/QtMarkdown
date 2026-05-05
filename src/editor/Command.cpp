@@ -22,6 +22,25 @@ static SizeType computeContentPos(const render::Block& block, SizeType lineNo, S
   return pos + offset;
 }
 
+static bool isListType(NodeType t) {
+  return t == NodeType::ul || t == NodeType::ol || t == NodeType::checkbox;
+}
+
+// Degrade a list block to Paragraph: extract text from list items into a flat paragraph
+static std::unique_ptr<parser::Node> degradeListToParagraph(parser::Container* listNode) {
+  auto para = std::make_unique<Paragraph>();
+  for (auto& item : listNode->children()) {
+    auto* itemContainer = static_cast<Container*>(item.get());
+    para->appendChildren(std::move(itemContainer->children()));
+  }
+  return para;
+}
+
+// Degrade a list item to Paragraph content
+static void moveItemContentToParagraph(Paragraph* para, parser::Container* item) {
+  para->appendChildren(std::move(item->children()));
+}
+
 // ---- InsertTextCommand ----
 
 InsertTextCommand::InsertTextCommand(Document* doc, CursorCoord coord, String text) : Command(doc), m_coord(coord) {
@@ -74,8 +93,11 @@ void InsertTextCommand::execute(Cursor& cursor) {
   auto oldType = m_snapshot->type();
   auto newType = newBlockNode->type();
 
-  // If block type changed (e.g., Paragraph→Header from "# "), cursor resets to start of content
+  // If block type changed (e.g., Paragraph→Header from "# ", UL→Checkbox from "[ ] "),
+  // the syntax prefix was consumed by the re-parse; cursor resets to start of content
   if (oldType != newType) {
+    // For space-triggered conversions, the space itself is part of the syntax,
+    // not visible content — so newContentPos should be 0, not 1
     m_finishedCoord = CursorCoord{m_coord.blockNo, 0, 0};
   } else {
     SizeType newContentPos = m_contentPos + m_text.length();
@@ -148,18 +170,28 @@ void RemoveTextCommand::execute(Cursor& cursor) {
       return;
     }
 
-    // At start of first block and offset 0 — check for header degrade
+    // At start of document — check for header/list degrade
     auto* blockNode = m_doc->root()->childAt(m_coord.blockNo);
     if (blockNode->type() == NodeType::header) {
       m_snapshot = blockNode->clone();
       auto* headerNode = static_cast<Header*>(blockNode);
       String md = m_doc->serializeBlock(m_coord.blockNo);
-      // Remove "# prefix": skip the "#"*level + " " prefix
       SizeType prefixLen = headerNode->level() + 1;
       String editedMD = md.mid(prefixLen);
       SizeType addOffset = m_doc->appendToAddBuffer(editedMD);
       m_doc->replaceBlocksFromText(m_coord.blockNo, m_coord.blockNo + 1,
                                     editedMD, addOffset, editedMD.length());
+      m_finishedCoord = m_coord;
+      m_doc->updateCursor(cursor, m_coord);
+      m_hasAction = true;
+      m_doc->ensureTrailingParagraph();
+      return;
+    }
+    if (isListType(blockNode->type())) {
+      m_snapshot = blockNode->clone();
+      auto* container = static_cast<Container*>(blockNode);
+      auto para = degradeListToParagraph(container);
+      m_doc->replaceBlock(m_coord.blockNo, std::move(para));
       m_finishedCoord = m_coord;
       m_doc->updateCursor(cursor, m_coord);
       m_hasAction = true;
@@ -213,6 +245,77 @@ void InsertReturnCommand::execute(Cursor& cursor) {
   SizeType contentPos = 0;
   if (block.countOfLogicalLine() > 0) {
     contentPos = computeContentPos(block, m_coord.lineNo, m_coord.offset);
+  }
+
+  // List-specific: Enter handling depends on context
+  auto* blockNode = m_doc->root()->childAt(m_coord.blockNo);
+  if (isListType(blockNode->type())) {
+    auto* listNode = static_cast<Container*>(blockNode);
+    // Check if current line is empty
+    bool lineEmpty = false;
+    if (block.countOfLogicalLine() > 0) {
+      lineEmpty = block.logicalLineAt(m_coord.lineNo).length() == 0;
+    }
+    // Empty line: split the list
+    if (block.countOfLogicalLine() == 0 || lineEmpty) {
+      m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
+      SizeType splitLineNo = m_coord.lineNo;
+      std::unique_ptr<Container> newList;
+      if (blockNode->type() == NodeType::ul) newList = std::make_unique<UnorderedList>();
+      else if (blockNode->type() == NodeType::ol) newList = std::make_unique<OrderedList>();
+      else newList = std::make_unique<CheckboxList>();
+      SizeType origSize = listNode->size();
+      for (SizeType i = origSize; i > splitLineNo; --i) {
+        newList->insertChild(0, std::move((*listNode)[i - 1]));
+      }
+      while (listNode->size() > splitLineNo) {
+        listNode->removeChildAt(listNode->size() - 1);
+      }
+      m_doc->renderBlock(m_coord.blockNo);
+      if (!newList->empty()) {
+        m_doc->insertBlock(m_coord.blockNo + 1, std::move(newList));
+      } else {
+        m_doc->insertBlock(m_coord.blockNo + 1, std::make_unique<Paragraph>());
+      }
+      m_finishedCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
+      m_doc->updateCursor(cursor, m_finishedCoord);
+      m_doc->ensureTrailingParagraph();
+      return;
+    }
+    // Non-empty line: split the list item, creating a new item within the same list
+    m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
+    SizeType itemIdx = m_coord.lineNo;
+    auto* item = static_cast<Container*>(listNode->childAt(itemIdx));
+    auto& line = block.logicalLineAt(m_coord.lineNo);
+    auto [textNode, textOffset] = line.textAt(m_coord.offset);
+    auto [leftText, rightText] = textNode->split(textOffset);
+    std::unique_ptr<ListItemNode> newItem;
+    if (blockNode->type() == NodeType::ul) newItem = std::make_unique<UnorderedListItem>();
+    else if (blockNode->type() == NodeType::ol) newItem = std::make_unique<OrderedListItem>();
+    else if (blockNode->type() == NodeType::checkbox) {
+      auto cb = std::make_unique<CheckboxItem>();
+      cb->setChecked(static_cast<CheckboxItem*>(item)->isChecked());
+      newItem = std::move(cb);
+    }
+    SizeType childIdx = item->indexOf(textNode);
+    // Move children after textNode to newItem
+    for (SizeType i = childIdx + 1; i < item->size(); ) {
+      newItem->appendChild(std::move((*item)[i]));
+    }
+    // Remove moved children from item
+    while (item->size() > childIdx + 1) {
+      item->removeChildAt(item->size() - 1);
+    }
+    if (rightText && !rightText->empty()) {
+      newItem->appendChild(std::move(rightText));
+    }
+    listNode->insertChild(itemIdx + 1, std::move(newItem));
+    m_doc->renderBlock(m_coord.blockNo);
+    CursorCoord newCoord{m_coord.blockNo, itemIdx + 1, 0};
+    m_finishedCoord = newCoord;
+    m_doc->updateCursor(cursor, newCoord);
+    m_doc->ensureTrailingParagraph();
+    return;
   }
 
   // Check for code-block prefix: if line starts with "```", handle specially
