@@ -5,6 +5,7 @@
 #include "Parser.h"
 
 #include "ParserDetail.h"
+#include "ParseContext.h"
 #include "nodes/Paragraph.h"
 #include "Text.h"
 #include "debug.h"
@@ -14,6 +15,8 @@
 using namespace std::string_view_literals;
 
 namespace md::parser {
+
+thread_local ParseContext g_parseContext;
 
 std::ostream& operator<<(std::ostream& os, const Line& line) {
   os << line.text.mid(line.offset, line.length);
@@ -125,7 +128,10 @@ void skipEmptyLine(const LineList& lines, int& i) {
 
 class ParserPrivate {
  public:
-  explicit ParserPrivate(const String& text) : m_text(text) {}
+  explicit ParserPrivate(const String& text,
+                         PieceTableItem::BufferType bufferType = PieceTableItem::original,
+                         SizeType baseOffset = 0)
+      : m_text(text), m_bufferType(bufferType), m_baseOffset(baseOffset) {}
   void splitTextToLines() {
     SizeType i = 0;
     SizeType offset = 0;
@@ -158,6 +164,8 @@ class ParserPrivate {
     }
   }
   sptr<Container> parse() {
+    g_parseContext.bufferType = m_bufferType;
+    g_parseContext.baseOffset = m_baseOffset;
     static std::vector<BlockParserFn> parsers = {
         parseHeader,
         parseCodeBlock,
@@ -206,9 +214,15 @@ class ParserPrivate {
  private:
   const String& m_text;
   LineList m_lines;
+  PieceTableItem::BufferType m_bufferType;
+  SizeType m_baseOffset;
 };
 sptr<Container> Parser::parse(const String& text) {
   ParserPrivate parser(text);
+  return parser.parse();
+}
+sptr<Container> Parser::parse(const String& text, PieceTableItem::BufferType bufferType, SizeType baseOffset) {
+  ParserPrivate parser(text, bufferType, baseOffset);
   return parser.parse();
 }
 }  // namespace md::parser

@@ -4,6 +4,7 @@
 
 #ifndef MD_PARSER_H
 #define MD_PARSER_H
+#include "PieceTable.h"
 #include "QtMarkdown_global.h"
 #include "mddef.h"
 namespace md::parser {
@@ -11,6 +12,7 @@ class Container;
 class QTMARKDOWNSHARED_EXPORT Parser {
  public:
   static sptr<Container> parse(const String& text);
+  static sptr<Container> parse(const String& text, PieceTableItem::BufferType bufferType, SizeType baseOffset = 0);
 };
 }  // namespace md::parser
 

@@ -66,6 +66,17 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
 
   const render::RenderSetting& setting() const { return *m_setting; }
 
+  String serializeBlock(SizeType blockNo) const;
+  struct MarkdownPosition {
+    String text;
+    SizeType pos;
+  };
+  MarkdownPosition cursorToMarkdownPosition(const CursorCoord& coord) const;
+  CursorCoord findCursorFromContentPosition(SizeType blockNo, SizeType contentPos) const;
+  void replaceBlocksFromText(SizeType startBlockNo, SizeType endBlockNo,
+                              const String& editedMD, SizeType addOffset, SizeType addLength);
+  int countOfBlock() const { return m_blocks.size(); }
+
  private:
   void assertBlocksInSync();
   std::unique_ptr<parser::Document> m_parserDoc;

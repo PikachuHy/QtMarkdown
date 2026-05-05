@@ -35,38 +35,26 @@ class QTMARKDOWNSHARED_EXPORT InsertTextCommand : public Command {
 
  private:
   CursorCoord m_coord;
-  SizeType m_offset;
-  SizeType m_length;
-  SizeType m_cursorOffsetDelta;
-  bool m_isSpace;
-  bool m_maySkipChar;
-  String m_targetSkipChar;
   CursorCoord m_finishedCoord;
-  // Block type conversion tracking for undo (set by InsertTextVisitor)
-  bool m_hasBlockConversion = false;
-  parser::NodeType m_convertedBlockType = parser::NodeType::none;
-  int m_headerLevel = 0;  // for header→paragraph reversal
-  friend class InsertTextVisitor;
+  String m_text;
+  std::unique_ptr<parser::Node> m_snapshot;
+  SizeType m_contentPos = 0;
 };
 class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
  public:
-  enum UndoAction { none, text_delete, block_merge, header_degrade };
   RemoveTextCommand(Document* doc, CursorCoord coord) : Command(doc), m_coord(coord) {}
   [[nodiscard]] Type type() const override { return remove_text; }
   bool merge(Command* command) override { return false; }
   void execute(Cursor& cursor) override;
   void undo(Cursor& cursor) override;
-  [[nodiscard]] bool hasUndoAction() const { return m_undoAction != none; }
+  [[nodiscard]] bool hasUndoAction() const { return m_hasAction; }
 
  private:
-  friend class RemoveTextVisitor;
   CursorCoord m_coord;
-  UndoAction m_undoAction = none;
-  String m_deletedText;
   CursorCoord m_finishedCoord;
-  SizeType m_mergePrevChildCount = 0;
-  SizeType m_mergePrevLastTextLen = 0;
-  int m_headerLevel = 0;
+  bool m_hasAction = false;
+  std::unique_ptr<parser::Node> m_snapshot;
+  SizeType m_contentPos = 0;
 };
 class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
  public:
@@ -79,6 +67,7 @@ class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
  private:
   CursorCoord m_coord;
   CursorCoord m_finishedCoord;
+  std::vector<std::pair<SizeType, std::unique_ptr<parser::Node>>> m_snapshots;
 };
 class QTMARKDOWNSHARED_EXPORT UpgradeToHeaderCommand : public Command {
  public:
@@ -93,6 +82,7 @@ class QTMARKDOWNSHARED_EXPORT UpgradeToHeaderCommand : public Command {
   CursorCoord m_coord;
   CursorCoord m_finishedCoord;
   int m_level;
+  std::unique_ptr<parser::Node> m_snapshot;
 };
 class QTMARKDOWNSHARED_EXPORT RemoveTextRangeCommand : public Command {
  public:
@@ -106,7 +96,8 @@ class QTMARKDOWNSHARED_EXPORT RemoveTextRangeCommand : public Command {
   CursorCoord m_begin;
   CursorCoord m_end;
   bool m_hasAction = false;
-  String m_deletedText;
+  std::vector<std::pair<SizeType, std::unique_ptr<parser::Node>>> m_snapshots;
+  CursorCoord m_finishedCoord;
 };
 class QTMARKDOWNSHARED_EXPORT CommandStack {
  public:

@@ -142,4 +142,18 @@ void Text::removeItemAt(SizeType index) {
     ASSERT(index >= 0 && index < m_items.size());
     m_items.erase(m_items.begin() + index);
 }
+std::unique_ptr<Node> Text::clone() const {
+  auto t = std::unique_ptr<Text>(new Text());
+  for (auto& item : m_items) {
+    t->m_items.push_back(item);
+  }
+  return t;
+}
+SizeType Text::contentLength(const IBufferProvider& doc) const {
+  return toString(doc).length();
+}
+bool Text::calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const {
+  mdPos += contentPos;
+  return true;
+}
 }  // namespace md::parser

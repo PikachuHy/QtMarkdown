@@ -11,6 +11,7 @@
 #include "parser/Text.h"
 #include "render/Render.h"
 #include "Command.h"
+#include "MarkdownSerializer.h"
 using namespace md::parser;
 using namespace md::render;
 namespace md::editor {
@@ -428,4 +429,81 @@ void Document::removeTextRange(const CursorCoord& begin, const CursorCoord& end)
   }
   ensureTrailingParagraph();
 }
+String Document::serializeBlock(SizeType blockNo) const {
+  ASSERT(blockNo >= 0 && blockNo < m_parserDoc->root()->children().size());
+  auto* node = m_parserDoc->root()->childAt(blockNo);
+  MarkdownSerializer serializer(*m_parserDoc);
+  node->accept(&serializer);
+  return serializer.markdown();
+}
+
+Document::MarkdownPosition Document::cursorToMarkdownPosition(const CursorCoord& coord) const {
+  MarkdownPosition result;
+  result.text = serializeBlock(coord.blockNo);
+  ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
+  const auto& block = m_blocks[coord.blockNo];
+  ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
+
+  SizeType contentPos = 0;
+  for (SizeType i = 0; i < coord.lineNo; ++i) {
+    contentPos += block.logicalLineAt(i).length();
+  }
+  contentPos += coord.offset;
+
+  SizeType mdPos = 0;
+  auto* blockNode = m_parserDoc->root()->childAt(coord.blockNo);
+  bool found = blockNode->calcMarkdownOffset(*m_parserDoc, contentPos, mdPos);
+  if (!found) {
+    mdPos = result.text.length();
+    if (result.text.endsWith("\n\n")) mdPos -= 2;
+    else if (result.text.endsWith("\n")) mdPos -= 1;
+  }
+  result.pos = mdPos;
+  return result;
+}
+
+CursorCoord Document::findCursorFromContentPosition(SizeType blockNo, SizeType contentPos) const {
+  ASSERT(blockNo >= 0 && blockNo < m_blocks.size());
+  const auto& block = m_blocks[blockNo];
+  SizeType remaining = contentPos;
+  for (SizeType i = 0; i < block.countOfLogicalLine(); ++i) {
+    SizeType lineLen = block.logicalLineAt(i).length();
+    if (remaining <= lineLen)
+      return {blockNo, i, remaining};
+    remaining -= lineLen;
+  }
+  SizeType lastLine = block.countOfLogicalLine() - 1;
+  return {blockNo, lastLine, block.logicalLineAt(lastLine).length()};
+}
+
+void Document::replaceBlocksFromText(SizeType startBlockNo, SizeType endBlockNo,
+                                     const String& editedMD, SizeType addOffset, SizeType addLength) {
+  auto newRoot = Parser::parse(editedMD, PieceTableItem::add, addOffset);
+  auto& newChildren = newRoot->children();
+  SizeType newBlockCount = newChildren.size();
+
+  if (newBlockCount == 1 && newChildren[0]->type() == NodeType::paragraph) {
+    auto* p = static_cast<Paragraph*>(newChildren[0].get());
+    if (p->children().empty() && (endBlockNo - startBlockNo > 1 || m_blocks.size() > 1)) {
+      removeBlock(startBlockNo);
+      return;
+    }
+  }
+
+  auto& oldChildren = m_parserDoc->root()->children();
+  SizeType removeCount = endBlockNo - startBlockNo;
+  for (SizeType i = 0; i < removeCount && startBlockNo < oldChildren.size(); ++i) {
+    oldChildren.erase(oldChildren.begin() + startBlockNo);
+    m_blocks.erase(m_blocks.begin() + startBlockNo);
+  }
+
+  for (SizeType i = 0; i < newBlockCount; ++i) {
+    auto* raw = newChildren[i].get();
+    m_parserDoc->root()->insertChild(startBlockNo + i, std::move(newChildren[i]));
+    m_blocks.insert(m_blocks.begin() + startBlockNo + i,
+                    Render::render(raw, m_setting, *m_parserDoc, nullptr, m_imageProvider));
+  }
+  assertBlocksInSync();
+}
+
 }  // namespace md::editor

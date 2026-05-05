@@ -6,6 +6,7 @@
 #define MD_PARSER_IMAGE_H
 
 #include "../Node.h"
+#include "../Text.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Image : public Node {
@@ -15,6 +16,15 @@ class QTMARKDOWNSHARED_EXPORT Image : public Node {
   Text* alt() { return m_alt.get(); }
   Text* src() { return m_src.get(); }
   void accept(NodeVisitor* v) override { v->visit(this); }
+  std::unique_ptr<Node> clone() const override;
+  SizeType contentLength(const IBufferProvider& doc) const override { return m_alt->contentLength(doc); }
+  SizeType serializedLength(const IBufferProvider& doc) const override {
+    return 2 + m_alt->serializedLength(doc) + 2 + m_src->serializedLength(doc) + 1;  // "![" + alt + "](" + src + ")"
+  }
+  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override {
+    mdPos += 2;  // "!["
+    return m_alt->calcMarkdownOffset(doc, contentPos, mdPos);
+  }
 
  private:
   std::unique_ptr<Text> m_alt;

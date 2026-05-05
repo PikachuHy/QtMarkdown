@@ -15,6 +15,7 @@
 #include "mddef.h"
 
 namespace md::parser {
+class IBufferProvider;
 
 enum class QTMARKDOWNSHARED_EXPORT NodeType {
   none,
@@ -49,9 +50,14 @@ class QTMARKDOWNSHARED_EXPORT Node {
   explicit Node(NodeType type = NodeType::none, Node* parent = nullptr) : m_type(type), m_parent(parent) {}
   virtual ~Node() {}
   virtual void accept(NodeVisitor*) = 0;
+  virtual std::unique_ptr<Node> clone() const = 0;
   NodeType type() { return m_type; }
   void setParent(Node* parent) { m_parent = parent; }
   [[nodiscard]] Node* parent() const { return m_parent; }
+
+  virtual SizeType contentLength(const IBufferProvider& doc) const { return 0; }
+  virtual SizeType serializedLength(const IBufferProvider& doc) const { return 0; }
+  virtual bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const { return false; }
 
  protected:
   NodeType m_type;
@@ -100,6 +106,41 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
     for (auto& node : m_children) {
       node->accept(v);
     }
+  }
+  std::unique_ptr<Node> clone() const override {
+    auto c = std::make_unique<Container>();
+    for (auto& child : m_children) {
+      c->appendChild(child->clone());
+    }
+    return c;
+  }
+
+  SizeType contentLength(const IBufferProvider& doc) const override {
+    SizeType total = 0;
+    for (auto& child : m_children) {
+      total += child->contentLength(doc);
+    }
+    return total;
+  }
+  SizeType serializedLength(const IBufferProvider& doc) const override {
+    SizeType total = 0;
+    for (auto& child : m_children) {
+      total += child->serializedLength(doc);
+    }
+    return total;
+  }
+  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override {
+    SizeType accumulatedContent = 0;
+    for (auto& child : m_children) {
+      SizeType childContentLen = child->contentLength(doc);
+      if (contentPos <= accumulatedContent + childContentLen) {
+        SizeType localContentPos = contentPos - accumulatedContent;
+        return child->calcMarkdownOffset(doc, localContentPos, mdPos);
+      }
+      mdPos += child->serializedLength(doc);
+      accumulatedContent += childContentLen;
+    }
+    return true;
   }
 
  protected:

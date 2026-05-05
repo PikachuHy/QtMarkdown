@@ -12,6 +12,8 @@ class QTMARKDOWNSHARED_EXPORT Lf : public Node {
  public:
   Lf() { m_type = NodeType::lf; }
   void accept(NodeVisitor* v) override { v->visit(this); }
+  std::unique_ptr<Node> clone() const override { return std::make_unique<Lf>(); }
+  SizeType serializedLength(const IBufferProvider&) const override { return 1; }  // "\n"
 };
 }  // namespace md::parser
 

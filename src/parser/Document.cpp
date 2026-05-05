@@ -137,4 +137,128 @@ InlineLatex::InlineLatex(std::unique_ptr<Text> code) : m_code(std::move(code)) {
   m_code->setParent(this);
 }
 InlineLatex::~InlineLatex() = default;
+
+// clone() implementations
+
+std::unique_ptr<Node> ItalicText::clone() const {
+  auto text = std::unique_ptr<Text>(static_cast<Text*>(m_text->clone().release()));
+  return std::make_unique<ItalicText>(std::move(text));
+}
+std::unique_ptr<Node> BoldText::clone() const {
+  auto text = std::unique_ptr<Text>(static_cast<Text*>(m_text->clone().release()));
+  return std::make_unique<BoldText>(std::move(text));
+}
+std::unique_ptr<Node> ItalicBoldText::clone() const {
+  auto text = std::unique_ptr<Text>(static_cast<Text*>(m_text->clone().release()));
+  return std::make_unique<ItalicBoldText>(std::move(text));
+}
+std::unique_ptr<Node> StrickoutText::clone() const {
+  auto text = std::unique_ptr<Text>(static_cast<Text*>(m_text->clone().release()));
+  return std::make_unique<StrickoutText>(std::move(text));
+}
+std::unique_ptr<Node> Image::clone() const {
+  auto alt = std::unique_ptr<Text>(static_cast<Text*>(m_alt->clone().release()));
+  auto src = std::unique_ptr<Text>(static_cast<Text*>(m_src->clone().release()));
+  return std::make_unique<Image>(std::move(alt), std::move(src));
+}
+std::unique_ptr<Node> Link::clone() const {
+  auto content = std::unique_ptr<Text>(static_cast<Text*>(m_content->clone().release()));
+  auto href = std::unique_ptr<Text>(static_cast<Text*>(m_href->clone().release()));
+  return std::make_unique<Link>(std::move(content), std::move(href));
+}
+std::unique_ptr<Node> CodeBlock::clone() const {
+  auto name = std::unique_ptr<Text>(static_cast<Text*>(m_name->clone().release()));
+  auto cb = std::make_unique<CodeBlock>(std::move(name));
+  for (auto& child : m_children) {
+    cb->appendChild(child->clone());
+  }
+  return cb;
+}
+std::unique_ptr<Node> InlineCode::clone() const {
+  auto code = std::unique_ptr<Text>(static_cast<Text*>(m_code->clone().release()));
+  return std::make_unique<InlineCode>(std::move(code));
+}
+std::unique_ptr<Node> InlineLatex::clone() const {
+  auto code = std::unique_ptr<Text>(static_cast<Text*>(m_code->clone().release()));
+  return std::make_unique<InlineLatex>(std::move(code));
+}
+std::unique_ptr<Node> Header::clone() const {
+  auto h = std::make_unique<Header>(m_level);
+  for (auto& child : m_children) {
+    h->appendChild(child->clone());
+  }
+  return h;
+}
+std::unique_ptr<Node> Paragraph::clone() const {
+  auto p = std::make_unique<Paragraph>();
+  for (auto& child : m_children) {
+    p->appendChild(child->clone());
+  }
+  return p;
+}
+std::unique_ptr<Node> QuoteBlock::clone() const {
+  auto q = std::make_unique<QuoteBlock>();
+  for (auto& child : m_children) {
+    q->appendChild(child->clone());
+  }
+  return q;
+}
+std::unique_ptr<Node> UnorderedList::clone() const {
+  auto ul = std::make_unique<UnorderedList>();
+  for (auto& child : m_children) {
+    ul->appendChild(child->clone());
+  }
+  return ul;
+}
+std::unique_ptr<Node> UnorderedListItem::clone() const {
+  auto item = std::make_unique<UnorderedListItem>();
+  for (auto& child : m_children) {
+    item->appendChild(child->clone());
+  }
+  return item;
+}
+std::unique_ptr<Node> OrderedList::clone() const {
+  auto ol = std::make_unique<OrderedList>();
+  for (auto& child : m_children) {
+    ol->appendChild(child->clone());
+  }
+  return ol;
+}
+std::unique_ptr<Node> OrderedListItem::clone() const {
+  auto item = std::make_unique<OrderedListItem>();
+  for (auto& child : m_children) {
+    item->appendChild(child->clone());
+  }
+  return item;
+}
+std::unique_ptr<Node> CheckboxList::clone() const {
+  auto cl = std::make_unique<CheckboxList>();
+  for (auto& child : m_children) {
+    cl->appendChild(child->clone());
+  }
+  return cl;
+}
+std::unique_ptr<Node> CheckboxItem::clone() const {
+  auto item = std::make_unique<CheckboxItem>();
+  item->setChecked(m_checked);
+  for (auto& child : m_children) {
+    item->appendChild(child->clone());
+  }
+  return item;
+}
+std::unique_ptr<Node> Table::clone() const {
+  auto t = std::make_unique<Table>();
+  t->setHeader(m_header);
+  for (auto& row : m_content) {
+    t->appendRow(row);
+  }
+  return t;
+}
+std::unique_ptr<Node> LatexBlock::clone() const {
+  auto lb = std::make_unique<LatexBlock>();
+  for (auto& child : m_children) {
+    lb->appendChild(child->clone());
+  }
+  return lb;
+}
 }  // namespace md::parser

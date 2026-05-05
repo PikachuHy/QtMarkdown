@@ -16,6 +16,7 @@ class QTMARKDOWNSHARED_EXPORT Table : public Node {
   std::vector<String>& header() { return m_header; }
   std::vector<std::vector<String>>& content() { return m_content; }
   void accept(NodeVisitor* v) override { v->visit(this); }
+  std::unique_ptr<Node> clone() const override;
 
  private:
   std::vector<String> m_header;

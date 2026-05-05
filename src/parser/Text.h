@@ -5,6 +5,7 @@
 #ifndef QTMARKDOWN_TEXT_H
 #define QTMARKDOWN_TEXT_H
 #include "Node.h"
+#include "ParseContext.h"
 #include "PieceTable.h"
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Text : public Node {
@@ -12,7 +13,9 @@ class QTMARKDOWNSHARED_EXPORT Text : public Node {
  public:
   Text(SizeType offset, SizeType length) {
     m_type = NodeType::text;
-    m_items.emplace_back(PieceTableItem{PieceTableItem::original, offset, length});
+    m_items.emplace_back(PieceTableItem{g_parseContext.bufferType,
+                                        g_parseContext.baseOffset + offset,
+                                        length});
   }
   Text(PieceTableItem::BufferType type, SizeType offset, SizeType length) {
     m_type = NodeType::text;
@@ -27,6 +30,9 @@ class QTMARKDOWNSHARED_EXPORT Text : public Node {
   auto end() { return m_items.end(); }
   void merge(Text& text);
   void accept(NodeVisitor* v) override { v->visit(this); }
+  std::unique_ptr<Node> clone() const override;
+  SizeType contentLength(const IBufferProvider& doc) const override;
+  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override;
 
  private:
   Text() { m_type = NodeType::text; }

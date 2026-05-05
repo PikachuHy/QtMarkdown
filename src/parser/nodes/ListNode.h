@@ -13,12 +13,14 @@ class QTMARKDOWNSHARED_EXPORT ListNode : public Container {
  public:
   ListNode() = default;
   ~ListNode() override = default;
+  std::unique_ptr<Node> clone() const override = 0;
 };
 
 class QTMARKDOWNSHARED_EXPORT ListItemNode : public Container {
  public:
   ListItemNode() = default;
   ~ListItemNode() override = default;
+  std::unique_ptr<Node> clone() const override = 0;
 };
 
 }  // namespace md::parser

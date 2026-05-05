@@ -6,6 +6,7 @@
 #define MD_PARSER_BOLDTEXT_H
 
 #include "../Node.h"
+#include "../Text.h"
 
 namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT BoldText : public Node {
@@ -14,6 +15,14 @@ class QTMARKDOWNSHARED_EXPORT BoldText : public Node {
   ~BoldText();
   [[nodiscard]] Text* text() const { return m_text.get(); }
   void accept(NodeVisitor* v) override { v->visit(this); }
+  std::unique_ptr<Node> clone() const override;
+  SizeType contentLength(const IBufferProvider& doc) const override { return m_text->contentLength(doc); }
+  SizeType serializedLength(const IBufferProvider& doc) const override { return 2 + m_text->serializedLength(doc) + 2; }
+  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override {
+    if (contentPos > m_text->contentLength(doc)) return false;
+    mdPos += 2;
+    return m_text->calcMarkdownOffset(doc, contentPos, mdPos);
+  }
 
  private:
   std::unique_ptr<Text> m_text;
