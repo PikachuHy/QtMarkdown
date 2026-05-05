@@ -3,7 +3,7 @@ module(
     version = "1.0.0",
 )
 
-bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_cc", version = "0.2.18")
 
 bazel_dep(name = "magic_enum", version = "0.9.7")
 local_path_override(
@@ -11,10 +11,9 @@ local_path_override(
     path = "3rd/magic_enum",
 )
 
-bazel_dep(name = "doctest", version = "2.4.11")
-# Clone doctest into 3rd/ to enable tests:
+# To enable tests, clone doctest and uncomment:
 #   git clone --depth 1 --branch v2.4.11 https://github.com/doctest/doctest.git 3rd/doctest
-# Then uncomment the override below:
+# bazel_dep(name = "doctest", version = "2.4.11")
 # local_path_override(
 #     module_name = "doctest",
 #     path = "3rd/doctest",
