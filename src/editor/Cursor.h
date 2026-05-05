@@ -5,7 +5,7 @@
 #ifndef QTMARKDOWN_CURSOR_H
 #define QTMARKDOWN_CURSOR_H
 #include "QtMarkdown_global.h"
-#include "mddef.h"
+#include "render/mddef.h"
 #include "CursorCoord.h"
 #include "core/Types.h"
 namespace md::editor {

@@ -3,7 +3,6 @@
 //
 
 #include "EditorRenderer.h"
-#include "QtAdapters.h"
 #include "Cursor.h"
 #include "Document.h"
 #include "render/Instruction.h"
@@ -13,16 +12,14 @@ namespace md::editor {
 EditorRenderer::EditorRenderer(Document& doc, const render::RenderSetting& setting)
     : m_doc(doc), m_setting(setting) {}
 
-void EditorRenderer::drawDoc(core::AbstractPainter& /*painter*/, QPainter* nativePainter,
+void EditorRenderer::drawDoc(core::AbstractPainter& painter,
                               const core::Point& offset) {
-    if (!nativePainter) return;
-    QtPainterAdapter adapter(nativePainter);
     auto qOffset = offset;
     qOffset.y += m_setting.docMargin.top;
     for (const auto& block : m_doc.blocks()) {
         int h = block.height();
         for (const auto& instruction : block) {
-            instruction->run(adapter, qOffset, m_doc.bufferProvider());
+            instruction->run(painter, qOffset, m_doc.bufferProvider());
         }
         qOffset.y += h + m_setting.blockSpacing;
     }
@@ -44,16 +41,14 @@ void EditorRenderer::drawCursor(core::AbstractPainter& painter, const core::Poin
     painter.restore();
 }
 
-void EditorRenderer::drawSelection(core::AbstractPainter& /*painter*/, QPainter* nativePainter,
+void EditorRenderer::drawSelection(core::AbstractPainter& painter,
                                     const core::Point& offset,
                                     const std::vector<InstructionPtr>& selectionInstructions,
                                     const Document& doc) {
-    if (!nativePainter) return;
     if (selectionInstructions.empty()) return;
-    QtPainterAdapter adapter(nativePainter);
     auto qOffset = offset;
     for (const auto& instruction : selectionInstructions) {
-        instruction->run(adapter, qOffset, doc.bufferProvider());
+        instruction->run(painter, qOffset, doc.bufferProvider());
     }
 }
 

@@ -24,6 +24,8 @@ public:
     virtual void drawImage(const Rect& rect, const ImageData& image) = 0;
     virtual void drawText(const Rect& rect, int flags, const String& text) = 0;
 
+    virtual void drawLatex(const Rect& rect, const String& latex, float fontSize) = 0;
+
     // Returns a pointer to the native platform painter context.
     // For Qt: returns QPainter*. Returns nullptr in the base class.
     virtual void* nativePainter() const { return nullptr; }

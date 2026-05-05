@@ -10,10 +10,12 @@
 #include <QClipboard>
 #include <QFile>
 
-#include "QtAdapters.h"
+#include "platform/qt/QtAdapters.h"
+#include "platform/qt/QtLatexPlatform.h"
 #include "debug.h"
 namespace md::editor {
 QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPaintedItem(parent) {
+  md::platform::qt::initLatex();
   m_editor = std::make_shared<Editor>();
   m_editor->setLinkClickedCallback([this](String url) {
     DEBUG << url;
@@ -51,12 +53,12 @@ void QtQuickMarkdownEditor::paint(QPainter *painter) {
   Q_ASSERT(painter != nullptr);
   QtPainterAdapter adapter(painter);
   core::Point offset(0, 0);
-#ifdef Q_OS_ANDROID
-  m_editor->drawDoc(adapter, painter, offset);
+#ifdef __ANDROID__
+  m_editor->drawDoc(adapter, offset);
   setImplicitHeight(m_editor->height());
 #else
-  m_editor->drawSelection(adapter, painter, offset);
-  m_editor->drawDoc(adapter, painter, offset);
+  m_editor->drawSelection(adapter, offset);
+  m_editor->drawDoc(adapter, offset);
   setImplicitHeight(m_editor->height());
   if (hasActiveFocus()) {
     m_editor->drawCursor(adapter, offset);

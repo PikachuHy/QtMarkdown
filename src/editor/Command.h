@@ -10,7 +10,7 @@
 
 #include "CursorCoord.h"
 #include "Document.h"
-#include "mddef.h"
+#include "render/mddef.h"
 namespace md::editor {
 class QTMARKDOWNSHARED_EXPORT Command {
  public:

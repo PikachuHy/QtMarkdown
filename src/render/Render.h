@@ -20,7 +20,7 @@ struct RenderSetting {
   int maxWidth = 800;
   int latexFontSize = 20;
   int paragraphIntent = 2;
-#ifdef Q_OS_ANDROID
+#ifdef __ANDROID__
   String zhTextFont = "Noto Sans CJK SC";
 //  String zhTextFont = "MI Lan Pro VF";
 #else

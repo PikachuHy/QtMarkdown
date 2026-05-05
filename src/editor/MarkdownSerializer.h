@@ -6,7 +6,7 @@
 #define QTMARKDOWN_MARKDOWNSERIALIZER_H
 
 #include "QtMarkdown_global.h"
-#include "mddef.h"
+#include "render/mddef.h"
 #include "parser/IBufferProvider.h"
 #include "parser/Visitor.h"
 

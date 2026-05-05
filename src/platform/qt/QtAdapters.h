@@ -1,5 +1,5 @@
-#ifndef QTMARKDOWN_QTADAPTERS_H
-#define QTMARKDOWN_QTADAPTERS_H
+#ifndef QTMARKDOWN_PLATFORM_QTADAPTERS_H
+#define QTMARKDOWN_PLATFORM_QTADAPTERS_H
 
 #include <QColor>
 #include <QEvent>
@@ -14,10 +14,13 @@
 #include <QSize>
 #include <QTimer>
 
-#include "core/Event.h"
-#include "core/Types.h"
-#include "core/AbstractPainter.h"
-#include "core/Timer.h"
+#include "editor/core/Event.h"
+#include "editor/core/Types.h"
+#include "editor/core/AbstractPainter.h"
+#include "editor/core/Timer.h"
+
+#include "microtex.h"
+#include "graphic_qt.h"
 
 namespace md::editor {
 
@@ -183,7 +186,19 @@ public:
     void drawText(const core::Rect& rect, int flags, const String& text) override {
         m_painter->drawText(toQRect(rect), flags, toQString(text));
     }
-    // Access the underlying QPainter for instruction dispatch (needed by LatexInstruction)
+    void drawLatex(const core::Rect& rect, const String& latex, float fontSize) override {
+        try {
+            auto render = microtex::MicroTeX::parse(latex.toStdString(), rect.width(), fontSize,
+                                                    fontSize / 3.f, 0xff424242);
+            microtex::Graphics2D_qt g2(m_painter);
+            render->draw(g2, rect.x(), rect.y());
+            delete render;
+        } catch (const std::exception&) {
+            // Fallback: draw placeholder text
+            m_painter->drawText(toQPoint(rect.pos), toQString(latex));
+        }
+    }
+    // Access the underlying QPainter for instruction dispatch
     void* nativePainter() const override { return m_painter; }
     QPainter* underlyingPainter() const { return m_painter; }
 private:
@@ -203,4 +218,4 @@ private:
 };
 
 } // namespace md::editor
-#endif // QTMARKDOWN_QTADAPTERS_H
+#endif // QTMARKDOWN_PLATFORM_QTADAPTERS_H

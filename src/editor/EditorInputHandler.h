@@ -10,7 +10,7 @@
 
 #include "core/Event.h"
 #include "core/Types.h"
-#include "mddef.h"
+#include "render/mddef.h"
 #include "Editor.h"
 
 namespace md::render {

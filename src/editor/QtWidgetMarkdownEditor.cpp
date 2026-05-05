@@ -18,11 +18,13 @@
 #include <QScrollBar>
 #include <QVariant>
 
-#include "QtAdapters.h"
+#include "platform/qt/QtAdapters.h"
+#include "platform/qt/QtLatexPlatform.h"
 #include "debug.h"
 #include "editor/Editor.h"
 namespace md::editor {
 QtWidgetMarkdownEditor::QtWidgetMarkdownEditor(QWidget *parent) : QAbstractScrollArea(parent), m_offset(0, 0) {
+  md::platform::qt::initLatex();
   setFocusPolicy(Qt::StrongFocus);
   setAttribute(Qt::WA_InputMethodEnabled);
   setMouseTracking(true);
@@ -71,8 +73,8 @@ void QtWidgetMarkdownEditor::paintEvent(QPaintEvent *event) {
   QPainter qpainter(viewport());
   QtPainterAdapter adapter(&qpainter);
   auto offset = fromQPoint(m_offset);
-  m_editor->drawSelection(adapter, &qpainter, offset);
-  m_editor->drawDoc(adapter, &qpainter, offset);
+  m_editor->drawSelection(adapter, offset);
+  m_editor->drawDoc(adapter, offset);
   if (hasFocus()) {
     m_editor->drawCursor(adapter, offset);
   }

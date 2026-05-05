@@ -19,9 +19,9 @@ target_sources(QtMarkdownEditorCore PRIVATE
         Document.cpp Document.h
         Command.cpp Command.h
         CursorCoord.cpp CursorCoord.h
-        Cursor.cpp Cursor.h
-        QtAdapters.h)
+        Cursor.cpp Cursor.h)
 target_link_libraries(QtMarkdownEditorCore PUBLIC QtMarkdownRender)
+target_link_libraries(QtMarkdownEditorCore PUBLIC QtMarkdownPlatform)
 if (BUILD_STATIC)
     add_library(QtQuickMarkdownEditor STATIC)
 else ()
@@ -70,6 +70,6 @@ install(
         RUNTIME DESTINATION bin
 )
 
-markdown_install_headers(QtMarkdownEditorCore PREFIX editor HEADERS Command.h Cursor.h CursorCoord.h Document.h Editor.h EditorInputHandler.h EditorRenderer.h MarkdownSerializer.h FileManager.h mddef.h QtAdapters.h core/Types.h core/Event.h core/AbstractPainter.h core/Timer.h)
+markdown_install_headers(QtMarkdownEditorCore PREFIX editor HEADERS Command.h Cursor.h CursorCoord.h Document.h Editor.h EditorInputHandler.h EditorRenderer.h MarkdownSerializer.h FileManager.h core/Types.h core/Event.h core/AbstractPainter.h core/Timer.h)
 markdown_install_headers(QtWidgetMarkdownEditor PREFIX editor HEADERS QtWidgetMarkdownEditor.h)
 markdown_install_headers(QtQuickMarkdownEditor PREFIX editor HEADERS QtQuickMarkdownEditor.h)

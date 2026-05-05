@@ -13,35 +13,10 @@
 #include "debug.h"
 #include "microtex.h"
 #include "parser/Text.h"
-#include "graphic_qt.h"
 #include "core/IImageProvider.h"
+#include "platform/qt/QtFontMetricsProvider.h"
 using namespace md::parser;
 namespace md::render {
-class TexRender {
- public:
-  TexRender() {
-    //microtex::InitFontSenseAuto init;
-    //microtex::MicroTeX::init(init);
-    microtex::PlatformFactory::registerFactory("qt", std::make_unique<microtex::PlatformFactory_qt>());
-    microtex::PlatformFactory::activate("qt");
-
-    microtex::MicroTeX::setRenderGlyphUsePath(true);
-  }
-  ~TexRender() { microtex::MicroTeX::release(); }
-};
-class TexRenderGuard {
- public:
-  TexRenderGuard() {
-    m_texRender = std::make_shared<TexRender>();
-    (void)m_texRender;
-  }
-
- private:
-  sptr<TexRender> m_texRender;
-};
-namespace {  // internal linkage -- static storage duration
-QtFontMetricsProvider s_defaultFontMetrics;
-}
 // Render内部配置
 struct LayoutConfig {
   Font font;
@@ -54,7 +29,7 @@ class LayoutPass
                       IFontMetricsProvider* fontMetrics = nullptr,
                       editor::core::IImageProvider* imageProvider = nullptr)
       : m_block(), m_setting(setting), m_doc(doc),
-        m_fontMetrics(fontMetrics ? fontMetrics : &s_defaultFontMetrics),
+        m_fontMetrics(fontMetrics ? fontMetrics : &g_defaultFontMetrics),
         m_hasGui(fontMetrics == nullptr),
         m_imageProvider(imageProvider) {
     ASSERT(m_fontMetrics != nullptr);
@@ -318,7 +293,7 @@ class LayoutPass
     ASSERT(node != nullptr);
     beginVisualLine();
     String imgPath = node->src()->toString(m_doc);
-#if defined(Q_OS_ANDROID) || defined(Q_OS_UNIX)
+#if defined(__ANDROID__) || defined(__unix__)
     if (!imgPath.startsWith("/")) {
       for (const auto &resPath : m_setting->resPathList) {
         String newImgPath = resPath + "/" + imgPath;
@@ -523,7 +498,7 @@ class LayoutPass
   void visit(Lf *node) override {
     ASSERT(node != nullptr);
     save();
-#ifdef Q_OS_ANDROID
+#ifdef __ANDROID__
 #else
     String enterStr = "↲";
     auto font = curFont();
@@ -663,9 +638,9 @@ class LayoutPass
   }
   Font codeFont() {
     auto font = curFont();
-#ifdef Q_OS_WIN
+#ifdef _WIN32
     font.family = "Cascadia Code";
-#elif defined(Q_OS_MACOS)
+#elif defined(__APPLE__)
     font.family = "Menlo";
 #else
     font.family = "monospace";
@@ -1068,7 +1043,6 @@ Block Render::render(Node *node, sptr<RenderSetting> setting, const parser::IBuf
                      IFontMetricsProvider* fontMetrics,
                      editor::core::IImageProvider* imageProvider) {
   ASSERT(node != nullptr);
-  static TexRenderGuard texRenderGuard;
   LayoutPass render(node, setting, doc, fontMetrics, imageProvider);
   node->accept(&render);
   Block block = render.execute();

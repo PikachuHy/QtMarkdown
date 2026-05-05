@@ -6,7 +6,7 @@
 
 #include "core/AbstractPainter.h"
 #include "core/Types.h"
-#include "mddef.h"
+#include "render/mddef.h"
 
 namespace md::render {
 class RenderSetting;
@@ -22,11 +22,11 @@ public:
     EditorRenderer(Document& doc, const render::RenderSetting& setting);
 
     // -- Main paint entry points --
-    void drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
+    void drawDoc(core::AbstractPainter& painter,
                  const core::Point& offset);
     void drawCursor(core::AbstractPainter& painter, const core::Point& offset,
                     const Cursor& cursor, bool hasSelection);
-    void drawSelection(core::AbstractPainter& painter, QPainter* nativePainter,
+    void drawSelection(core::AbstractPainter& painter,
                        const core::Point& offset,
                        const std::vector<InstructionPtr>& selectionInstructions,
                        const Document& doc);

@@ -19,7 +19,7 @@ target_sources(QtMarkdownRender PRIVATE
         FontMetricsProvider.h
         ../../assets/md.qrc)
 target_compile_definitions(QtMarkdownRender PRIVATE -DQtMarkdown_LIBRARY)
-target_link_libraries(QtMarkdownRender PUBLIC Qt${QT_VERSION_MAJOR}::Gui QtMarkdownParser microtex-qt microtex)
+target_link_libraries(QtMarkdownRender PUBLIC Qt${QT_VERSION_MAJOR}::Gui QtMarkdownParser microtex)
 set_target_properties(QtMarkdownRender PROPERTIES AUTORCC ON)
 set_target_properties(QtMarkdownRender PROPERTIES AUTOMOC ON)
 install(

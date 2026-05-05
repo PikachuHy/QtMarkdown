@@ -6,7 +6,7 @@
 #include "EditorRenderer.h"
 #include "EditorInputHandler.h"
 #include "FileManager.h"
-#include "QtImageProvider.h"
+#include "platform/qt/QtImageProvider.h"
 
 #include <format>
 #include <memory>
@@ -22,7 +22,7 @@ Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
   m_imageProvider = std::make_shared<QtImageProvider>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
-#ifdef Q_OS_ANDROID
+#ifdef __ANDROID__
   m_renderSetting->docMargin.left = 0;
 #endif
   m_linkClickedCallback = [](String s) { DEBUG << "click link" << s; };
@@ -51,16 +51,16 @@ bool Editor::saveToFile(const String &path) {
   FileManager fm(*m_doc);
   return fm.saveToFile(path);
 }
-void Editor::drawSelection(core::AbstractPainter& painter, QPainter* nativePainter,
+void Editor::drawSelection(core::AbstractPainter& painter,
                            const core::Point& offset) {
   if (!m_renderer) return;
-  m_renderer->drawSelection(painter, nativePainter, offset,
+  m_renderer->drawSelection(painter, offset,
                             m_selectionInstructions, *m_doc);
 }
-void Editor::drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
+void Editor::drawDoc(core::AbstractPainter& painter,
                      const core::Point& offset) {
   if (!m_renderer) return;
-  m_renderer->drawDoc(painter, nativePainter, offset);
+  m_renderer->drawDoc(painter, offset);
 #ifndef Q_OS_ANDROID
   auto coord = m_cursor->coord();
   if (coord.blockNo < 0 || coord.blockNo >= static_cast<SizeType>(m_doc->blocks().size())) return;

@@ -1,12 +1,12 @@
-#ifndef QTMARKDOWN_QTIMAGEPROVIDER_H
-#define QTMARKDOWN_QTIMAGEPROVIDER_H
+#ifndef QTMARKDOWN_PLATFORM_QTIMAGEPROVIDER_H
+#define QTMARKDOWN_PLATFORM_QTIMAGEPROVIDER_H
 
 #include <QFile>
 #include <QImage>
 #include <QString>
 
-#include "core/IImageProvider.h"
-#include "QtAdapters.h"
+#include "editor/core/IImageProvider.h"
+#include "platform/qt/QtAdapters.h"
 
 namespace md::editor {
 
@@ -24,4 +24,4 @@ public:
 };
 
 } // namespace md::editor
-#endif // QTMARKDOWN_QTIMAGEPROVIDER_H
+#endif // QTMARKDOWN_PLATFORM_QTIMAGEPROVIDER_H

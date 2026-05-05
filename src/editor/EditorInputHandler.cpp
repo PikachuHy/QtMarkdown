@@ -5,7 +5,6 @@
 #include "EditorInputHandler.h"
 #include "Cursor.h"
 #include "Document.h"
-#include "QtAdapters.h"
 #include "debug.h"
 #include "parser/Text.h"
 #include "render/Instruction.h"
@@ -38,7 +37,7 @@ class MousePressVisitor : public NodeVisitor {
   }
   void visit(Image *node) override {
     auto path = node->src()->toString(m_doc.bufferProvider());
-#if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
+#if defined(__ANDROID__) || defined(__unix__)
     if (!path.startsWith("/")) {
       for (const auto& resPath: m_doc.setting().resPathList) {
         auto newImgPath = resPath + "/" + path;
@@ -315,7 +314,7 @@ CursorShape EditorInputHandler::cursorShape(const core::Point& offset, const cor
 }
 
 void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::MouseEvent &event) {
-#ifdef Q_OS_ANDROID
+#ifdef __ANDROID__
   // 安卓有press，但是没有release
 #else
   m_editor.m_mousePressing = true;

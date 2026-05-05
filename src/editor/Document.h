@@ -5,7 +5,7 @@
 #ifndef QTMARKDOWN_DOCUMENT_H
 #define QTMARKDOWN_DOCUMENT_H
 #include "QtMarkdown_global.h"
-#include "mddef.h"
+#include "render/mddef.h"
 #include "parser/Document.h"
 #include "parser/IBufferProvider.h"
 #include "render/Instruction.h"

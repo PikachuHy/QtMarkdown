@@ -10,7 +10,6 @@
 #include "QtMarkdown_global.h"
 #include "Document.h"
 #include "CursorCoord.h"
-#include "mddef.h"
 #include "core/AbstractPainter.h"
 #include "core/Types.h"
 #include "core/Event.h"
@@ -57,11 +56,9 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   std::pair<bool, String> loadFile(const String& path);
   String title();
   bool saveToFile(const String& path);
-  void drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
-               const core::Point& offset);
+  void drawDoc(core::AbstractPainter& painter, const core::Point& offset);
   void drawCursor(core::AbstractPainter& painter, const core::Point& offset);
-  void drawSelection(core::AbstractPainter& painter, QPainter* nativePainter,
-                     const core::Point& offset);
+  void drawSelection(core::AbstractPainter& painter, const core::Point& offset);
   void keyPressEvent(const core::KeyEvent& event);
   void keyReleaseEvent(const core::KeyEvent& event);
   void mousePressEvent(const core::Point& offset, const core::MouseEvent& event);
