@@ -9,3 +9,5 @@ deps
 example/quazip
 .claude
 .cache/
+bazel-*
+MODULE.bazel.lock

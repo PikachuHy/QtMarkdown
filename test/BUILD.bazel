@@ -1,0 +1,11 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+cc_test(
+    name = "test_parser",
+    size = "small",
+    srcs = ["test_parser.cpp"],
+    deps = [
+        "//src:QtMarkdownParser",
+        "@doctest//:doctest",
+    ],
+)
