@@ -4,6 +4,7 @@
 
 #ifndef QTMARKDOWN_EDITOR_H
 #define QTMARKDOWN_EDITOR_H
+#include <functional>
 #include <utility>
 
 #include "QtMarkdown_global.h"
@@ -13,6 +14,7 @@
 #include "core/AbstractPainter.h"
 #include "core/Types.h"
 #include "core/Event.h"
+#include "core/IImageProvider.h"
 namespace md::editor {
 class Cursor;
 class SelectionRange;
@@ -101,6 +103,7 @@ class QTMARKDOWNSHARED_EXPORT Editor {
  private:
   sptr<Document> m_doc;
   sptr<Cursor> m_cursor;
+  sptr<core::IImageProvider> m_imageProvider;
   sptr<render::RenderSetting> m_renderSetting;
   std::unique_ptr<EditorRenderer> m_renderer;
   std::unique_ptr<EditorInputHandler> m_inputHandler;

@@ -4,8 +4,6 @@
 
 #ifndef QTMARKDOWN_INSTRUCTION_H
 #define QTMARKDOWN_INSTRUCTION_H
-#include <QPainter>
-#include <QRect>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -13,6 +11,7 @@
 #include "mddef.h"
 #include "parser/IBufferProvider.h"
 #include "Cell.h"
+#include "core/AbstractPainter.h"
 namespace md::parser {
 class Text;
 }
@@ -49,24 +48,27 @@ class QTMARKDOWNSHARED_EXPORT StaticTextInstruction : public Instruction {
 };
 class QTMARKDOWNSHARED_EXPORT ImageInstruction : public Instruction {
  public:
-  ImageInstruction(String path, Point pos, Size size)
-      : m_path(std::move(path)), m_pos(pos), m_size(size) {}
+  ImageInstruction(String path, Point pos, Size size, editor::core::ImageData image)
+      : m_path(std::move(path)), m_pos(pos), m_size(size), m_image(std::move(image)) {}
   void run(Painter& painter, Point offset, const parser::IBufferProvider& doc) const override;
 
  private:
   String m_path;
   Point m_pos;
   Size m_size;
+  editor::core::ImageData m_image;
 };
 class QTMARKDOWNSHARED_EXPORT StaticImageInstruction : public Instruction {
  public:
-  StaticImageInstruction(String path, Point pos, Size size) : m_path(std::move(path)), m_pos(pos), m_size(size) {}
+  StaticImageInstruction(String path, Point pos, Size size, editor::core::ImageData image)
+      : m_path(std::move(path)), m_pos(pos), m_size(size), m_image(std::move(image)) {}
   void run(Painter& painter, Point offset, const parser::IBufferProvider& doc) const override;
 
  private:
   String m_path;
   Point m_pos;
   Size m_size;
+  editor::core::ImageData m_image;
 };
 class QTMARKDOWNSHARED_EXPORT FillRectInstruction : public Instruction {
  public:

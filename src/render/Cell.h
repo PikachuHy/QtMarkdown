@@ -21,9 +21,9 @@ class QTMARKDOWNSHARED_EXPORT Cell {
   // 逻辑长度
   [[nodiscard]] virtual SizeType length() = 0;
   // 像素宽度
-  [[nodiscard]] int width() const { return m_size.width(); };
+  [[nodiscard]] int width() const { return m_size.width; };
   // 像素高度
-  [[nodiscard]] int height() const { return m_size.height(); };
+  [[nodiscard]] int height() const { return m_size.height; };
   // 如果长度为length的子串，占用像素宽度
   [[nodiscard]] virtual int width(SizeType length, const parser::IBufferProvider& doc) const = 0;
 

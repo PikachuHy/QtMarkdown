@@ -1,7 +1,6 @@
 #ifndef QTMARKDOWN_EDITORRENDERER_H
 #define QTMARKDOWN_EDITORRENDERER_H
 
-#include <QPainter>
 #include <memory>
 #include <vector>
 

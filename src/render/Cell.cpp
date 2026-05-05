@@ -16,6 +16,6 @@ int TextCell::width(SizeType length, const parser::IBufferProvider& doc) const {
 }
 int InlineLatexCell::width(SizeType length, const parser::IBufferProvider& /*doc*/) const {
   if (length == 0) return 0;
-  return m_size.width();
+  return m_size.width;
 }
 }  // namespace md::render

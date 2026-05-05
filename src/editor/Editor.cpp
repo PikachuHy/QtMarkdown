@@ -6,6 +6,7 @@
 #include "EditorRenderer.h"
 #include "EditorInputHandler.h"
 #include "FileManager.h"
+#include "QtImageProvider.h"
 
 #include <format>
 #include <memory>
@@ -19,9 +20,10 @@ using namespace md::parser;
 namespace md::editor {
 Editor::Editor() {
   m_cursor = std::make_shared<Cursor>();
+  m_imageProvider = std::make_shared<QtImageProvider>();
   m_renderSetting = std::make_shared<render::RenderSetting>();
 #ifdef Q_OS_ANDROID
-  m_renderSetting->docMargin.setLeft(0);
+  m_renderSetting->docMargin.left = 0;
 #endif
   m_linkClickedCallback = [](String s) { DEBUG << "click link" << s; };
   m_imageClickedCallback = [](String s) { DEBUG << "click image" << s; };
@@ -30,7 +32,7 @@ Editor::Editor() {
 }
 Editor::~Editor() = default;
 void Editor::loadText(const String &text) {
-  m_doc = std::make_shared<Document>(text, m_renderSetting);
+  m_doc = std::make_shared<Document>(text, m_renderSetting, m_imageProvider.get());
   m_cursor = std::make_shared<Cursor>();
   m_renderer = std::make_unique<EditorRenderer>(*m_doc, *m_renderSetting);
   m_inputHandler = std::make_unique<EditorInputHandler>(*this, *m_doc, *m_cursor, *m_renderSetting);
@@ -63,7 +65,7 @@ void Editor::drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
   auto coord = m_cursor->coord();
   if (coord.blockNo < 0 || coord.blockNo >= static_cast<SizeType>(m_doc->blocks().size())) return;
   // 高亮当前Block
-  int h = m_renderSetting->docMargin.top();
+  int h = m_renderSetting->docMargin.top;
   for (int i = 0; i < coord.blockNo; ++i) {
     h += m_renderSetting->blockSpacing;
     h += m_doc->blocks()[i].height();
@@ -71,7 +73,7 @@ void Editor::drawDoc(core::AbstractPainter& painter, QPainter* nativePainter,
   const auto& block = m_doc->blocks()[coord.blockNo];
   painter.save();
   painter.setPen(core::Color(0, 255, 255));
-  auto highlightPos = core::Point(m_renderSetting->docMargin.left(), h);
+  auto highlightPos = core::Point(m_renderSetting->docMargin.left, h);
   auto highlightSize = core::Size(block.width(), block.height() - m_renderSetting->lineSpacing);
   painter.drawRect(core::Rect(highlightPos + offset, highlightSize));
   painter.restore();
@@ -129,7 +131,7 @@ void Editor::insertText(String str) {
 }
 void Editor::reset() {
   m_cursor = std::make_shared<Cursor>();
-  m_doc = std::make_shared<Document>("", m_renderSetting);
+  m_doc = std::make_shared<Document>("", m_renderSetting, m_imageProvider.get());
   m_renderer = std::make_unique<EditorRenderer>(*m_doc, *m_renderSetting);
   m_inputHandler = std::make_unique<EditorInputHandler>(*this, *m_doc, *m_cursor, *m_renderSetting);
 }

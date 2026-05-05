@@ -3,9 +3,12 @@
 
 #include <QColor>
 #include <QEvent>
+#include <QFont>
+#include <QImage>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPixmap>
 #include <QPoint>
 #include <QRect>
 #include <QSize>
@@ -27,6 +30,42 @@ inline core::Rect fromQRect(const QRect& r) { return {{r.x(), r.y()}, {r.width()
 inline QRect toQRect(const core::Rect& r) { return {r.pos.x, r.pos.y, r.size.width, r.size.height}; }
 inline core::Color fromQColor(const QColor& c) { return {c.red(), c.green(), c.blue(), c.alpha()}; }
 inline QColor toQColor(const core::Color& c) { return QColor(c.r, c.g, c.b, c.a); }
+
+// -- FontDescription <-> QFont --
+inline QString toQString(const String& s) {
+    return QString::fromUtf8(s.data(), static_cast<int>(s.size()));
+}
+inline String fromQString(const QString& s) {
+    return String(s.toUtf8().constData());
+}
+
+inline QFont toQFont(const core::FontDescription& fd) {
+    QFont font(toQString(fd.family), fd.pixelSize);
+    font.setPixelSize(fd.pixelSize);
+    font.setBold(fd.bold);
+    font.setItalic(fd.italic);
+    font.setStrikeOut(fd.strikeOut);
+    font.setUnderline(fd.underline);
+    return font;
+}
+
+inline QImage toQImage(const core::ImageData& img) {
+    if (img.isNull()) return {};
+    if (img.pixels.empty()) return {};
+    QImage qimg(img.pixels.data(), img.width, img.height, img.width * 4, QImage::Format_RGBA8888);
+    return qimg.copy(); // deep copy since we don't own the data
+}
+
+inline core::ImageData fromQImage(const QImage& img) {
+    if (img.isNull()) return {};
+    QImage converted = img.convertToFormat(QImage::Format_RGBA8888);
+    core::ImageData data;
+    data.width = converted.width();
+    data.height = converted.height();
+    data.pixels.resize(static_cast<size_t>(converted.width() * converted.height() * 4));
+    std::memcpy(data.pixels.data(), converted.constBits(), data.pixels.size());
+    return data;
+}
 
 // -- QtKeyEvent adapter --
 class QtKeyEvent : public core::KeyEvent {
@@ -130,9 +169,22 @@ public:
     void restore() override { m_painter->restore(); }
     void setPen(const core::Color& color) override { m_painter->setPen(toQColor(color)); }
     void drawRect(const core::Rect& rect) override { m_painter->drawRect(toQRect(rect)); }
-    void drawText(const core::Point& pos, const QString& text) override { m_painter->drawText(toQPoint(pos), text); }
+    void drawText(const core::Point& pos, const String& text) override { m_painter->drawText(toQPoint(pos), toQString(text)); }
     void drawLine(const core::Point& p1, const core::Point& p2) override { m_painter->drawLine(toQPoint(p1), toQPoint(p2)); }
-    // Access the underlying QPainter for instruction dispatch
+    void setFont(const core::FontDescription& font) override { m_painter->setFont(toQFont(font)); }
+    void fillRect(const core::Rect& rect, const core::Color& color) override { m_painter->fillRect(toQRect(rect), toQColor(color)); }
+    void drawEllipse(const core::Rect& rect, const core::Color& color) override {
+        m_painter->setBrush(QBrush(toQColor(color)));
+        m_painter->drawEllipse(toQRect(rect));
+    }
+    void drawImage(const core::Rect& rect, const core::ImageData& image) override {
+        m_painter->drawPixmap(toQRect(rect), QPixmap::fromImage(toQImage(image)));
+    }
+    void drawText(const core::Rect& rect, int flags, const String& text) override {
+        m_painter->drawText(toQRect(rect), flags, toQString(text));
+    }
+    // Access the underlying QPainter for instruction dispatch (needed by LatexInstruction)
+    void* nativePainter() const override { return m_painter; }
     QPainter* underlyingPainter() const { return m_painter; }
 private:
     QPainter* m_painter;

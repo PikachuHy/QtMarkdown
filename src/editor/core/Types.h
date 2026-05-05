@@ -2,6 +2,8 @@
 #define QTMARKDOWN_CORE_TYPES_H
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace md::editor::core {
 
@@ -34,6 +36,7 @@ struct Rect {
     Size size;
     constexpr Rect() = default;
     constexpr Rect(const Point& p, const Size& s) : pos(p), size(s) {}
+    constexpr Rect(int x, int y, int w, int h) : pos(x, y), size(w, h) {}
     constexpr int x() const { return pos.x; }
     constexpr int y() const { return pos.y; }
     constexpr int width() const { return size.width; }
@@ -42,6 +45,7 @@ struct Rect {
         return p.x >= pos.x && p.x <= pos.x + size.width
             && p.y >= pos.y && p.y <= pos.y + size.height;
     }
+    constexpr bool isEmpty() const { return size.width <= 0 || size.height <= 0; }
 };
 
 struct Color {
@@ -52,6 +56,38 @@ struct Color {
         return r == other.r && g == other.g && b == other.b && a == other.a;
     }
     constexpr bool operator!=(const Color& other) const { return !(*this == other); }
+    static constexpr Color black() { return {0, 0, 0, 255}; }
+    static constexpr Color white() { return {255, 255, 255, 255}; }
+    static constexpr Color red() { return {255, 0, 0, 255}; }
+    static constexpr Color green() { return {0, 255, 0, 255}; }
+    static constexpr Color blue() { return {0, 0, 255, 255}; }
+    static constexpr Color yellow() { return {255, 255, 0, 255}; }
+    static constexpr Color transparent() { return {0, 0, 0, 0}; }
+};
+
+struct Margins {
+    int left = 0;
+    int top = 0;
+    int right = 0;
+    int bottom = 0;
+    constexpr Margins() = default;
+    constexpr Margins(int l, int t, int r, int b) : left(l), top(t), right(r), bottom(b) {}
+};
+
+struct FontDescription {
+    std::string family;
+    int pixelSize = 16;
+    bool bold = false;
+    bool italic = false;
+    bool underline = false;
+    bool strikeOut = false;
+};
+
+struct ImageData {
+    int width = 0;
+    int height = 0;
+    std::vector<unsigned char> pixels;  // RGBA, row-major
+    bool isNull() const { return pixels.empty(); }
 };
 
 } // namespace md::editor::core

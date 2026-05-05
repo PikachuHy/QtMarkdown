@@ -5,6 +5,7 @@
 #include "Render.h"
 
 #include <vector>
+#include <filesystem>
 
 #include "Instruction.h"
 #include "StringUtil.h"
@@ -13,7 +14,7 @@
 #include "microtex.h"
 #include "parser/Text.h"
 #include "graphic_qt.h"
-#include <QFile>
+#include "core/IImageProvider.h"
 using namespace md::parser;
 namespace md::render {
 class TexRender {
@@ -50,21 +51,23 @@ class LayoutPass
     : public NodeVisitor {
  public:
   explicit LayoutPass(Node *node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
-                      IFontMetricsProvider* fontMetrics = nullptr)
+                      IFontMetricsProvider* fontMetrics = nullptr,
+                      editor::core::IImageProvider* imageProvider = nullptr)
       : m_block(), m_setting(setting), m_doc(doc),
         m_fontMetrics(fontMetrics ? fontMetrics : &s_defaultFontMetrics),
-        m_hasGui(fontMetrics == nullptr) {
+        m_hasGui(fontMetrics == nullptr),
+        m_imageProvider(imageProvider) {
     ASSERT(m_fontMetrics != nullptr);
-    m_config.font.setPixelSize(16 + 2);
-    m_config.pen = Qt::black;
+    m_config.font.pixelSize = 18;
+    m_config.pen = Color::black();
     m_configs.push_back(m_config);
   }
   void visit(Header *node) override {
     ASSERT(node != nullptr);
     save();
     auto font = curFont();
-    font.setPixelSize(m_setting->headerFontSize[node->level() - 1]);
-    font.setBold(true);
+    font.pixelSize = m_setting->headerFontSize[node->level() - 1];
+    font.bold = true;
     setFont(font);
     beginBlock();
     drawHeaderPrefix(node->level());
@@ -80,7 +83,7 @@ class LayoutPass
     auto font = curFont();
     setFont(font);
     beginBlock();
-    m_curX += curFont().pixelSize() * m_setting->paragraphIntent;
+    m_curX += curFont().pixelSize * m_setting->paragraphIntent;
     for (auto& it : node->children()) {
       it->accept(this);
     }
@@ -103,7 +106,7 @@ class LayoutPass
         continue;
       }
 
-      if (textSize(enSubStr).width() + m_setting->docMargin.left() < m_setting->contentMaxWidth()) {
+      if (textSize(enSubStr).width + m_setting->docMargin.left < m_setting->contentMaxWidth()) {
         moveToNewLine();
         // 抵消后面都i++
         i--;
@@ -120,7 +123,7 @@ class LayoutPass
       // 画不下，就强制加一个连字符
       auto hyphenPos = Point(m_curX, m_curY);
       auto hyphenSize = textSize("-");
-      m_instructions.push_back(std::make_unique<StaticTextInstruction>(String("-"), hyphenPos, hyphenSize, Qt::black, curFont()));
+      m_instructions.push_back(std::make_unique<StaticTextInstruction>(String("-"), hyphenPos, hyphenSize, Color::black(), curFont()));
       moveToNewLine();
     }
   }
@@ -168,9 +171,9 @@ class LayoutPass
   void visit(Link *node) override {
     ASSERT(node != nullptr);
     save();
-    setPen(Qt::blue);
+    setPen(Color::blue());
     auto font = curFont();
-    font.setUnderline(true);
+    font.underline = true;
     setFont(font);
     auto startIndex = m_block.m_logicalLines.back().m_cells.size();
     node->content()->accept(this);
@@ -190,7 +193,7 @@ class LayoutPass
     if (currentLineCanDrawText(codeStr)) {
       auto size = textSize(codeStr);
       m_instructions.push_back(std::make_unique<FillRectInstruction>(
-          Point(x - 2, y - 2), Size(size.width() + 4, size.height() + 4), QColor(249, 249, 249)));
+          Point(x - 2, y - 2), Size(size.width + 4, size.height + 4), Color(249, 249, 249)));
       node->code()->accept(this);
     }
     restore();
@@ -208,7 +211,7 @@ class LayoutPass
     int lineH = textHeight();
     int estimatedH = node->size() * lineH + (node->size() - 1) * m_setting->lineSpacing;
     m_instructions.push_back(std::make_unique<FillRectInstruction>(
-        Point(x - 3, y - 3), Size(w + 6, estimatedH + 6), QColor(249, 249, 249)));
+        Point(x - 3, y - 3), Size(w + 6, estimatedH + 6), Color(249, 249, 249)));
 
     for (int i = 0; i < node->size(); ++i) {
       if (i > 0) beginLogicalLine();
@@ -217,14 +220,14 @@ class LayoutPass
     }
     endBlock();
 
-    if (m_hasGui) {
+    if (m_hasGui && m_imageProvider) {
       String copyBtnFilePath = ":icon/copy_32x32.png";
-      QFile copyBtnFile(toQString(copyBtnFilePath));
-      ASSERT(copyBtnFile.exists());
-      QPixmap copyBtnImg(toQString(copyBtnFilePath));
-      Point pos(x + w - copyBtnImg.width(), y);
-      m_instructions.push_back(std::make_unique<StaticImageInstruction>(copyBtnFilePath, pos, copyBtnImg.size()));
-      m_block.appendElement({node, pos, copyBtnImg.size()});
+      auto image = m_imageProvider->load(copyBtnFilePath);
+      if (!image.isNull()) {
+        Point pos(x + w - image.width, y);
+        m_instructions.push_back(std::make_unique<StaticImageInstruction>(copyBtnFilePath, pos, Size(image.width, image.height), std::move(image)));
+        m_block.appendElement({node, pos, Size(image.width, image.height)});
+      }
     }
     restore();
   }
@@ -237,8 +240,8 @@ class LayoutPass
       auto render = std::unique_ptr<microtex::Render>(
           microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
                                     textSize / 3.f, 0xff424242));
-      const QPoint &point = Point(m_curX, m_curY);
-      const QSize &size = Size(render->getWidth() + 2, render->getHeight());
+      const Point &point = Point(m_curX, m_curY);
+      const Size &size = Size(render->getWidth() + 2, render->getHeight());
       auto cell = std::make_unique<InlineLatexCell>(point, size);
       auto* rawCell = cell.get();
       appendVisualCell(std::move(cell));
@@ -260,8 +263,8 @@ class LayoutPass
       auto render = std::unique_ptr<microtex::Render>(
           microtex::MicroTeX::parse(latex.toStdString(), m_setting->contentMaxWidth(), textSize,
                                     textSize / 3.f, 0xff424242));
-      const QPoint &point = Point((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY);
-      const QSize &size = Size(m_setting->contentMaxWidth(), render->getHeight());
+      const Point &point = Point((m_setting->contentMaxWidth() - render->getWidth()) / 2, m_curY);
+      const Size &size = Size(m_setting->contentMaxWidth(), render->getHeight());
       auto cell = std::make_unique<InlineLatexCell>(point, size);
       auto* rawCell = cell.get();
       appendVisualCell(std::move(cell));
@@ -277,8 +280,8 @@ class LayoutPass
   void visit(ItalicText *node) override {
     ASSERT(node != nullptr);
     save();
-    QFont font = curFont();
-    font.setItalic(true);
+    auto font = curFont();
+    font.italic = true;
     setFont(font);
     node->text()->accept(this);
     restore();
@@ -286,8 +289,8 @@ class LayoutPass
   void visit(BoldText *node) override {
     ASSERT(node != nullptr);
     save();
-    QFont font = curFont();
-    font.setBold(true);
+    auto font = curFont();
+    font.bold = true;
     setFont(font);
     node->text()->accept(this);
     restore();
@@ -295,9 +298,9 @@ class LayoutPass
   void visit(ItalicBoldText *node) override {
     ASSERT(node != nullptr);
     save();
-    QFont font = curFont();
-    font.setItalic(true);
-    font.setBold(true);
+    auto font = curFont();
+    font.italic = true;
+    font.bold = true;
     setFont(font);
     node->text()->accept(this);
     restore();
@@ -305,8 +308,8 @@ class LayoutPass
   void visit(StrickoutText *node) override {
     ASSERT(node != nullptr);
     save();
-    QFont font = curFont();
-    font.setStrikeOut(true);
+    auto font = curFont();
+    font.strikeOut = true;
     setFont(font);
     node->text()->accept(this);
     restore();
@@ -319,45 +322,45 @@ class LayoutPass
     if (!imgPath.startsWith("/")) {
       for (const auto &resPath : m_setting->resPathList) {
         String newImgPath = resPath + "/" + imgPath;
-        if (QFile(toQString(newImgPath)).exists()) {
+        if (m_imageProvider && m_imageProvider->exists(newImgPath)) {
           imgPath = newImgPath;
         }
       }
     }
 #endif
-    QFile file(toQString(imgPath));
 
-    if (!file.exists()) {
-      qWarning() << "image not exist." << toQString(imgPath);
+    if (!m_imageProvider || !m_imageProvider->exists(imgPath)) {
+      std::cerr << "image not exist: " << imgPath << std::endl;
       return;
     }
-    QImage image(toQString(imgPath));
-    int imageMaxWidth = qMin(1080, m_setting->contentMaxWidth());
-    int imgWidth = image.width();
+    auto image = m_imageProvider->load(imgPath);
+    int imageMaxWidth = std::min(1080, m_setting->contentMaxWidth());
+    int imgWidth = image.width;
     while (imgWidth > imageMaxWidth) {
       imgWidth /= 2;
     }
-    image = image.scaledToWidth(imgWidth);
-    const QPoint &pos = Point(m_curX, m_curY);
-    m_instructions.push_back(std::make_unique<ImageInstruction>(imgPath, pos, image.size()));
-    m_curY += image.height();
-    m_block.appendElement({node, pos, image.size()});
+    int displayWidth = imgWidth;
+    int displayHeight = (displayWidth * image.height) / image.width;
+    const Point &pos = Point(m_curX, m_curY);
+    Size imgSize(displayWidth, displayHeight);
+    m_instructions.push_back(std::make_unique<ImageInstruction>(imgPath, pos, imgSize, std::move(image)));
+    m_curY += displayHeight;
+    m_block.appendElement({node, pos, imgSize});
     // TODO: 需要重新考虑图片
-    m_block.m_logicalLines.back().m_lines.back().m_h = image.height();
+    m_block.m_logicalLines.back().m_lines.back().m_h = displayHeight;
     endVisualLine();
     if (!imgPath.endsWith(".gif")) {
       return;
     }
     // gif加一个播放的图标
     String playIconPath = ":/icon/play_64x64.png";
-    QFile playIconFile(toQString(playIconPath));
-    ASSERT(playIconFile.exists());
-    QImage playImage(toQString(playIconPath));
+    auto playIcon = m_imageProvider->load(playIconPath);
+    if (playIcon.isNull()) return;
     // 计算播放图标所在位置
     // 播放图标放在中心位置
-    int x = (image.width() - playImage.width()) / 2 + pos.x();
-    int y = (image.height() - playImage.height()) / 2 + pos.y();
-    m_instructions.push_back(std::make_unique<StaticImageInstruction>(playIconPath, Point(x, y), playImage.size()));
+    int x = (displayWidth - playIcon.width) / 2 + pos.x;
+    int y = (displayHeight - playIcon.height) / 2 + pos.y;
+    m_instructions.push_back(std::make_unique<StaticImageInstruction>(playIconPath, Point(x, y), Size(playIcon.width, playIcon.height), std::move(playIcon)));
   }
   void visit(CheckboxList *node) override {
     ASSERT(node != nullptr);
@@ -373,27 +376,28 @@ class LayoutPass
     ASSERT(node != nullptr);
     save();
     int oldX = m_curX;
-    m_curX += m_setting->checkboxMargin.left();
+    m_curX += m_setting->checkboxMargin.left;
     auto font = curFont();
     // 计算高度偏移
     auto h1 = textHeight();
 
     save();
-    const QPoint &pos = Point(m_curX, m_curY);
-    const QSize &size = Size(h1, h1);
+    const Point &pos = Point(m_curX, m_curY);
+    const Size &size = Size(h1, h1);
     if (node->isChecked()) {
       String imagePath = ":icon/checkbox-selected_64x64.png";
-      m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
-
+      auto image = m_imageProvider ? m_imageProvider->load(imagePath) : editor::core::ImageData();
+      m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size, std::move(image)));
     } else {
       String imagePath = ":icon/checkbox-unselected_64x64.png";
-      m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
+      auto image = m_imageProvider ? m_imageProvider->load(imagePath) : editor::core::ImageData();
+      m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size, std::move(image)));
     }
     m_block.appendElement({node, pos, size});
     m_curX += h1 + 10;
     restore();
     font = curFont();
-    font.setStrikeOut(node->isChecked());
+    font.strikeOut = node->isChecked();
     setFont(font);
     m_block.m_logicalLines.back().m_padding = m_curX - oldX;
     beginVisualLine();
@@ -408,11 +412,11 @@ class LayoutPass
     for (const auto &item : node->children()) {
       beginLogicalLine(false);
       auto oldX = m_curX;
-      m_curX += m_setting->listMargin.left();
+      m_curX += m_setting->listMargin.left;
       auto h = textHeight();
       auto size = 5;
       auto y = m_curY + (h - size) / 2 + 2;
-      m_instructions.push_back(std::make_unique<EllipseInstruction>(Point(m_curX, y), Size(size, size), Qt::black));
+      m_instructions.push_back(std::make_unique<EllipseInstruction>(Point(m_curX, y), Size(size, size), Color::black()));
       m_curX += 15;
       m_block.m_logicalLines.back().m_padding = m_curX - oldX;
       beginVisualLine();
@@ -435,12 +439,12 @@ class LayoutPass
       i++;
       beginLogicalLine(false);
       auto oldX = m_curX;
-      m_curX += m_setting->listMargin.left();
+      m_curX += m_setting->listMargin.left;
       String numStr = std::to_string(i) + ".  ";
       const Size &size = textSize(numStr);
-      const QPoint &pos = Point(m_curX, m_curY);
-      m_instructions.push_back(std::make_unique<StaticTextInstruction>(numStr, pos, size, Qt::black, curFont()));
-      m_curX += size.width();
+      const Point &pos = Point(m_curX, m_curY);
+      m_instructions.push_back(std::make_unique<StaticTextInstruction>(numStr, pos, size, Color::black(), curFont()));
+      m_curX += size.width;
       m_block.m_logicalLines.back().m_padding = m_curX - oldX;
       beginVisualLine();
       item->accept(this);
@@ -460,9 +464,9 @@ class LayoutPass
     beginBlock();
     int lineY = m_curY + m_setting->lineSpacing;
     m_instructions.push_back(std::make_unique<FillRectInstruction>(
-        Point(m_setting->docMargin.left(), lineY),
-        Size(m_setting->contentMaxWidth() - m_setting->docMargin.left(), 1),
-        QColor(200, 200, 200)));
+        Point(m_setting->docMargin.left, lineY),
+        Size(m_setting->contentMaxWidth() - m_setting->docMargin.left, 1),
+        Color(200, 200, 200)));
     m_curY = lineY + m_setting->lineSpacing;
     endBlock();
     restore();
@@ -480,8 +484,8 @@ class LayoutPass
     if (endY > startY) {
       endY -= m_setting->lineSpacing;
     }
-    QColor bgColor(238, 238, 238);
-    Point pos(m_setting->docMargin.left() - m_setting->quoteMargin.left(), startY);
+    Color bgColor(238, 238, 238);
+    Point pos(m_setting->docMargin.left - m_setting->quoteMargin.left, startY);
     m_instructions.push_back(std::make_unique<FillRectInstruction>(pos, Size(5, endY - startY), bgColor));
     endBlock();
   }
@@ -500,7 +504,7 @@ class LayoutPass
       auto size = textSize(headerLine);
       m_instructions.push_back(std::make_unique<StaticTextInstruction>(
           headerLine, Point(m_curX, m_curY), size, curPen(), curFont()));
-      m_curY += size.height() + m_setting->lineSpacing;
+      m_curY += size.height + m_setting->lineSpacing;
     }
     // Render content rows
     for (const auto& row : node->content()) {
@@ -511,7 +515,7 @@ class LayoutPass
       auto size = textSize(rowLine);
       m_instructions.push_back(std::make_unique<StaticTextInstruction>(
           rowLine, Point(m_curX, m_curY), size, curPen(), curFont()));
-      m_curY += size.height() + m_setting->lineSpacing;
+      m_curY += size.height + m_setting->lineSpacing;
     }
     endBlock();
     restore();
@@ -523,9 +527,9 @@ class LayoutPass
 #else
     String enterStr = "↲";
     auto font = curFont();
-    font.setPixelSize(12);
+    font.pixelSize = 12;
     auto size = textSize(enterStr);
-    m_instructions.push_back(std::make_unique<StaticTextInstruction>(enterStr, Point(m_curX, m_curY), size, Qt::blue, font));
+    m_instructions.push_back(std::make_unique<StaticTextInstruction>(enterStr, Point(m_curX, m_curY), size, Color::blue(), font));
 #endif
     endLogicalLine();
     beginLogicalLine();
@@ -541,11 +545,11 @@ class LayoutPass
     save();
     String prefix = std::format("H{}", level);
     auto font = curFont();
-    font.setPixelSize(font.pixelSize() - 4);
+    font.pixelSize = font.pixelSize - 4;
     setFont(font);
     auto size = textSize(prefix);
-    auto x = m_curX - size.width() - 1;
-    m_instructions.push_back(std::make_unique<StaticTextInstruction>(prefix, Point(x, m_curY), size, Qt::black, font));
+    auto x = m_curX - size.width - 1;
+    m_instructions.push_back(std::make_unique<StaticTextInstruction>(prefix, Point(x, m_curY), size, Color::black(), font));
     restore();
   }
 
@@ -554,12 +558,12 @@ class LayoutPass
     if (s.type == RenderString::English) {
       if (m_rewriteFont) {
         auto font = curFont();
-        font.setFamily(toQString(m_setting->enTextFont));
+        font.family = m_setting->enTextFont.c_str();
         setFont(font);
       }
     } else if (s.type == RenderString::Chinese) {
       auto font = curFont();
-      font.setFamily(toQString(m_setting->zhTextFont));
+      font.family = m_setting->zhTextFont.c_str();
       setFont(font);
     }
     const String &text = str.mid(offset, length);
@@ -569,7 +573,7 @@ class LayoutPass
     appendVisualCell(std::move(cell));
     m_instructions.push_back(std::make_unique<TextInstruction>(rawCell));
     restore();
-    m_curX += size.width();
+    m_curX += size.width;
   }
   void appendVisualCell(std::unique_ptr<Cell> cell) {
     ASSERT(!m_block.m_logicalLines.empty());
@@ -588,10 +592,10 @@ class LayoutPass
   void endBlock() { endLogicalLine(); }
   void beginLogicalLine(bool initNewVisualLine = true) {
     LogicalLine logicalLine;
-    m_curX = m_setting->docMargin.left();
+    m_curX = m_setting->docMargin.left;
     logicalLine.m_pos = Point(m_curX, m_curY);
     auto size = m_fontMetrics->size(curFont(), "龙");
-    logicalLine.m_h = size.height();
+    logicalLine.m_h = size.height;
     m_block.m_logicalLines.push_back(std::move(logicalLine));
     if (initNewVisualLine) {
       beginVisualLine();
@@ -619,7 +623,7 @@ class LayoutPass
     ASSERT(!m_block.m_logicalLines.empty());
     auto &line = m_block.m_logicalLines.back();
     auto size = m_fontMetrics->size(curFont(), "龙");
-    line.m_lines.push_back(VisualLine(Point(m_curX, m_curY), size.height()));
+    line.m_lines.push_back(VisualLine(Point(m_curX, m_curY), size.height));
   }
   void endVisualLine() {
     // 当视觉行结束时，需要调整每个Cell的y
@@ -635,17 +639,17 @@ class LayoutPass
     }
     line.m_h = maxH;
     for (auto& cell : line.m_cells) {
-      auto y = cell->m_pos.y();
+      auto y = cell->m_pos.y;
       // 这里的对齐还是不好
       // textSize算出来的大小也不完全是能过包围住文字的
       auto delta = maxH - cell->height();
-      cell->m_pos.setY(y + delta / 2);
+      cell->m_pos.y = y + delta / 2;
     }
     m_curY += maxH + m_setting->lineSpacing;
   }
   void moveToNewLine() {
     endVisualLine();
-    m_curX = m_setting->docMargin.left();
+    m_curX = m_setting->docMargin.left;
     beginVisualLine();
   }
 
@@ -657,22 +661,22 @@ class LayoutPass
     m_config = m_configs.back();
     m_configs.pop_back();
   }
-  QFont codeFont() {
+  Font codeFont() {
     auto font = curFont();
 #ifdef Q_OS_WIN
-    font.setFamily("Cascadia Code");
+    font.family = "Cascadia Code";
 #elif defined(Q_OS_MACOS)
-    font.setFamily("Menlo");
+    font.family = "Menlo";
 #else
-    font.setFamily("monospace");
+    font.family = "monospace";
 #endif
-    font.setPixelSize(20);
+    font.pixelSize = 20;
     return font;
   }
-  [[nodiscard]] QFont curFont() const { return m_config.font; }
+  [[nodiscard]] Font curFont() const { return m_config.font; }
   [[nodiscard]] Color curPen() const { return m_config.pen; }
-  void setFont(const QFont &font) { m_config.font = font; }
-  void setPen(const QColor &color) { m_config.pen = color; }
+  void setFont(const Font &font) { m_config.font = font; }
+  void setPen(const Color &color) { m_config.pen = color; }
   // 辅助到绘制方法
   Size textSize(const String &text) { return m_fontMetrics->size(curFont(), text); }
 
@@ -730,6 +734,7 @@ class LayoutPass
   InstructionPtrList m_instructions;
   IFontMetricsProvider* m_fontMetrics;
   bool m_hasGui;
+  editor::core::IImageProvider* m_imageProvider = nullptr;
 };
 int VisualLine::height() const { return m_h; }
 SizeType VisualLine::length() const {
@@ -743,10 +748,10 @@ std::pair<Cell *, int> VisualLine::cellAtX(int x, const parser::IBufferProvider&
   if (m_cells.empty()) {
     return {nullptr, 0};
   }
-  if (x <= m_cells.front()->m_pos.x()) {
+  if (x <= m_cells.front()->m_pos.x) {
     return {m_cells.front().get(), 0};
   }
-  auto totalX = m_cells.front()->m_pos.x();
+  auto totalX = m_cells.front()->m_pos.x;
   for (const auto& cell : m_cells) {
     if (totalX <= x && x <= totalX + cell->width()) {
       // 再确定offset
@@ -774,28 +779,28 @@ std::pair<Cell *, int> VisualLine::cellAtX(int x, const parser::IBufferProvider&
 int VisualLine::width() const {
   if (m_cells.empty()) return 0;
   const auto& cell = m_cells.back();
-  auto w = cell->m_pos.x() + cell->m_size.width() - m_pos.x();
+  auto w = cell->m_pos.x + cell->m_size.width - m_pos.x;
   return w;
 }
 int LogicalLine::height() const { return m_h; }
 std::pair<Point, int> LogicalLine::cursorAt(SizeType offset, const parser::IBufferProvider& doc) const {
   if (m_cells.empty()) {
-    return {Point(m_pos.x() + m_padding, m_pos.y()), m_h};
+    return {Point(m_pos.x + m_padding, m_pos.y), m_h};
   }
   auto totalOffset = 0;
   for (auto cell : m_cells) {
     if (totalOffset <= offset && offset < totalOffset + cell->length()) {
       // 计算还剩下的偏移量
       auto w = cell->width(offset - totalOffset, doc);
-      auto pos = Point(cell->m_pos.x() + w, cell->m_pos.y());
-      return {pos, cell->m_size.height()};
+      auto pos = Point(cell->m_pos.x + w, cell->m_pos.y);
+      return {pos, cell->m_size.height};
     }
     totalOffset += cell->length();
   }
   if (offset == totalOffset) {
     auto cell = m_cells.back();
-    auto pos = Point(cell->m_pos.x() + cell->width(), cell->m_pos.y());
-    return {pos, cell->m_size.height()};
+    auto pos = Point(cell->m_pos.x + cell->width(), cell->m_pos.y);
+    return {pos, cell->m_size.height};
   }
   DEBUG << m_cells.size() << offset << totalOffset;
   ASSERT(false && "cursor not in cell");
@@ -956,38 +961,38 @@ SizeType LogicalLine::moveToBol(SizeType offset, const parser::IBufferProvider& 
 }
 std::pair<SizeType, int> LogicalLine::moveToEol(SizeType offset, const parser::IBufferProvider& /*doc*/) const {
   ASSERT(offset >= 0 && offset <= this->length());
-  if (m_cells.empty()) return {0, m_pos.x()};
+  if (m_cells.empty()) return {0, m_pos.x};
   SizeType totalOffset = 0;
   for (const auto &line : m_lines) {
     if (totalOffset <= offset && offset < totalOffset + line.length()) {
-      return {totalOffset + line.length(), line.m_pos.x() + line.width()};
+      return {totalOffset + line.length(), line.m_pos.x + line.width()};
     }
     totalOffset += line.length();
   }
   if (totalOffset == offset) {
     ASSERT(!m_lines.empty());
     const auto &line = m_lines.back();
-    return {totalOffset, line.m_pos.x() + line.width()};
+    return {totalOffset, line.m_pos.x + line.width()};
   }
   ASSERT(false && "no offset in line");
 }
 SizeType LogicalLine::offsetAt(Point pos, const parser::IBufferProvider& doc, int lineSpacing) const {
-  int y = m_pos.y();
+  int y = m_pos.y;
   // -1表示没有算出offset
   SizeType offset = -1;
   for (const auto &line : m_lines) {
     // 这里要考虑lineSpacing
-    if (y - lineSpacing / 2 <= pos.y() && pos.y() <= y + line.height() + lineSpacing / 2) {
-      auto [cell, delta] = line.cellAtX(pos.x(), doc);
+    if (y - lineSpacing / 2 <= pos.y && pos.y <= y + line.height() + lineSpacing / 2) {
+      auto [cell, delta] = line.cellAtX(pos.x, doc);
       offset = this->totalOffset(cell, delta);
       break;
     }
     y += line.height();
   }
-  if (offset == -1 && pos.y() <= this->height() + m_pos.y()) {
+  if (offset == -1 && pos.y <= this->height() + m_pos.y) {
     ASSERT(!m_lines.empty());
     const auto &line = m_lines.back();
-    auto [cell, delta] = line.cellAtX(pos.x(), doc);
+    auto [cell, delta] = line.cellAtX(pos.x, doc);
     offset = this->totalOffset(cell, delta);
   }
   if (offset != -1) {
@@ -1010,7 +1015,7 @@ SizeType LogicalLine::offsetAt(Point pos, const parser::IBufferProvider& doc, in
     return offset;
   }
   DEBUG << this->left(this->length(), doc);
-  DEBUG << "pos=(" << pos.x() << "," << pos.y() << ") m_pos=(" << m_pos.x() << "," << m_pos.y() << ") w=" << this->width() << " h=" << this->height();
+  DEBUG << "pos=(" << pos.x << "," << pos.y << ") m_pos=(" << m_pos.x << "," << m_pos.y << ") w=" << this->width() << " h=" << this->height();
   ASSERT(false && "no pos in line");
 }
 int LogicalLine::visualLineAt(SizeType offset, const parser::IBufferProvider& doc) const {
@@ -1060,10 +1065,11 @@ int Block::width() const {
   return w;
 }
 Block Render::render(Node *node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
-                     IFontMetricsProvider* fontMetrics) {
+                     IFontMetricsProvider* fontMetrics,
+                     editor::core::IImageProvider* imageProvider) {
   ASSERT(node != nullptr);
   static TexRenderGuard texRenderGuard;
-  LayoutPass render(node, setting, doc, fontMetrics);
+  LayoutPass render(node, setting, doc, fontMetrics, imageProvider);
   node->accept(&render);
   Block block = render.execute();
   return block;

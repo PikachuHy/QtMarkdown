@@ -10,9 +10,7 @@
 #include "parser/Text.h"
 #include "render/Instruction.h"
 
-#include <QFile>
-#include <QColor>
-#include <QSize>
+#include <filesystem>
 
 using namespace md::parser;
 
@@ -44,7 +42,7 @@ class MousePressVisitor : public NodeVisitor {
     if (!path.startsWith("/")) {
       for (const auto& resPath: m_doc.setting().resPathList) {
         auto newImgPath = resPath + "/" + path;
-        if (QFile(toQString(newImgPath)).exists()) {
+        if (std::filesystem::exists(newImgPath.toStdString())) {
           path = newImgPath;
         }
       }
@@ -301,17 +299,17 @@ void EditorInputHandler::keyReleaseEvent(const core::KeyEvent &event) {
 }
 
 CursorShape EditorInputHandler::cursorShape(const core::Point& offset, const core::Point& pos) {
-  auto qOffset = toQPoint(offset);
-  auto qPos = toQPoint(pos);
-  qOffset.setY(qOffset.y() + m_setting.docMargin.top());
+  auto off = offset;
+  off.y += m_setting.docMargin.top;
   for (const auto &block : m_doc.blocks()) {
     auto h = block.height();
     for (const auto &element : block.elementList()) {
-      if (QRect(element.pos + qOffset, element.size).contains(qPos)) {
+      core::Rect r(element.pos + off, element.size);
+      if (r.contains(pos)) {
         return PointingHandCursor;
       }
     }
-    qOffset.setY(qOffset.y() + h + m_setting.blockSpacing);
+    off.y += h + m_setting.blockSpacing;
   }
   return IBeamCursor;
 }
@@ -331,14 +329,15 @@ void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::
   } else {
     m_editor.m_hasSelection = false;
   }
-  auto qOffset = toQPoint(offset);
-  qOffset.setY(qOffset.y() + m_setting.docMargin.top());
-  auto mousePos = toQPoint(event.pos());
+  auto off = offset;
+  off.y += m_setting.docMargin.top;
+  auto mousePos = event.pos();
   for (int blockNo = 0; blockNo < m_doc.blocks().size(); ++blockNo) {
     const auto &block = m_doc.blocks()[blockNo];
     auto h = block.height();
     for (const auto &element : block.elementList()) {
-      if (QRect(element.pos + qOffset, element.size).contains(mousePos)) {
+      core::Rect r(element.pos + off, element.size);
+      if (r.contains(mousePos)) {
         MousePressVisitor visitor(m_doc, m_editor, blockNo);
         element.node->accept(&visitor);
         if (visitor.handled()) {
@@ -346,7 +345,7 @@ void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::
         }
       }
     }
-    qOffset.setY(qOffset.y() + h + m_setting.blockSpacing);
+    off.y += h + m_setting.blockSpacing;
   }
   auto coord = m_doc.moveCursorToPos(event.pos());
   m_doc.updateCursor(m_cursor, coord);
@@ -499,9 +498,9 @@ void EditorInputHandler::removeSelection() {
 
 void EditorInputHandler::generateSelectionInstruction() {
   m_editor.m_selectionInstructions.clear();
-  auto fillRect = [this, &selIns = m_editor.m_selectionInstructions](QPoint pos, int w, int h) {
-    QColor bg(187, 214, 251);
-    auto instruction = std::make_unique<render::FillRectInstruction>(pos, QSize(w, h), bg);
+  auto fillRect = [this, &selIns = m_editor.m_selectionInstructions](core::Point pos, int w, int h) {
+    core::Color bg(187, 214, 251);
+    auto instruction = std::make_unique<render::FillRectInstruction>(pos, core::Size(w, h), bg);
     selIns.push_back(std::move(instruction));
   };
   auto isBefore = [this](const CursorCoord &coord, SizeType blockNo, SizeType lineNo, SizeType visualLineNo) {
@@ -527,7 +526,7 @@ void EditorInputHandler::generateSelectionInstruction() {
   };
   auto selectionRange = m_editor.m_selectionRange->range();
   auto [begin, end] = selectionRange;
-  auto totalH = m_setting.docMargin.top();
+  auto totalH = m_setting.docMargin.top;
   for (int i = 0; i < begin.coord().blockNo; ++i) {
     const auto &block = m_doc.blocks()[i];
     totalH += block.height();
@@ -535,7 +534,7 @@ void EditorInputHandler::generateSelectionInstruction() {
   bool drawDone = false;
   for (auto blockNo = begin.coord().blockNo; blockNo <= end.coord().blockNo; ++blockNo) {
     const auto &block = m_doc.blocks()[blockNo];
-    auto blockOffset = QPoint(0, totalH);
+    auto blockOffset = core::Point(0, totalH);
     for (int lineNo = 0; lineNo < block.countOfLogicalLine(); ++lineNo) {
       const auto &line = block.logicalLineAt(lineNo);
       for (int visualLineNo = 0; visualLineNo < line.countOfVisualLine(); ++visualLineNo) {
@@ -555,7 +554,7 @@ void EditorInputHandler::generateSelectionInstruction() {
         };
         auto h = visualLine.height();
         if (isSameVisualLine(begin.coord(), blockNo, lineNo, visualLineNo)) {
-          auto pos = QPoint(begin.x(), 0) + QPoint(0, visualLine.pos().y()) + blockOffset;
+          auto pos = core::Point(begin.x(), 0) + core::Point(0, visualLine.pos().y) + blockOffset;
           if (isSameVisualLine(end.coord(), blockNo, lineNo, visualLineNo)) {
             // 同一个视觉行，从begin画到end
             auto w = end.pos().x - begin.pos().x;
@@ -565,7 +564,7 @@ void EditorInputHandler::generateSelectionInstruction() {
             break;
           } else {
             // 从begin画到视觉行结束
-            auto w = visualLine.width() + visualLine.pos().x() - begin.pos().x;
+            auto w = visualLine.width() + visualLine.pos().x - begin.pos().x;
             fixW(w);
             fillRect(pos, w, h);
             continue;
@@ -573,7 +572,7 @@ void EditorInputHandler::generateSelectionInstruction() {
         }
         if (isSameVisualLine(end.coord(), blockNo, lineNo, visualLineNo)) {
           auto pos = visualLine.pos() + blockOffset;
-          auto w = end.pos().x - visualLine.pos().x();
+          auto w = end.pos().x - visualLine.pos().x;
           fixW(w);
           fillRect(pos, w, h);
           drawDone = true;

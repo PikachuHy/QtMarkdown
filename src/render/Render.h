@@ -10,6 +10,7 @@
 #include "parser/Document.h"
 #include "parser/IBufferProvider.h"
 #include "Element.h"
+#include "core/IImageProvider.h"
 namespace md::render {
 class IFontMetricsProvider;
 struct RenderSetting {
@@ -28,12 +29,12 @@ struct RenderSetting {
   String enTextFont = "Times New Roman";
   StringList resPathList;
   std::array<int, 6> headerFontSize = {36, 28, 24, 20, 16, 14};
-  QMargins docMargin = QMargins(100, 20, 20, 20);
-  QMargins codeMargin = QMargins(10, 20, 20, 10);
-  QMargins listMargin = QMargins(15, 20, 20, 10);
-  QMargins checkboxMargin = QMargins(15, 20, 20, 10);
-  QMargins quoteMargin = QMargins(10, 20, 20, 10);
-  [[nodiscard]] int contentMaxWidth() const { return maxWidth - docMargin.left() - docMargin.right(); }
+  editor::core::Margins docMargin{100, 20, 20, 20};
+  editor::core::Margins codeMargin{10, 20, 20, 10};
+  editor::core::Margins listMargin{15, 20, 20, 10};
+  editor::core::Margins checkboxMargin{15, 20, 20, 10};
+  editor::core::Margins quoteMargin{10, 20, 20, 10};
+  [[nodiscard]] int contentMaxWidth() const { return maxWidth - docMargin.left - docMargin.right; }
 };
 class LogicalLine;
 class QTMARKDOWNSHARED_EXPORT VisualLine {
@@ -145,7 +146,8 @@ class QTMARKDOWNSHARED_EXPORT Block {
 class QTMARKDOWNSHARED_EXPORT Render {
  public:
   static Block render(parser::Node* node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
-                      IFontMetricsProvider* fontMetrics = nullptr);
+                      IFontMetricsProvider* fontMetrics = nullptr,
+                      editor::core::IImageProvider* imageProvider = nullptr);
 
  private:
 };

@@ -14,8 +14,9 @@
 using namespace md::parser;
 using namespace md::render;
 namespace md::editor {
-Document::Document(const String& str, sptr<RenderSetting> setting)
-    : m_parserDoc(std::make_unique<parser::Document>(str)), m_setting(setting), m_commandStack(std::make_shared<CommandStack>()) {
+Document::Document(const String& str, sptr<RenderSetting> setting, core::IImageProvider* imageProvider)
+    : m_parserDoc(std::make_unique<parser::Document>(str)), m_setting(setting), m_commandStack(std::make_shared<CommandStack>()),
+      m_imageProvider(imageProvider) {
   this->renderAllBlock();
 }
 void Document::assertBlocksInSync() {
@@ -42,7 +43,7 @@ void Document::ensureTrailingParagraph() {
     auto paragraph = std::make_unique<Paragraph>();
     parser::Node* raw = paragraph.get();
     m_parserDoc->root()->appendChild(std::move(paragraph));
-    m_blocks.push_back(Render::render(raw, m_setting, *m_parserDoc));
+    m_blocks.push_back(Render::render(raw, m_setting, *m_parserDoc, nullptr, m_imageProvider));
   }
   assertBlocksInSync();
 }
@@ -54,7 +55,7 @@ void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updat
   cursor.setHeight(h);
 }
 std::pair<core::Point, int> Document::mapToScreen(const CursorCoord& coord) {
-  int y = m_setting->docMargin.top();
+  int y = m_setting->docMargin.top;
   for (int blockNo = 0; blockNo < coord.blockNo; ++blockNo) {
     y += m_setting->blockSpacing;
     y += m_blocks[blockNo].height();
@@ -67,8 +68,8 @@ std::pair<core::Point, int> Document::mapToScreen(const CursorCoord& coord) {
   if (h == line.height()) {
     h -= m_setting->lineSpacing;
   }
-  auto qtPos = pos + QPoint(0, y);
-  return {core::Point(qtPos.x(), qtPos.y()), h};
+  auto resultPos = pos + core::Point(0, y);
+  return {resultPos, h};
 }
 CursorCoord Document::moveCursorToRight(CursorCoord coord) {
   const auto& block = m_blocks[coord.blockNo];
@@ -166,7 +167,7 @@ CursorCoord Document::moveCursorToDown(CursorCoord coord, core::Point pos) {
 CursorCoord Document::moveCursorToPos(core::Point pos) {
   // 先找到哪个block
   SizeType blockNo = 0;
-  int y = m_setting->docMargin.top();
+  int y = m_setting->docMargin.top;
   // 如果是点在文档上方的空白，也放到第一个位置
   if (pos.y <= y) {
     CursorCoord coord;
@@ -212,7 +213,7 @@ CursorCoord Document::moveCursorToPos(core::Point pos) {
       CursorCoord coord;
       coord.blockNo = blockNo;
       coord.lineNo = lineNo;
-      coord.offset = line.offsetAt(QPoint(pos.x, pos.y - oldY), *m_parserDoc, m_setting->lineSpacing);
+      coord.offset = line.offsetAt(core::Point(pos.x, pos.y - oldY), *m_parserDoc, m_setting->lineSpacing);
       return coord;
     }
     y += line.height();
@@ -246,7 +247,7 @@ void Document::insertReturn(Cursor& cursor) {
 void Document::renderAllBlock() {
   m_blocks.clear();
   for (auto& node : m_parserDoc->root()->children()) {
-    Block block = Render::render(node.get(), m_setting, *m_parserDoc);
+    Block block = Render::render(node.get(), m_setting, *m_parserDoc, nullptr, m_imageProvider);
     m_blocks.push_back(std::move(block));
   }
   ensureTrailingParagraph();
@@ -256,7 +257,7 @@ void Document::replaceBlock(SizeType blockNo, std::unique_ptr<parser::Node> node
   ASSERT(node != nullptr);
   auto* rawNode = node.get();
   m_parserDoc->root()->setChild(blockNo, std::move(node));
-  m_blocks[blockNo] = Render::render(rawNode, m_setting, *m_parserDoc);
+  m_blocks[blockNo] = Render::render(rawNode, m_setting, *m_parserDoc, nullptr, m_imageProvider);
   assertBlocksInSync();
 #ifdef QT_DEBUG
   assertBlockTextCellsValid(m_blocks[blockNo]);
@@ -267,7 +268,7 @@ void Document::insertBlock(SizeType blockNo, std::unique_ptr<parser::Node> node)
   ASSERT(node != nullptr);
   auto* rawNode = node.get();
   m_parserDoc->root()->insertChild(blockNo, std::move(node));
-  m_blocks.insert(m_blocks.begin() + blockNo, Render::render(rawNode, m_setting, *m_parserDoc));
+  m_blocks.insert(m_blocks.begin() + blockNo, Render::render(rawNode, m_setting, *m_parserDoc, nullptr, m_imageProvider));
   assertBlocksInSync();
 #ifdef QT_DEBUG
   assertBlockTextCellsValid(m_blocks[blockNo]);
@@ -275,7 +276,7 @@ void Document::insertBlock(SizeType blockNo, std::unique_ptr<parser::Node> node)
 }
 void Document::renderBlock(SizeType blockNo) {
   ASSERT(blockNo >= 0 && blockNo < m_parserDoc->root()->children().size());
-  m_blocks[blockNo] = Render::render(m_parserDoc->root()->children()[blockNo].get(), m_setting, *m_parserDoc);
+  m_blocks[blockNo] = Render::render(m_parserDoc->root()->children()[blockNo].get(), m_setting, *m_parserDoc, nullptr, m_imageProvider);
   assertBlocksInSync();
 #ifdef QT_DEBUG
   assertBlockTextCellsValid(m_blocks[blockNo]);

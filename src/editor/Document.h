@@ -11,6 +11,7 @@
 #include "render/Instruction.h"
 #include "render/Render.h"
 #include "core/Types.h"
+#include "core/IImageProvider.h"
 
 namespace md::editor {
 class Command;
@@ -19,7 +20,8 @@ class Cursor;
 struct CursorCoord;
 class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Document> {
  public:
-  explicit Document(const String& str, sptr<render::RenderSetting> setting);
+  explicit Document(const String& str, sptr<render::RenderSetting> setting,
+                    core::IImageProvider* imageProvider = nullptr);
   parser::Container* root() const { return m_parserDoc->root(); }
   const String& addBuffer() const { return m_parserDoc->addBuffer(); }
   const parser::IBufferProvider& bufferProvider() const { return *m_parserDoc; }
@@ -70,6 +72,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   render::BlockList m_blocks;
   sptr<render::RenderSetting> m_setting;
   sptr<CommandStack> m_commandStack;
+  core::IImageProvider* m_imageProvider = nullptr;
 };
 }  // namespace md::editor
 

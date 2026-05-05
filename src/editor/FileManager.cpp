@@ -7,7 +7,9 @@
 #include "MarkdownSerializer.h"
 #include "debug.h"
 
-#include <QFile>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 
 using namespace md::parser;
 
@@ -22,17 +24,20 @@ std::pair<bool, String> FileManager::loadFile(const String& path) {
     if (path.startsWith(prefix)) {
         notePath = path.mid(prefix.size());
     }
-    QFile file(toQString(notePath));
-    if (!file.exists()) {
+    if (!std::filesystem::exists(notePath.toStdString())) {
         DEBUG << "file not exist:" << notePath;
         return {false, ""};
     }
-    if (!file.open(QIODevice::ReadOnly)) {
+    std::ifstream file(notePath.toStdString(), std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
         DEBUG << "file open fail:" << notePath;
         return {false, ""};
     }
-    auto mdText = file.readAll();
-    return {true, String(mdText.toStdString())};
+    auto size = file.tellg();
+    file.seekg(0);
+    std::string content(static_cast<size_t>(size), '\0');
+    file.read(content.data(), static_cast<std::streamsize>(size));
+    return {true, String(std::move(content))};
 }
 
 bool FileManager::saveToFile(const String& path) const {
@@ -41,15 +46,15 @@ bool FileManager::saveToFile(const String& path) const {
         notePath += ".md";
     }
     DEBUG << "note path" << notePath;
-    QFile file(toQString(notePath));
-    if (!file.open(QIODevice::WriteOnly)) {
+    std::ofstream file(notePath.toStdString(), std::ios::binary);
+    if (!file.is_open()) {
         DEBUG << "file open fail:" << notePath;
         return false;
     }
     MarkdownSerializer serializer(m_doc.bufferProvider());
     m_doc.accept(&serializer);
     auto mdText = serializer.markdown();
-    file.write(mdText.data(), static_cast<qint64>(mdText.size()));
+    file.write(mdText.data(), static_cast<std::streamsize>(mdText.size()));
     file.close();
     return true;
 }

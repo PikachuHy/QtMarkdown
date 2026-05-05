@@ -10,8 +10,8 @@ namespace md::render {
 // ASCII chars: pixelSize x 0.5 wide, CJK/other: pixelSize wide, height: pixelSize x 1.5
 class SimpleFontMetricsProvider : public IFontMetricsProvider {
 public:
-    Size size(const Font& font, const String& text) const override {
-        int pixelSize = font.pixelSize();
+    editor::core::Size size(const editor::core::FontDescription& font, const String& text) const override {
+        int pixelSize = font.pixelSize;
         int w = 0;
         for (size_t i = 0; i < text.size(); ) {
             auto seqLen = md::utf8SequenceLength(text[i]);
@@ -19,13 +19,13 @@ public:
             i += seqLen;
         }
         int h = pixelSize * 3 / 2;
-        return Size(w, h);
+        return editor::core::Size(w, h);
     }
-    int horizontalAdvance(const Font& font, const String& text) const override {
-        return size(font, text).width();
+    int horizontalAdvance(const editor::core::FontDescription& font, const String& text) const override {
+        return size(font, text).width;
     }
-    int height(const Font& font) const override {
-        return font.pixelSize() * 3 / 2;
+    int height(const editor::core::FontDescription& font) const override {
+        return font.pixelSize * 3 / 2;
     }
 };
 

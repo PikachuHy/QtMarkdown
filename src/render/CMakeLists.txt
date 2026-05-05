@@ -4,8 +4,9 @@ else()
     add_library(QtMarkdownRender SHARED)
 endif ()
 target_include_directories(
-        QtMarkdownParser PUBLIC
+        QtMarkdownRender PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../editor>
         $<INSTALL_INTERFACE:include>
         $<INSTALL_INTERFACE:include/QtMarkdownRender>
 )

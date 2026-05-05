@@ -16,14 +16,15 @@ EditorRenderer::EditorRenderer(Document& doc, const render::RenderSetting& setti
 void EditorRenderer::drawDoc(core::AbstractPainter& /*painter*/, QPainter* nativePainter,
                               const core::Point& offset) {
     if (!nativePainter) return;
-    QPoint qOffset = toQPoint(offset);
-    qOffset.setY(qOffset.y() + m_setting.docMargin.top());
+    QtPainterAdapter adapter(nativePainter);
+    auto qOffset = offset;
+    qOffset.y += m_setting.docMargin.top;
     for (const auto& block : m_doc.blocks()) {
         int h = block.height();
         for (const auto& instruction : block) {
-            instruction->run(*nativePainter, qOffset, m_doc.bufferProvider());
+            instruction->run(adapter, qOffset, m_doc.bufferProvider());
         }
-        qOffset.setY(qOffset.y() + h + m_setting.blockSpacing);
+        qOffset.y += h + m_setting.blockSpacing;
     }
 }
 
@@ -49,9 +50,10 @@ void EditorRenderer::drawSelection(core::AbstractPainter& /*painter*/, QPainter*
                                     const Document& doc) {
     if (!nativePainter) return;
     if (selectionInstructions.empty()) return;
-    QPoint qOffset = toQPoint(offset);
+    QtPainterAdapter adapter(nativePainter);
+    auto qOffset = offset;
     for (const auto& instruction : selectionInstructions) {
-        instruction->run(*nativePainter, qOffset, doc.bufferProvider());
+        instruction->run(adapter, qOffset, doc.bufferProvider());
     }
 }
 
@@ -61,7 +63,7 @@ int EditorRenderer::documentHeight() const {
         h += block.height();
         h += m_setting.blockSpacing;
     }
-    return h + m_setting.docMargin.top() + m_setting.docMargin.bottom();
+    return h + m_setting.docMargin.top + m_setting.docMargin.bottom;
 }
 
 int EditorRenderer::documentWidth() const {
