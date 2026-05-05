@@ -4,7 +4,7 @@
 
 #include <QApplication>
 
-#include "editor/QtWidgetMarkdownEditor.h"
+#include "platform/qt/QtWidgetMarkdownEditor.h"
 using md::editor::QtWidgetMarkdownEditor;
 
 int main(int argc, char *argv[]) {

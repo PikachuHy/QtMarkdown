@@ -5,7 +5,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
-#include "editor/QtQuickMarkdownEditor.h"
+#include "platform/qt/QtQuickMarkdownEditor.h"
 #include "Controller.h"
 using md::editor::QtQuickMarkdownEditor;
 int main(int argc, char *argv[]) {
