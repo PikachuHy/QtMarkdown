@@ -43,7 +43,10 @@ inline String fromQString(const QString& s) {
 }
 
 inline QFont toQFont(const core::FontDescription& fd) {
-    QFont font(toQString(fd.family), fd.pixelSize);
+    QFont font;
+    if (!fd.family.empty()) {
+        font.setFamily(toQString(fd.family));
+    }
     font.setPixelSize(fd.pixelSize);
     font.setBold(fd.bold);
     font.setItalic(fd.italic);

@@ -13,6 +13,7 @@
 #include <QInputMethodEvent>
 #include <QLabel>
 #include <QMovie>
+#include <QFile>
 #include <QPainter>
 #include <QRect>
 #include <QScrollBar>
@@ -59,7 +60,15 @@ QtWidgetMarkdownEditor::QtWidgetMarkdownEditor(QWidget *parent) : QAbstractScrol
   connect(&m_cursorTimer, &QTimer::timeout, [this]() { this->viewport()->update(); });
 }
 void QtWidgetMarkdownEditor::loadFile(QString path) {
-  m_editor->loadFile(String(path.toStdString()));
+  if (path.startsWith(":/")) {
+    QFile file(path);
+    if (file.open(QIODevice::ReadOnly)) {
+      auto ba = file.readAll();
+      m_editor->loadText(String(std::string(ba.constData(), static_cast<size_t>(ba.size()))));
+    }
+  } else {
+    m_editor->loadFile(String(path.toStdString()));
+  }
   viewport()->update();
   QSize areaSize = viewport()->size();
   QSize widgetSize = this->size();

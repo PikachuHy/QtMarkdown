@@ -9,6 +9,7 @@ if (QT_VERSION_MAJOR EQUAL 6)
     qt_add_executable(QtWidgetMarkdownEditorExample
             MANUAL_FINALIZATION
             QtWidgetMarkdownEditorExample.cpp
+            ../assets/md.qrc
             )
     qt_add_executable(QtQuickMarkdownEditorExample
             MANUAL_FINALIZATION

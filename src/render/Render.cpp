@@ -14,6 +14,7 @@
 #include "microtex.h"
 #include "parser/Text.h"
 #include "core/IImageProvider.h"
+#include "core/Utf8Util.h"
 #include "platform/qt/QtFontMetricsProvider.h"
 using namespace md::parser;
 namespace md::render {
@@ -116,10 +117,10 @@ class LayoutPass
           moveToNewLine();
           continue;
         }
-        if (count + 1 < s.length) {
-          auto ts = str.mid(startIndex + count, 1);
-          // 如果是中文的逗号或者句号结尾，就少画一个中文字，把符号画到下一行。
-          if (ts == "，" || ts == "。") {
+        // 如果是中文的逗号或者句号结尾，就少画一个中文字，把符号画到下一行。
+        if (startIndex + count < str.size()) {
+          auto cp = md::codePointAt(str.toStdString(), startIndex + count);
+          if (cp == 0xFF0C /* ， */ || cp == 0x3002 /* 。 */ || cp == 0x3001 /* 、 */) {
             count--;
           }
         }
@@ -678,19 +679,32 @@ class LayoutPass
 
   int countOfThisLineCanDraw(const String &text) {
     // 计算这一行可以画多少个字符
-    auto ch_w = charWidth(text.left(1));
+    // Measure the width of the first complete code point, not a single byte
+    int cpLen = md::utf8SequenceLength(text[0]);
+    auto ch_w = charWidth(text.left(cpLen));
     int left_w = m_setting->contentMaxWidth() - m_curX;
     int may_ch_count = left_w / ch_w - 1;
     // 可能根本画不了
     if (may_ch_count <= 0) return 0;
-    if (currentLineCanDrawText(text.left(may_ch_count + 1))) {
-      while (currentLineCanDrawText(text.left(may_ch_count + 1))) {
+    // Ensure we don't split multi-byte UTF-8 characters
+    auto alignedLeft = [&text](int n) {
+      while (n > 0 && (static_cast<unsigned char>(text[n]) & 0xC0) == 0x80) {
+        n--;
+      }
+      return text.left(n);
+    };
+    if (currentLineCanDrawText(alignedLeft(may_ch_count + 1))) {
+      while (currentLineCanDrawText(alignedLeft(may_ch_count + 1))) {
         may_ch_count++;
       }
     } else {
-      while (!currentLineCanDrawText(text.left(may_ch_count))) {
+      while (!currentLineCanDrawText(alignedLeft(may_ch_count))) {
         may_ch_count--;
       }
+    }
+    // Final alignment to code point boundary
+    while (may_ch_count > 0 && (static_cast<unsigned char>(text[may_ch_count]) & 0xC0) == 0x80) {
+      may_ch_count--;
     }
     return may_ch_count;
   }

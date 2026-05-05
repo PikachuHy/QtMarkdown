@@ -11,6 +11,12 @@ std::vector<RenderString> StringUtil::split(const String& text) {
   SizeType offset = i;
   auto isAlphaNum = [](char ch) -> bool { return static_cast<unsigned char>(ch) < 128; };
   while (i < text.size()) {
+    int byteLen = utf8SequenceLength(text[i]);
+    // Skip continuation bytes — they are part of a multi-byte sequence already counted
+    if (byteLen == 1 && static_cast<unsigned char>(text[i]) >= 128) {
+      i++;
+      continue;
+    }
     // 英文判定
     if (isAlphaNum(text[i]) || text[i] == ' ') {
       if (i > offset) {
@@ -25,7 +31,7 @@ std::vector<RenderString> StringUtil::split(const String& text) {
       continue;
     }
     // emoji判定 — check for 4-byte UTF-8 sequences (lead byte 0xF0)
-    if (utf8SequenceLength(text[i]) == 4) {
+    if (byteLen == 4) {
       if (i > offset) {
         stringList.emplace_back(RenderString::Chinese, offset, i - offset);
         offset = i;
@@ -36,15 +42,13 @@ std::vector<RenderString> StringUtil::split(const String& text) {
       continue;
     }
     // variation selector (U+FE0F) and ZWJ (U+200D) — treat as part of previous run
-    if (i < text.size()) {
-      auto cp = codePointAt(text.toStdString(), i);
-      if (cp == 0xfe0f || cp == 0x200d) {
-        i += utf8SequenceLength(text[i]);
-        continue;
-      }
+    auto cp = codePointAt(text.toStdString(), i);
+    if (cp == 0xfe0f || cp == 0x200d) {
+      i += byteLen;
+      continue;
     }
-    // 余下的是中文
-    i++;
+    // 余下的是中文 (multi-byte, non-emoji)
+    i += byteLen;
   }
   if (i > offset) {
     stringList.emplace_back(RenderString::Chinese, offset, i - offset);
