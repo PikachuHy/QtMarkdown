@@ -4,10 +4,6 @@
 
 #include "Render.h"
 
-#include <QCryptographicHash>
-#include <QDir>
-#include <QStack>
-#include <QStandardPaths>
 #include <vector>
 
 #include "Instruction.h"
@@ -17,6 +13,7 @@
 #include "microtex.h"
 #include "parser/Text.h"
 #include "graphic_qt.h"
+#include <QFile>
 using namespace md::parser;
 namespace md::render {
 class TexRender {
@@ -35,7 +32,7 @@ class TexRenderGuard {
  public:
   TexRenderGuard() {
     m_texRender = std::make_shared<TexRender>();
-    Q_UNUSED(m_texRender);
+    (void)m_texRender;
   }
 
  private:
@@ -57,13 +54,13 @@ class LayoutPass
       : m_block(), m_setting(setting), m_doc(doc),
         m_fontMetrics(fontMetrics ? fontMetrics : &s_defaultFontMetrics),
         m_hasGui(fontMetrics == nullptr) {
-    Q_ASSERT(m_fontMetrics != nullptr);
+    ASSERT(m_fontMetrics != nullptr);
     m_config.font.setPixelSize(16 + 2);
     m_config.pen = Qt::black;
     m_configs.push_back(m_config);
   }
   void visit(Header *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     auto font = curFont();
     font.setPixelSize(m_setting->headerFontSize[node->level() - 1]);
@@ -78,7 +75,7 @@ class LayoutPass
     restore();
   }
   void visit(Paragraph *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     auto font = curFont();
     setFont(font);
@@ -92,7 +89,7 @@ class LayoutPass
   }
   void drawEnglishString(Text *node, const String &str, RenderString s, SizeType &startIndex, SizeType &drawCount) {
     String enStr = str.mid(startIndex, s.length - drawCount);
-    auto enStrList = enStr.split(" ");
+    auto enStrList = enStr.split(' ');
     for (int i = 0; i < enStrList.size(); ++i) {
       auto enSubStr = enStrList[i];
       if (currentLineCanDrawText(enSubStr)) {
@@ -160,7 +157,7 @@ class LayoutPass
     }
   }
   void visit(Text *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     auto str = node->toString(m_doc);
     // 将字符串按中文，英文，emoji切分
     auto stringList = StringUtil::split(str);
@@ -169,7 +166,7 @@ class LayoutPass
     }
   }
   void visit(Link *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     setPen(Qt::blue);
     auto font = curFont();
@@ -184,7 +181,7 @@ class LayoutPass
     restore();
   }
   void visit(InlineCode *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     setFont(codeFont());
     auto codeStr = node->code()->toString(m_doc);
@@ -199,7 +196,7 @@ class LayoutPass
     restore();
   }
   void visit(CodeBlock *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     setFont(codeFont());
     m_rewriteFont = false;
@@ -221,10 +218,10 @@ class LayoutPass
     endBlock();
 
     if (m_hasGui) {
-      QString copyBtnFilePath = ":icon/copy_32x32.png";
-      QFile copyBtnFile(copyBtnFilePath);
+      String copyBtnFilePath = ":icon/copy_32x32.png";
+      QFile copyBtnFile(toQString(copyBtnFilePath));
       ASSERT(copyBtnFile.exists());
-      QPixmap copyBtnImg(copyBtnFilePath);
+      QPixmap copyBtnImg(toQString(copyBtnFilePath));
       Point pos(x + w - copyBtnImg.width(), y);
       m_instructions.push_back(std::make_unique<StaticImageInstruction>(copyBtnFilePath, pos, copyBtnImg.size()));
       m_block.appendElement({node, pos, copyBtnImg.size()});
@@ -232,7 +229,7 @@ class LayoutPass
     restore();
   }
   void visit(InlineLatex *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     auto latex = node->code()->toString(m_doc);
     try {
@@ -254,7 +251,7 @@ class LayoutPass
     restore();
   }
   void visit(LatexBlock *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     beginBlock();
     auto latex = node->toString(m_doc);
@@ -278,7 +275,7 @@ class LayoutPass
     restore();
   }
   void visit(ItalicText *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     QFont font = curFont();
     font.setItalic(true);
@@ -287,7 +284,7 @@ class LayoutPass
     restore();
   }
   void visit(BoldText *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     QFont font = curFont();
     font.setBold(true);
@@ -296,7 +293,7 @@ class LayoutPass
     restore();
   }
   void visit(ItalicBoldText *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     QFont font = curFont();
     font.setItalic(true);
@@ -306,7 +303,7 @@ class LayoutPass
     restore();
   }
   void visit(StrickoutText *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     QFont font = curFont();
     font.setStrikeOut(true);
@@ -315,26 +312,26 @@ class LayoutPass
     restore();
   }
   void visit(Image *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     beginVisualLine();
-    QString imgPath = node->src()->toString(m_doc);
+    String imgPath = node->src()->toString(m_doc);
 #if defined(Q_OS_ANDROID) || defined(Q_OS_UNIX)
     if (!imgPath.startsWith("/")) {
       for (const auto &resPath : m_setting->resPathList) {
-        QString newImgPath = resPath + "/" + imgPath;
-        if (QFile(newImgPath).exists()) {
+        String newImgPath = resPath + "/" + imgPath;
+        if (QFile(toQString(newImgPath)).exists()) {
           imgPath = newImgPath;
         }
       }
     }
 #endif
-    QFile file(imgPath);
+    QFile file(toQString(imgPath));
 
     if (!file.exists()) {
-      qWarning() << "image not exist." << imgPath;
+      qWarning() << "image not exist." << toQString(imgPath);
       return;
     }
-    QImage image(imgPath);
+    QImage image(toQString(imgPath));
     int imageMaxWidth = qMin(1080, m_setting->contentMaxWidth());
     int imgWidth = image.width();
     while (imgWidth > imageMaxWidth) {
@@ -352,10 +349,10 @@ class LayoutPass
       return;
     }
     // gif加一个播放的图标
-    QString playIconPath = ":/icon/play_64x64.png";
-    QFile playIconFile(playIconPath);
+    String playIconPath = ":/icon/play_64x64.png";
+    QFile playIconFile(toQString(playIconPath));
     ASSERT(playIconFile.exists());
-    QImage playImage(playIconPath);
+    QImage playImage(toQString(playIconPath));
     // 计算播放图标所在位置
     // 播放图标放在中心位置
     int x = (image.width() - playImage.width()) / 2 + pos.x();
@@ -363,7 +360,7 @@ class LayoutPass
     m_instructions.push_back(std::make_unique<StaticImageInstruction>(playIconPath, Point(x, y), playImage.size()));
   }
   void visit(CheckboxList *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     beginBlock(false);
     for (const auto &item : node->children()) {
       beginLogicalLine(false);
@@ -373,7 +370,7 @@ class LayoutPass
     endBlock();
   }
   void visit(CheckboxItem *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     int oldX = m_curX;
     m_curX += m_setting->checkboxMargin.left();
@@ -385,11 +382,11 @@ class LayoutPass
     const QPoint &pos = Point(m_curX, m_curY);
     const QSize &size = Size(h1, h1);
     if (node->isChecked()) {
-      QString imagePath = ":icon/checkbox-selected_64x64.png";
+      String imagePath = ":icon/checkbox-selected_64x64.png";
       m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
 
     } else {
-      QString imagePath = ":icon/checkbox-unselected_64x64.png";
+      String imagePath = ":icon/checkbox-unselected_64x64.png";
       m_instructions.push_back(std::make_unique<StaticImageInstruction>(imagePath, pos, size));
     }
     m_block.appendElement({node, pos, size});
@@ -406,7 +403,7 @@ class LayoutPass
     restore();
   }
   void visit(UnorderedList *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     beginBlock(false);
     for (const auto &item : node->children()) {
       beginLogicalLine(false);
@@ -425,13 +422,13 @@ class LayoutPass
     endBlock();
   }
   void visit(UnorderedListItem *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     for (const auto &item : node->children()) {
       item->accept(this);
     }
   }
   void visit(OrderedList *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     beginBlock(false);
     int i = 0;
     for (const auto &item : node->children()) {
@@ -439,7 +436,7 @@ class LayoutPass
       beginLogicalLine(false);
       auto oldX = m_curX;
       m_curX += m_setting->listMargin.left();
-      QString numStr = QString("%1.  ").arg(i);
+      String numStr = std::to_string(i) + ".  ";
       const Size &size = textSize(numStr);
       const QPoint &pos = Point(m_curX, m_curY);
       m_instructions.push_back(std::make_unique<StaticTextInstruction>(numStr, pos, size, Qt::black, curFont()));
@@ -452,13 +449,13 @@ class LayoutPass
     endBlock();
   }
   void visit(OrderedListItem *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     for (const auto &item : node->children()) {
       item->accept(this);
     }
   }
   void visit(Hr *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     beginBlock();
     int lineY = m_curY + m_setting->lineSpacing;
@@ -471,7 +468,7 @@ class LayoutPass
     restore();
   }
   void visit(QuoteBlock *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     beginBlock(false);
     int startY = m_curY;
     for (auto& child : node->children()) {
@@ -489,16 +486,16 @@ class LayoutPass
     endBlock();
   }
   void visit(Table *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
     beginBlock();
     auto font = curFont();
     setFont(font);
     // Render header
-    if (!node->header().isEmpty()) {
+    if (!node->header().empty()) {
       String headerLine;
       for (const auto& cell : node->header()) {
-        headerLine += cell + QStringLiteral(" | ");
+        headerLine += cell + " | ";
       }
       auto size = textSize(headerLine);
       m_instructions.push_back(std::make_unique<StaticTextInstruction>(
@@ -509,7 +506,7 @@ class LayoutPass
     for (const auto& row : node->content()) {
       String rowLine;
       for (const auto& cell : row) {
-        rowLine += cell + QStringLiteral(" | ");
+        rowLine += cell + " | ";
       }
       auto size = textSize(rowLine);
       m_instructions.push_back(std::make_unique<StaticTextInstruction>(
@@ -520,11 +517,11 @@ class LayoutPass
     restore();
   }
   void visit(Lf *node) override {
-    Q_ASSERT(node != nullptr);
+    ASSERT(node != nullptr);
     save();
 #ifdef Q_OS_ANDROID
 #else
-    QString enterStr = QString("↲");
+    String enterStr = "↲";
     auto font = curFont();
     font.setPixelSize(12);
     auto size = textSize(enterStr);
@@ -542,7 +539,7 @@ class LayoutPass
  private:
   void drawHeaderPrefix(int level) {
     save();
-    QString prefix = QString("H%1").arg(level);
+    String prefix = std::format("H{}", level);
     auto font = curFont();
     font.setPixelSize(font.pixelSize() - 4);
     setFont(font);
@@ -557,15 +554,15 @@ class LayoutPass
     if (s.type == RenderString::English) {
       if (m_rewriteFont) {
         auto font = curFont();
-        font.setFamily(m_setting->enTextFont);
+        font.setFamily(toQString(m_setting->enTextFont));
         setFont(font);
       }
     } else if (s.type == RenderString::Chinese) {
       auto font = curFont();
-      font.setFamily(m_setting->zhTextFont);
+      font.setFamily(toQString(m_setting->zhTextFont));
       setFont(font);
     }
-    const QString &text = str.mid(offset, length);
+    const String &text = str.mid(offset, length);
     const Size &size = textSize(text);
     auto cell = std::make_unique<TextCell>(node, offset, length, Point(m_curX, m_curY), size, curPen(), curFont(), m_fontMetrics);
     auto* rawCell = cell.get();
@@ -656,7 +653,7 @@ class LayoutPass
   // 画笔相关到操作
   void save() { m_configs.push_back(m_config); }
   void restore() {
-    Q_ASSERT(!m_configs.empty());
+    ASSERT(!m_configs.empty());
     m_config = m_configs.back();
     m_configs.pop_back();
   }
@@ -677,21 +674,21 @@ class LayoutPass
   void setFont(const QFont &font) { m_config.font = font; }
   void setPen(const QColor &color) { m_config.pen = color; }
   // 辅助到绘制方法
-  Size textSize(const QString &text) { return m_fontMetrics->size(curFont(), text); }
+  Size textSize(const String &text) { return m_fontMetrics->size(curFont(), text); }
 
-  int textWidth(const QString &text) {
+  int textWidth(const String &text) {
     return m_fontMetrics->horizontalAdvance(curFont(), text);
   }
 
-  int charWidth(const QChar &ch) {
-    return m_fontMetrics->horizontalAdvance(curFont(), String(ch));
+  int charWidth(const String &text) {
+    return m_fontMetrics->horizontalAdvance(curFont(), text);
   }
 
   int textHeight() {
     return m_fontMetrics->height(curFont());
   }
 
-  bool currentLineCanDrawText(const QString &text) {
+  bool currentLineCanDrawText(const String &text) {
     auto needWidth = textWidth(text);
     if (m_curX + needWidth < m_setting->contentMaxWidth()) {
       return true;
@@ -700,9 +697,9 @@ class LayoutPass
     }
   }
 
-  int countOfThisLineCanDraw(const QString &text) {
+  int countOfThisLineCanDraw(const String &text) {
     // 计算这一行可以画多少个字符
-    auto ch_w = charWidth(text.at(0));
+    auto ch_w = charWidth(text.left(1));
     int left_w = m_setting->contentMaxWidth() - m_curX;
     int may_ch_count = left_w / ch_w - 1;
     // 可能根本画不了
@@ -994,18 +991,26 @@ SizeType LogicalLine::offsetAt(Point pos, const parser::IBufferProvider& doc, in
     offset = this->totalOffset(cell, delta);
   }
   if (offset != -1) {
-    // 修正emoji offset
-    if (offset > 0 && offset + 1 < this->length()) {
+    // 修正emoji offset — ensure cursor is at a valid code-point boundary
+    if (offset > 0 && offset < this->length()) {
       auto s = this->left(offset + 1, doc);
-      auto ch = s[offset - 1].unicode();
-      if (ch == 0xd83d || ch == 0xd83c) {
-        offset++;
+      // If the byte at offset is a continuation byte, we're inside a multi-byte sequence.
+      // Walk backward to the lead byte, then advance past the whole sequence.
+      if ((static_cast<unsigned char>(s[offset]) & 0xC0) == 0x80) {
+        SizeType p = offset;
+        while (p > 0 && (static_cast<unsigned char>(s[p - 1]) & 0xC0) == 0x80) {
+          --p;
+        }
+        if (p > 0 || (static_cast<unsigned char>(s[0]) & 0xC0) != 0x80) {
+          int seqLen = md::utf8SequenceLength(s[p]);
+          offset = p + seqLen;
+        }
       }
     }
     return offset;
   }
   DEBUG << this->left(this->length(), doc);
-  DEBUG << pos << m_pos << this->width() << this->height();
+  DEBUG << "pos=(" << pos.x() << "," << pos.y() << ") m_pos=(" << m_pos.x() << "," << m_pos.y() << ") w=" << this->width() << " h=" << this->height();
   ASSERT(false && "no pos in line");
 }
 int LogicalLine::visualLineAt(SizeType offset, const parser::IBufferProvider& doc) const {
@@ -1056,7 +1061,7 @@ int Block::width() const {
 }
 Block Render::render(Node *node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
                      IFontMetricsProvider* fontMetrics) {
-  Q_ASSERT(node != nullptr);
+  ASSERT(node != nullptr);
   static TexRenderGuard texRenderGuard;
   LayoutPass render(node, setting, doc, fontMetrics);
   node->accept(&render);

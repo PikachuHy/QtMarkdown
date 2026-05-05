@@ -7,7 +7,7 @@
 #include "EditorInputHandler.h"
 #include "FileManager.h"
 
-#include <QStringList>
+#include <format>
 #include <memory>
 #include <vector>
 
@@ -120,8 +120,8 @@ void Editor::mousePressEvent(const core::Point& offset, const core::MouseEvent& 
 }
 void Editor::insertText(String str) {
   if (str.isEmpty()) return;
-  auto strs = str.split("\n");
-  for (int i = 0; i < strs.size() - 1; ++i) {
+  auto strs = str.split('\n');
+  for (int i = 0; i < static_cast<int>(strs.size()) - 1; ++i) {
     m_doc->insertText(*m_cursor, strs[i]);
     m_doc->insertReturn(*m_cursor);
   }
@@ -137,39 +137,39 @@ String Editor::cursorCoord() const {
   String s;
   auto pos = m_cursor->pos();
   auto coord = m_cursor->coord();
-  s += QString("Cursor: (%1, %2, %3)").arg(pos.x).arg(pos.y).arg(m_cursor->height());
+  s += std::format("Cursor: ({}, {}, {})", pos.x, pos.y, m_cursor->height());
   s += "\n";
-  s += QString("BlockNo: %1/%2").arg(coord.blockNo).arg(m_doc->blocks().size());
+  s += std::format("BlockNo: {}/{}", coord.blockNo, m_doc->blocks().size());
   s += "\n";
   const auto &block = m_doc->blocks()[coord.blockNo];
-  s += QString("LineNo: %1/%2").arg(coord.lineNo).arg(block.countOfLogicalLine());
+  s += std::format("LineNo: {}/{}", coord.lineNo, block.countOfLogicalLine());
   s += "\n";
-  s += QString("Offset: %1/%2").arg(coord.offset).arg(block.logicalLineAt(coord.lineNo).length());
+  s += std::format("Offset: {}/{}", coord.offset, block.logicalLineAt(coord.lineNo).length());
   s += "\n";
-  s += QString("Hold Ctrl: ");
+  s += "Hold Ctrl: ";
   if (m_holdCtrl)
     s += "YES";
   else
     s += "NO";
   s += "\n";
-  s += QString("Hold Shift: ");
+  s += "Hold Shift: ";
   if (m_holdShift)
     s += "YES";
   else
     s += "NO";
   s += "\n";
-  s += QString("Pre Editing: ");
+  s += "Pre Editing: ";
   if (m_inputHandler && m_inputHandler->isPreediting())
     s += "YES";
   else
     s += "NO";
   s += "\n";
   if (m_hasSelection) {
-    s += QString("Selection Range: ");
+    s += "Selection Range: ";
     auto [begin, end] = m_selectionRange->range();
-    s += QString("(%1,%2,%3)").arg(begin.coord().blockNo).arg(begin.coord().lineNo).arg(begin.coord().offset);
-    s += QString("->");
-    s += QString("(%1,%2,%3)").arg(end.coord().blockNo).arg(end.coord().lineNo).arg(end.coord().offset);
+    s += std::format("({},{},{})", begin.coord().blockNo, begin.coord().lineNo, begin.coord().offset);
+    s += "->";
+    s += std::format("({},{},{})", end.coord().blockNo, end.coord().lineNo, end.coord().offset);
   }
   return s;
 }

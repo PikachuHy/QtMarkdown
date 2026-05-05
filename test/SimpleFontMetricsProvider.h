@@ -1,6 +1,7 @@
 #ifndef QTMARKDOWN_SIMPLEFONTMETRICSPROVIDER_H
 #define QTMARKDOWN_SIMPLEFONTMETRICSPROVIDER_H
 
+#include "core/Utf8Util.h"
 #include "render/FontMetricsProvider.h"
 
 namespace md::render {
@@ -12,8 +13,10 @@ public:
     Size size(const Font& font, const String& text) const override {
         int pixelSize = font.pixelSize();
         int w = 0;
-        for (const QChar& ch : text) {
-            w += (ch.unicode() < 128) ? (pixelSize / 2) : pixelSize;
+        for (size_t i = 0; i < text.size(); ) {
+            auto seqLen = md::utf8SequenceLength(text[i]);
+            w += (seqLen == 1 && static_cast<unsigned char>(text[i]) < 128) ? (pixelSize / 2) : pixelSize;
+            i += seqLen;
         }
         int h = pixelSize * 3 / 2;
         return Size(w, h);

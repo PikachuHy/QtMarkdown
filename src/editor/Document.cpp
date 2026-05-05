@@ -5,6 +5,7 @@
 #include "Document.h"
 
 #include "Cursor.h"
+#include "core/Utf8Util.h"
 #include "debug.h"
 #include "parser/Parser.h"
 #include "parser/Text.h"
@@ -74,14 +75,10 @@ CursorCoord Document::moveCursorToRight(CursorCoord coord) {
   auto& line = block.logicalLineAt(coord.lineNo);
   SizeType totalOffset = line.length();
   if (totalOffset >= coord.offset + 1) {
-    // 判断emoji
+    // 获取当前字符的UTF-8序列长度
     String s = line.left(coord.offset + 1, *m_parserDoc);
-    auto ch = s[coord.offset].unicode();
-    // 如果是emoji的开始标志，再往后移动一位
-    if (ch == 0xd83d || ch == 0xd83c) {
-      coord.offset++;
-    }
-    coord.offset++;
+    auto seqLen = ::md::utf8SequenceLength(s[coord.offset]);
+    coord.offset += seqLen;
   } else {
     // 去下一个逻辑行
     if (coord.lineNo + 1 < block.countOfLogicalLine()) {
@@ -102,17 +99,10 @@ CursorCoord Document::moveCursorToLeft(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   const auto& block = m_blocks[coord.blockNo];
   if (coord.offset > 0) {
-    if (coord.offset >= 2) {
-      // 判断emoji
-      auto& line = block.logicalLineAt(coord.lineNo);
-      String s = line.left(coord.offset, *m_parserDoc);
-      auto ch = s[coord.offset - 2].unicode();
-      // 如果是emoji的开始标志，再往前移动一位
-      if (ch == 0xd83d || ch == 0xd83c) {
-        coord.offset--;
-      }
-    }
-    coord.offset--;
+    auto& line = block.logicalLineAt(coord.lineNo);
+    String s = line.left(coord.offset, *m_parserDoc);
+    auto prevStart = ::md::previousCodePointStart(s.toStdString(), coord.offset);
+    coord.offset = prevStart;
   } else if (coord.lineNo > 0) {
     coord.lineNo--;
     coord.offset = block.logicalLineAt(coord.lineNo).length();

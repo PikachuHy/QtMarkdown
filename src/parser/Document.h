@@ -4,8 +4,6 @@
 
 #ifndef MD_DOCUMENT_H
 #define MD_DOCUMENT_H
-#include <QDebug>
-#include <QRect>
 #include <iostream>
 #include <memory>
 

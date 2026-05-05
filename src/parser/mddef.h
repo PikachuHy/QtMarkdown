@@ -4,10 +4,12 @@
 
 #ifndef QTMARKDOWN_MDDEF_H
 #define QTMARKDOWN_MDDEF_H
-#include <QList>
-#include <QString>
-#include <QStringList>
+#include <cstdint>
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "MdString.h"
 namespace md {
 namespace parser {
 class Node;
@@ -20,15 +22,13 @@ class Container;
 // The alias here is kept for backward compatibility with external code
 // Prefer including parser/Node.h for the canonical definition
 // TokenList uses std::vector for iterator stability during parsing.
-// StringList uses QStringList (QList<QString>) for Qt interop.
-// This inconsistency is historical; both have their appropriate use cases.
+// StringList uses std::vector<String> for UTF-8 compatibility.
 using TokenList = std::vector<parser::Token>;
-using String = QString;
-using StringList = QStringList;
+using StringList = std::vector<String>;
 template <typename T>
 using sptr = std::shared_ptr<T>;
 using ContainerPtr = sptr<parser::Container>;
-using Char = QChar;
-using SizeType = qsizetype;
+using Char = char;
+using SizeType = int64_t;
 }  // namespace md
 #endif  // QTMARKDOWN_MDDEF_H

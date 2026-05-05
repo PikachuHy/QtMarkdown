@@ -3,6 +3,7 @@
 //
 
 #include "MarkdownSerializer.h"
+#include <string>
 #include "debug.h"
 #include "parser/Document.h"
 #include "parser/Text.h"
@@ -58,14 +59,14 @@ void MarkdownSerializer::visit(Image* node) {
     if (node->alt()) {
         node->alt()->accept(this);
     } else {
-        qDebug() << "image alt is null";
+        DEBUG << "image alt is null";
     }
     m_md += "]";
     m_md += "(";
     if (node->src()) {
         node->src()->accept(this);
     } else {
-        qDebug() << "image src is null";
+        DEBUG << "image src is null";
     }
     m_md += ")";
 }
@@ -75,14 +76,14 @@ void MarkdownSerializer::visit(Link* node) {
     if (node->href()) {
         node->href()->accept(this);
     } else {
-        qDebug() << "link href is null";
+        DEBUG << "link href is null";
     }
     m_md += "]";
     m_md += "(";
     if (node->content()) {
         node->content()->accept(this);
     } else {
-        qDebug() << "link content is null";
+        DEBUG << "link content is null";
     }
     m_md += ")";
 }
@@ -150,7 +151,7 @@ void MarkdownSerializer::visit(UnorderedList* node) {
 void MarkdownSerializer::visit(OrderedList* node) {
     int i = 1;
     for (auto& it : node->children()) {
-        m_md += QString("%1. ").arg(i);
+        m_md += std::to_string(i) + ". ";
         it->accept(this);
         m_md += "\n";
         i++;
@@ -190,7 +191,7 @@ void MarkdownSerializer::visit(Table* node) {
         }
         m_md += "\n";
     };
-    if (node->header().isEmpty() && node->content().isEmpty()) return;
+    if (node->header().empty() && node->content().empty()) return;
     renderRow(node->header());
     m_md += "|";
     for (int i = 0; i < node->header().size(); ++i) {

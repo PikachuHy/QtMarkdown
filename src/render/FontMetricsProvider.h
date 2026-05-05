@@ -21,11 +21,11 @@ class QTMARKDOWNSHARED_EXPORT QtFontMetricsProvider : public IFontMetricsProvide
 public:
     Size size(const Font& font, const String& text) const override {
         QFontMetrics fm(font);
-        return fm.size(Qt::TextSingleLine, text);
+        return fm.size(Qt::TextSingleLine, toQString(text));
     }
     int horizontalAdvance(const Font& font, const String& text) const override {
         QFontMetrics fm(font);
-        return fm.horizontalAdvance(text);
+        return fm.horizontalAdvance(toQString(text));
     }
     int height(const Font& font) const override {
         QFontMetrics fm(font);

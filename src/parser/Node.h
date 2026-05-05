@@ -5,7 +5,6 @@
 #ifndef MD_PARSER_NODE_H
 #define MD_PARSER_NODE_H
 
-#include <QDebug>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -43,7 +42,6 @@ enum class QTMARKDOWNSHARED_EXPORT NodeType {
   table,
   lf  // 换行
 };
-QTMARKDOWNSHARED_EXPORT QDebug operator<<(QDebug debug, const NodeType& type);
 QTMARKDOWNSHARED_EXPORT std::ostream& operator<<(std::ostream& os, const NodeType& type);
 
 class QTMARKDOWNSHARED_EXPORT Node {

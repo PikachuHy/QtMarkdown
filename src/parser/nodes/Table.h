@@ -11,15 +11,15 @@ namespace md::parser {
 class QTMARKDOWNSHARED_EXPORT Table : public Node {
  public:
   Table() { m_type = NodeType::table; }
-  void appendRow(const StringList& row) { m_content.append(row); }
-  void setHeader(const StringList& header) { m_header = header; }
-  StringList& header() { return m_header; }
-  QList<StringList>& content() { return m_content; }
+  void appendRow(const std::vector<String>& row) { m_content.push_back(row); }
+  void setHeader(const std::vector<String>& header) { m_header = header; }
+  std::vector<String>& header() { return m_header; }
+  std::vector<std::vector<String>>& content() { return m_content; }
   void accept(NodeVisitor* v) override { v->visit(this); }
 
  private:
-  StringList m_header;
-  QList<StringList> m_content;
+  std::vector<String> m_header;
+  std::vector<std::vector<String>> m_content;
 };
 }  // namespace md::parser
 

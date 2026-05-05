@@ -4,9 +4,6 @@
 
 #ifndef MD_TOKEN_H
 #define MD_TOKEN_H
-#include <QList>
-#include <QMap>
-#include <QString>
 
 #include "QtMarkdown_global.h"
 #include "mddef.h"
@@ -46,7 +43,6 @@ class QTMARKDOWNSHARED_EXPORT Token {
   SizeType m_offset;
   SizeType m_length;
 };
-extern QMap<QChar, Token> spMap;
 inline bool isSharp(const Token& token) { return token.type() == TokenType::sharp; }
 inline bool isSpace(const Token& token) { return token.type() == TokenType::space; }
 inline bool isLeftParenthesis(const Token& token) { return token.type() == TokenType::left_parenthesis; }

@@ -15,7 +15,7 @@ void TextInstruction::run(Painter& painter, Point offset, const parser::IBufferP
   painter.setPen(m_cell->m_fg);
   auto s = m_cell->m_text->toString(doc).mid(m_cell->m_offset, m_cell->m_length);
   Rect rect(m_cell->m_pos + offset, m_cell->m_size);
-  painter.drawText(rect, s);
+  painter.drawText(rect, 0, toQString(s));
   painter.restore();
 }
 void StaticTextInstruction::run(Painter& painter, Point offset, const parser::IBufferProvider& /*doc*/) const {
@@ -23,16 +23,16 @@ void StaticTextInstruction::run(Painter& painter, Point offset, const parser::IB
   painter.setPen(m_fg);
   painter.setFont(m_font);
   auto rect = Rect(m_pos + offset, m_size);
-  painter.drawText(rect, m_text);
+  painter.drawText(rect, 0, toQString(m_text));
   painter.restore();
 }
 void ImageInstruction::run(Painter& painter, Point offset, const parser::IBufferProvider& /*doc*/) const {
   auto rect = Rect(m_pos + offset, m_size);
-  painter.drawPixmap(rect, QPixmap(m_path));
+  painter.drawPixmap(rect, QPixmap(toQString(m_path)));
 }
 void StaticImageInstruction::run(Painter& painter, Point offset, const parser::IBufferProvider& /*doc*/) const {
   auto rect = Rect(m_pos + offset, m_size);
-  painter.drawPixmap(rect, QPixmap(m_path));
+  painter.drawPixmap(rect, QPixmap(toQString(m_path)));
 }
 void FillRectInstruction::run(Painter& painter, Point offset, const parser::IBufferProvider& /*doc*/) const {
   painter.save();
@@ -59,7 +59,7 @@ void LatexInstruction::run(Painter& painter, Point offset, const parser::IBuffer
     delete render;
   } catch (const std::exception& ex) {
     qDebug() << "ERROR" << ex.what();
-    painter.drawText(rect.x(), rect.y(), "Render LaTeX fail: " + m_latex);
+    painter.drawText(QPointF(rect.x(), rect.y()), toQString(String("Render LaTeX fail: ") + m_latex));
   }
   painter.restore();
 }

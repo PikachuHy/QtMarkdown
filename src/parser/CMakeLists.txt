@@ -58,7 +58,7 @@ target_sources(QtMarkdownParser PRIVATE
         nodes/LatexBlock.h LatexBlock.cpp
         nodes/ListNode.h)
 target_compile_definitions(QtMarkdownParser PRIVATE -DQtMarkdown_LIBRARY)
-target_link_libraries(QtMarkdownParser PUBLIC Qt${QT_VERSION_MAJOR}::Core magic_enum::magic_enum)
+target_link_libraries(QtMarkdownParser PUBLIC magic_enum::magic_enum)
 if (BUILD_WITH_BOOST)
     target_link_libraries(QtMarkdownParser PUBLIC Boost::boost)
 endif ()

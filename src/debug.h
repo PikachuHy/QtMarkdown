@@ -4,31 +4,29 @@
 
 #ifndef QTMARKDOWN_DEBUG_H
 #define QTMARKDOWN_DEBUG_H
-#include "QtMarkdown_global.h"
-#include <QDebug>
+#include <cstdlib>
+#include <iostream>
 // clang-format off
 // 只有文件名
-//#define DEBUG qDebug().noquote() << "[debug]" << __FUNCTION__ << QString(__FILE_NAME__) + QString(":") + QString::number(__LINE__)
+//#define DEBUG std::cout << "[debug]" << __FUNCTION__ << " " << __FILE_NAME__ << ":" << __LINE__
 // 文件绝对路径
-#define DEBUG qDebug().noquote() << "[debug]" << __FUNCTION__ << QString(__FILE__) + QString(":") + QString::number(__LINE__)
-class QTMARKDOWNSHARED_EXPORT Backtrace {
+#define DEBUG std::cout << "[debug] " << __FUNCTION__ \
+    << " " << __FILE__ << ":" << __LINE__ << " "
+
+class Backtrace {
 public:
 static void backtrace();
 };
 
 #if !defined(ASSERT)
-#  if defined(QT_NO_DEBUG) && !defined(QT_FORCE_ASSERTS)
-#    define ASSERT(cond) static_cast<void>(false && (cond))
-#  else
-//#    define ASSERT(cond) ((cond) ? static_cast<void>(0) : qDebug().noquote() qt_assert(#cond, __FILE__, __LINE__))
-#    define ASSERT(cond) \
+#define ASSERT(cond) \
 do {\
 if ((cond)) {} else {    \
 Backtrace::backtrace();                         \
-qDebug().noquote() << "[assert]" << #cond << __FUNCTION__ << QString(__FILE__) + QString(":") + QString::number(__LINE__);\
-qt_assert(#cond, __FILE__, __LINE__);\
+std::cerr << "[assert] " << #cond << " " << __FUNCTION__ \
+<< " " << __FILE__ << ":" << __LINE__ << std::endl;\
+std::abort();\
 }\
 } while (0)
-#  endif
 #endif
 #endif //QTMARKDOWN_DEBUG_H

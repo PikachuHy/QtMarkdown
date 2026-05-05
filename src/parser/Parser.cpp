@@ -9,14 +9,15 @@
 #include "Text.h"
 #include "debug.h"
 
+#include <array>
+
 using namespace std::string_view_literals;
 
 namespace md::parser {
 
-QDebug operator<<(QDebug debug, const Line& line) {
-  QDebugStateSaver saver(debug);
-  debug << line.text.mid(line.offset, line.length);
-  return debug;
+std::ostream& operator<<(std::ostream& os, const Line& line) {
+  os << line.text.mid(line.offset, line.length);
+  return os;
 }
 Line trimLeft(Line s) {
   int count = 0;
@@ -31,8 +32,8 @@ std::vector<std::unique_ptr<Text>> mergeToText(const TokenList& tokens, int prev
   if (prev >= cur) return {};
   std::vector<std::unique_ptr<Text>> texts;
   bool hasVal = false;
-  qsizetype offset;
-  qsizetype length;
+  SizeType offset;
+  SizeType length;
   for (int i = prev; i < cur; i++) {
     if (!hasVal) {
       offset = tokens[i].offset();
@@ -51,29 +52,38 @@ std::vector<std::unique_ptr<Text>> mergeToText(const TokenList& tokens, int prev
   texts.push_back(std::make_unique<Text>(offset, length));
   return texts;
 }
-QMap<Char, TokenType> ch2type = {{'#', TokenType::sharp},
-                                 {'>', TokenType::gt},
-                                 {'!', TokenType::exclamation},
-                                 {'*', TokenType::star},
-                                 {'~', TokenType::tilde},
-                                 {'[', TokenType::left_bracket},
-                                 {']', TokenType::right_bracket},
-                                 {'(', TokenType::left_parenthesis},
-                                 {')', TokenType::right_parenthesis},
-                                 {'`', TokenType::backquote},
-                                 {'$', TokenType::dollar}};
+// ch2type lookup table for ASCII characters (0-127)
+// Initialize to TokenType::none, then fill in special chars
+static std::array<TokenType, 128> createCh2Type() {
+  std::array<TokenType, 128> arr{};
+  for (auto& v : arr) v = TokenType::none;
+  arr['#'] = TokenType::sharp;
+  arr['>'] = TokenType::gt;
+  arr['!'] = TokenType::exclamation;
+  arr['*'] = TokenType::star;
+  arr['~'] = TokenType::tilde;
+  arr['['] = TokenType::left_bracket;
+  arr[']'] = TokenType::right_bracket;
+  arr['('] = TokenType::left_parenthesis;
+  arr[')'] = TokenType::right_parenthesis;
+  arr['`'] = TokenType::backquote;
+  arr['$'] = TokenType::dollar;
+  return arr;
+}
+static const std::array<TokenType, 128> ch2type = createCh2Type();
 TokenList parseLine(Line text) {
   TokenList tokens;
   int prev = 0;
   int cur;
   for (cur = 0; cur < text.length; ++cur) {
     auto ch = text[cur];
-    if (ch2type.contains(ch)) {
+    unsigned char uc = static_cast<unsigned char>(ch);
+    if (uc < 128 && ch2type[uc] != TokenType::none) {
       if (prev != cur) {
         tokens.emplace_back(text.offset + prev, cur - prev, TokenType::text);
       }
       prev = cur + 1;
-      tokens.emplace_back(text.offset + cur, 1, ch2type[ch]);
+      tokens.emplace_back(text.offset + cur, 1, ch2type[uc]);
     }
   }
   if (prev != cur) {
@@ -117,9 +127,9 @@ class ParserPrivate {
  public:
   explicit ParserPrivate(const String& text) : m_text(text) {}
   void splitTextToLines() {
-    qsizetype i = 0;
-    qsizetype offset = 0;
-    qsizetype length = 0;
+    SizeType i = 0;
+    SizeType offset = 0;
+    SizeType length = 0;
     while (i < m_text.size()) {
       if (m_text.at(i) == '\r') {
         m_lines.emplace_back(m_text, offset, length);

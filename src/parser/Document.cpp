@@ -12,13 +12,7 @@
 #include "debug.h"
 #include "magic_enum.hpp"
 namespace md::parser {
-QDebug operator<<(QDebug debug, const NodeType &type) {
-  QDebugStateSaver saver(debug);
-  auto str = std::string(magic_enum::enum_name(type));
-  debug.nospace() << QString::fromStdString(str);
-  return debug;
-}
-std::ostream &operator<<(std::ostream &os, const NodeType &type) {
+std::ostream& operator<<(std::ostream& os, const NodeType& type) {
   os << magic_enum::enum_name(type);
   return os;
 }

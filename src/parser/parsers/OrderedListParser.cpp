@@ -5,7 +5,7 @@
 
 #include "ParserDetail.h"
 
-#include <QRegularExpression>
+#include <cctype>
 
 #include "Document.h"
 #include "Text.h"
@@ -30,7 +30,7 @@ namespace md::parser {
       auto line = lines[i];
       bool hasDigit = false;
       int j = 0;
-      while (j < line.size() && line[j].isDigit()) {
+      while (j < line.size() && std::isdigit(static_cast<unsigned char>(line[j]))) {
         hasDigit = true;
         j++;
       }

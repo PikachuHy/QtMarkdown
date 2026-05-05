@@ -5,8 +5,6 @@
 
 #include "ParserDetail.h"
 
-#include <QRegularExpression>
-
 #include "Document.h"
 #include "Text.h"
 #include "debug.h"

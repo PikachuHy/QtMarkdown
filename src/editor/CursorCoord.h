@@ -22,7 +22,7 @@ class QTMARKDOWNSHARED_EXPORT CursorCoord {
   bool operator==(const CursorCoord& rhs) const;
   bool operator!=(const CursorCoord& rhs) const;
 };
-QTMARKDOWNSHARED_EXPORT QDebug operator<<(QDebug debug, const CursorCoord& c);
+QTMARKDOWNSHARED_EXPORT std::ostream& operator<<(std::ostream& os, const CursorCoord& c);
 }  // namespace md::editor
 
 #endif  // QTMARKDOWN_CURSORCOORD_H

@@ -5,8 +5,6 @@
 
 #include "ParserDetail.h"
 
-#include <QRegularExpression>
-
 #include "Document.h"
 #include "Text.h"
 #include "debug.h"
@@ -26,8 +24,8 @@ namespace md::parser {
     };
     int i = startIndex;
     auto checkboxList = std::make_unique<CheckboxList>();
-    QString uncheckedPrefix = "- [ ] ";
-    QString checkedPrefix = "- [x] ";
+    String uncheckedPrefix = "- [ ] ";
+    String checkedPrefix = "- [x] ";
     while (i < lines.size()) {
       auto line = lines[i];
       if (line.startsWith(uncheckedPrefix)) {

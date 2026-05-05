@@ -7,6 +7,7 @@
 #include "QtMarkdown_global.h"
 #include <utility>
 
+#include "debug.h"
 #include "mddef.h"
 #include "parser/IBufferProvider.h"
 #include "parser/Text.h"
@@ -39,7 +40,7 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
   TextCell(parser::Text* text, SizeType offset, SizeType length, Point pos, Size size, const Color& fg,
            const Font& font, IFontMetricsProvider* fm)
       : Cell(pos, size), m_fg(fg), m_font(font), m_text(text), m_offset(offset), m_length(length), m_fm(fm) {
-    Q_ASSERT(fm != nullptr);
+    ASSERT(fm != nullptr);
   }
   SizeType length() override;
   int width(SizeType length, const parser::IBufferProvider& doc) const override;

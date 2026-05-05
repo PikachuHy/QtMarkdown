@@ -16,6 +16,6 @@ class QTMARKDOWNSHARED_EXPORT PieceTableItem {
   SizeType length;
   [[nodiscard]] String toString(const IBufferProvider& doc) const;
 };
-QDebug operator<<(QDebug debug, const PieceTableItem& item);
+std::ostream& operator<<(std::ostream& os, const PieceTableItem& item);
 }  // namespace md::parser
 #endif  // QTMARKDOWN_PIECETABLE_H

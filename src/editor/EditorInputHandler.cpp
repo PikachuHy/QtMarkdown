@@ -43,8 +43,8 @@ class MousePressVisitor : public NodeVisitor {
 #if defined (Q_OS_ANDROID) || defined (Q_OS_UNIX)
     if (!path.startsWith("/")) {
       for (const auto& resPath: m_doc.setting().resPathList) {
-        QString newImgPath = resPath + "/" + path;
-        if (QFile(newImgPath).exists()) {
+        auto newImgPath = resPath + "/" + path;
+        if (QFile(toQString(newImgPath)).exists()) {
           path = newImgPath;
         }
       }
@@ -286,7 +286,7 @@ void EditorInputHandler::handleTextInput(const core::KeyEvent &event) {
     if (m_editor.m_hasSelection) {
       removeSelection();
     }
-    auto text = QString::fromStdString(event.text());
+    auto text = String(event.text());
     m_doc.insertText(m_cursor, text);
   }
 }

@@ -95,7 +95,7 @@ TEST_CASE("ParagraphEditTest,  EmptyParagraphInsertTextAndRemoveText") {
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("ac"));
+    CHECK(s == "ac");
   }
 }
 TEST_CASE("ParagraphEditTest,  RemoveInStartOfPargraph") {
@@ -128,7 +128,7 @@ b
     CHECK(node->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)node;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("ab"));
+    CHECK(s == "ab");
   }
 }
 TEST_CASE("ParagraphEditTest,  RemoveEmoji") {
@@ -141,16 +141,16 @@ a😊b
   auto& cursor = editor.cursor();
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
-  CHECK(cursor.coord().offset == 4);
+  CHECK(cursor.coord().offset == 6);
   {
     auto& line = blocks[0].logicalLineAt(0);
-    CHECK(line.length() == 4);
+    CHECK(line.length() == 6);
   }
   doc->removeText(cursor);
-  CHECK(cursor.coord().offset == 3);
+  CHECK(cursor.coord().offset == 5);
   {
     auto& line = blocks[0].logicalLineAt(0);
-    CHECK(line.length() == 3);
+    CHECK(line.length() == 5);
   }
   doc->removeText(cursor);
   CHECK(cursor.coord().offset == 1);
@@ -167,7 +167,6 @@ a😊b
 }
 TEST_CASE("ParagraphEditTest,  RemoveEmoji2") {
   Editor editor;
-  QString s;
   editor.loadText(R"(
 a [666](www.baidu.com) b 😊
 )");
@@ -178,7 +177,7 @@ a [666](www.baidu.com) b 😊
   doc->updateCursor(cursor, coord);
   {
     auto& line = blocks[0].logicalLineAt(0);
-    CHECK(line.length() == 10);
+    CHECK(line.length() == 12);
   }
   doc->removeText(cursor);
   {
@@ -189,7 +188,6 @@ a [666](www.baidu.com) b 😊
 
 TEST_CASE("ParagraphEditTest,  RemoveText") {
   Editor editor;
-  QString s;
   editor.loadText(R"(
 6
 
@@ -209,7 +207,6 @@ ab
 
 TEST_CASE("ParagraphEditTest,  RemoveEmptyLink") {
   Editor editor;
-  QString s;
   editor.loadText(R"(
 a[b](c)d
 )");
@@ -248,7 +245,6 @@ TEST_CASE("ParagraphEditTest,  UpgradeToHeader") {
 
 TEST_CASE("ParagraphEditTest,  UpgradeToHeaderAndDegradeToParagraphAndRemoveText") {
   Editor editor;
-  QString s;
   editor.loadText(R"(
 a
 )");
@@ -267,7 +263,7 @@ a
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("#a"));
+    CHECK(s == "#a");
   }
   doc->insertText(cursor, " ");
   CHECK(blocks.size() == 2);
@@ -280,7 +276,7 @@ a
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
     CursorCoord _coord;
     _coord.blockNo = 0;
     _coord.lineNo = 0;
@@ -298,7 +294,7 @@ a
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
   }
   doc->removeText(cursor);
   CHECK(blocks.size() == 2);
@@ -311,7 +307,7 @@ a
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
   }
 }
 TEST_CASE("ParagraphEditTest,  UpgradeToUl") {
@@ -392,7 +388,7 @@ TEST_CASE("ParagraphEditTest,  UpgradeToCodeBlockWithOtherText") {
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("asdfasdf"));
+    CHECK(s == "asdfasdf");
   }
 }
 TEST_CASE("UlEditTest,  DegradeToParagraph") {
@@ -442,7 +438,7 @@ TEST_CASE("UlEditTest,  InsertSpace") {
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("[ ]"));
+    CHECK(s == "[ ]");
   }
 }
 TEST_CASE("UlEditTest,  UpgradeToCheckbox") {
@@ -491,9 +487,9 @@ TEST_CASE("UlEditTest,  InsertReturn") {
     CHECK(text->type() == NodeType::text);
     auto textNode = (md::parser::Text*)text;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("GIF啊"));
+    CHECK(s == "GIF啊");
     auto& line = blocks[0].logicalLineAt(0);
-    CHECK(line.length() == 4);
+    CHECK(line.length() == 6);
   }
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
@@ -513,9 +509,9 @@ TEST_CASE("UlEditTest,  InsertReturn") {
     CHECK(text->type() == NodeType::text);
     auto textNode = (md::parser::Text*)text;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("GIF啊"));
+    CHECK(s == "GIF啊");
     auto& line = blocks[0].logicalLineAt(0);
-    CHECK(line.length() == 4);
+    CHECK(line.length() == 6);
   }
 }
 TEST_CASE("CheckboxEditTest,  DegradeToParagraph") {
@@ -657,7 +653,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
   }
   doc->insertReturn(cursor);
   {
@@ -669,7 +665,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
     CHECK(blocks[0].countOfLogicalLine() == 2);
   }
   doc->insertText(cursor, "b");
@@ -684,14 +680,14 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
       CHECK(child->type() == md::parser::NodeType::text);
       auto textNode = (md::parser::Text*)child;
       auto s = textNode->toString(doc->bufferProvider());
-      CHECK(s == QString("a"));
+      CHECK(s == "a");
     }
     {
       auto child = codeBlockNode->childAt(1);
       CHECK(child->type() == md::parser::NodeType::text);
       auto textNode = (md::parser::Text*)child;
       auto s = textNode->toString(doc->bufferProvider());
-      CHECK(s == QString("b"));
+      CHECK(s == "b");
     }
   }
   doc->removeText(cursor);
@@ -704,7 +700,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
     CHECK(blocks[0].countOfLogicalLine() == 2);
   }
   doc->removeText(cursor);
@@ -717,7 +713,7 @@ TEST_CASE("CodeBlockEditTest,  InsertText") {
     CHECK(child->type() == md::parser::NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
     CHECK(blocks[0].countOfLogicalLine() == 1);
   }
 }
@@ -739,13 +735,13 @@ a😊b
   CHECK(cursor.coord().offset == 1);
   coord = doc->moveCursorToRight(cursor.coord());
   doc->updateCursor(cursor, coord);
-  CHECK(cursor.coord().offset == 3);
+  CHECK(cursor.coord().offset == 5);
   coord = doc->moveCursorToRight(cursor.coord());
   doc->updateCursor(cursor, coord);
-  CHECK(cursor.coord().offset == 4);
+  CHECK(cursor.coord().offset == 6);
   coord = doc->moveCursorToLeft(cursor.coord());
   doc->updateCursor(cursor, coord);
-  CHECK(cursor.coord().offset == 3);
+  CHECK(cursor.coord().offset == 5);
   coord = doc->moveCursorToLeft(cursor.coord());
   doc->updateCursor(cursor, coord);
   CHECK(cursor.coord().offset == 1);
@@ -814,7 +810,7 @@ TEST_CASE("PreeditTest,  ShowPreedit2") {
     CHECK(header->childAt(0)->type() == NodeType::text);
     auto textNode = (md::parser::Text*)header->childAt(0);
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
   }
 }
 
@@ -870,7 +866,7 @@ ab
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("a"));
+    CHECK(s == "a");
   }
   {
     auto node = doc->root()->childAt(1);
@@ -881,7 +877,7 @@ ab
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("b"));
+    CHECK(s == "b");
   }
   doc->undo(cursor);
   CHECK(blocks.size() == 1);
@@ -894,7 +890,7 @@ ab
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("ab"));
+    CHECK(s == "ab");
   }
   {
     auto coord = doc->moveCursorToEndOfDocument();
@@ -912,7 +908,7 @@ ab
     CHECK(child->type() == NodeType::text);
     auto textNode = (md::parser::Text*)child;
     auto s = textNode->toString(doc->bufferProvider());
-    CHECK(s == QString("ab"));
+    CHECK(s == "ab");
   }
 }
 
@@ -1032,10 +1028,10 @@ a😊b
 
   auto coord = doc->moveCursorToEndOfDocument();
   doc->updateCursor(cursor, coord);
-  CHECK(cursor.coord().offset == 4);
+  CHECK(cursor.coord().offset == 6);
 
   doc->removeText(cursor);  // removes 'b' -> "a😊"
-  CHECK(cursor.coord().offset == 3);
+  CHECK(cursor.coord().offset == 5);
   doc->removeText(cursor);  // removes emoji -> "a"
   CHECK(cursor.coord().offset == 1);
 

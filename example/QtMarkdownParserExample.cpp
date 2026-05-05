@@ -8,8 +8,8 @@ using namespace md::parser;
 struct SimpleHtmlVisitor : NodeVisitor {
   explicit SimpleHtmlVisitor(const IBufferProvider& doc) : m_doc(doc) {}
   void visit(Header *node) override {
-    auto hn = "h" + String::number(node->level());
-    m_html += "<" + hn + ">";
+    auto hn = String("h") + String(std::to_string(node->level()));
+    m_html += String("<") + hn + ">";
     for (auto& it : node->children()) {
       it->accept(this);
     }
@@ -180,11 +180,11 @@ int main() {
   auto mdText = mdFile.readAll();
   mdFile.close();
   qDebug().noquote().nospace() << mdText;
-  Document doc(mdText);
+  Document doc(String(mdText.toStdString()));
   auto htmlVisitor = SimpleHtmlVisitor(doc);
   doc.accept(&htmlVisitor);
   auto html = htmlVisitor.html();
-  qDebug().noquote() << html;
+  qDebug().noquote() << html.data();
   QFile htmlFile("index.html");
   htmlFile.open(QIODevice::WriteOnly);
   html = R"(<!DOCTYPE html>
@@ -196,7 +196,7 @@ int main() {
 </head><body>
 <article class="markdown-body">)" +
          html + R"(</article></body></html>)";
-  htmlFile.write(html.toUtf8());
+  htmlFile.write(html.data(), static_cast<qint64>(html.size()));
   htmlFile.close();
   qDebug() << "html file write to:" << htmlFile.fileName();
   return 0;

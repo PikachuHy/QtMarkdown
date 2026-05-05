@@ -6,11 +6,9 @@
 
 #include "debug.h"
 namespace md::editor {
-QDebug operator<<(QDebug debug, const CursorCoord &c) {
-  QDebugStateSaver saver(debug);
-  debug.nospace() << '(' << c.blockNo << ", " << c.lineNo << ", " << c.offset << ')';
-
-  return debug;
+std::ostream& operator<<(std::ostream& os, const CursorCoord &c) {
+  os << '(' << c.blockNo << ", " << c.lineNo << ", " << c.offset << ')';
+  return os;
 }
 bool CursorCoord::operator<(const CursorCoord &rhs) const {
   if (blockNo < rhs.blockNo) return true;

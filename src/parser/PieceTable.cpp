@@ -15,11 +15,9 @@ String PieceTableItem::toString(const IBufferProvider& doc) const {
   }
   return s;
 }
-QDebug operator<<(QDebug debug, const PieceTableItem& item) {
-  QDebugStateSaver saver(debug);
-  debug.nospace() << '(' << (item.bufferType == PieceTableItem::original ? "original" : "add") << ", " << item.offset
-                  << ", " << item.length << ')';
-
-  return debug;
+std::ostream& operator<<(std::ostream& os, const PieceTableItem& item) {
+  os << '(' << (item.bufferType == PieceTableItem::original ? "original" : "add") << ", " << item.offset
+      << ", " << item.length << ')';
+  return os;
 }
 }  // namespace md::parser

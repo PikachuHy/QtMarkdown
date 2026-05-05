@@ -5,6 +5,7 @@
 #include "Command.h"
 
 #include "Cursor.h"
+#include "core/Utf8Util.h"
 #include "debug.h"
 #include "parser/Document.h"
 #include "render/Render.h"
@@ -451,32 +452,14 @@ class RemoveTextVisitor
   void removeTextInNode(Text* textNode, SizeType leftOffset) {
     if (leftOffset == 0) return;
     auto s = textNode->toString(m_doc->bufferProvider());
-    if (leftOffset - 1 > 0) {
-      auto ch = s[leftOffset - 2].unicode();
-      // 如果是emoji的开始标志，两个都要删除
-      if (ch == 0xd83d || ch == 0xd83c) {
-        if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
-          m_cmd->m_deletedText = s.mid(leftOffset - 2, 2);
-          m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
-        }
-        textNode->remove(leftOffset - 2, 2);
-        coord.offset -= 2;
-      } else {
-        if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
-          m_cmd->m_deletedText = s.mid(leftOffset - 1, 1);
-          m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
-        }
-        textNode->remove(leftOffset - 1, 1);
-        coord.offset--;
-      }
-    } else {
-      if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
-        m_cmd->m_deletedText = s.mid(leftOffset - 1, 1);
-        m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
-      }
-      textNode->remove(leftOffset - 1, 1);
-      coord.offset--;
+    auto prevStart = ::md::previousCodePointStart(s.toStdString(), leftOffset);
+    SizeType charLen = leftOffset - prevStart;
+    if (m_cmd && m_cmd->m_deletedText.isEmpty()) {
+      m_cmd->m_deletedText = s.mid(prevStart, charLen);
+      m_cmd->m_undoAction = RemoveTextCommand::UndoAction::text_delete;
     }
+    textNode->remove(prevStart, charLen);
+    coord.offset -= charLen;
   }
   void endRemoveText() {
     renderBlock(coord.blockNo);
@@ -734,7 +717,7 @@ class InsertTextVisitor
       auto s = textNode->toString(m_doc->bufferProvider());
       ASSERT(leftOffset >= 0 && leftOffset < s.size());
       auto ch = s[leftOffset];
-      if (ch == targetSkipChar) {
+      if (targetSkipChar.size() == 1 && ch == targetSkipChar[0]) {
         coord.offset++;
         updateCursor(cursor, coord);
         return;

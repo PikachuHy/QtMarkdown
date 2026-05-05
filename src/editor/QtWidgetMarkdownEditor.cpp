@@ -27,37 +27,37 @@ QtWidgetMarkdownEditor::QtWidgetMarkdownEditor(QWidget *parent) : QAbstractScrol
   setAttribute(Qt::WA_InputMethodEnabled);
   setMouseTracking(true);
   m_editor = std::make_shared<Editor>();
-  m_editor->setLinkClickedCallback([](QString url) {
+  m_editor->setLinkClickedCallback([](String url) {
     DEBUG << url;
-    QDesktopServices::openUrl(url);
+    QDesktopServices::openUrl(toQString(url));
   });
-  m_editor->setCopyCodeBtnClickedCallback([this](QString code) {
+  m_editor->setCopyCodeBtnClickedCallback([this](String code) {
     DEBUG << code;
-    QApplication::clipboard()->setText(code);
+    QApplication::clipboard()->setText(toQString(code));
   });
-  m_editor->setImageClickedCallback([this](QString path) {
+  m_editor->setImageClickedCallback([this](String path) {
     QDialog dialog;
     dialog.setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
     auto hbox = new QHBoxLayout();
     auto imgLabel = new QLabel();
     if (path.endsWith(".gif")) {
-      auto m = new QMovie(path);
+      auto m = new QMovie(toQString(path));
       imgLabel->setMovie(m);
       m->start();
     } else {
-      imgLabel->setPixmap(QPixmap(path));
+      imgLabel->setPixmap(QPixmap(toQString(path)));
     }
     hbox->addWidget(imgLabel);
     hbox->setContentsMargins(0, 0, 0, 0);
     dialog.setLayout(hbox);
     dialog.exec();
   });
-  DEBUG << "viewport size:" << viewport()->sizeHint();
+  DEBUG << "viewport size:" << viewport()->sizeHint().width() << viewport()->sizeHint().height();
   m_cursorTimer.start(500);
   connect(&m_cursorTimer, &QTimer::timeout, [this]() { this->viewport()->update(); });
 }
 void QtWidgetMarkdownEditor::loadFile(QString path) {
-  m_editor->loadFile(path);
+  m_editor->loadFile(String(path.toStdString()));
   viewport()->update();
   QSize areaSize = viewport()->size();
   QSize widgetSize = this->size();
@@ -65,7 +65,7 @@ void QtWidgetMarkdownEditor::loadFile(QString path) {
   horizontalScrollBar()->setPageStep(areaSize.width());
   verticalScrollBar()->setRange(0, m_editor->height() - areaSize.height());
   horizontalScrollBar()->setRange(0, m_editor->width() - areaSize.width());
-  DEBUG << "viewport size:" << viewport()->sizeHint();
+  DEBUG << "viewport size:" << viewport()->sizeHint().width() << viewport()->sizeHint().height();
 }
 void QtWidgetMarkdownEditor::paintEvent(QPaintEvent *event) {
   QPainter qpainter(viewport());
@@ -105,11 +105,11 @@ QVariant QtWidgetMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) co
 void QtWidgetMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
   auto str = event->commitString();
   if (!str.isEmpty()) {
-    m_editor->commitString(str);
+    m_editor->commitString(String(str.toStdString()));
   }
   auto preeditStr = event->preeditString();
   if (!preeditStr.isEmpty()) {
-    m_editor->setPreedit(preeditStr);
+    m_editor->setPreedit(String(preeditStr.toStdString()));
   }
   viewport()->update();
 }

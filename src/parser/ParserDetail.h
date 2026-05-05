@@ -9,8 +9,6 @@
 #include "Token.h"
 #include "mddef.h"
 
-#include <QDebug>
-#include <QMap>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -18,14 +16,14 @@
 namespace md::parser {
 
 struct Line {
-  Line(const String& text, qsizetype offset, qsizetype length) : text(text), offset(offset), length(length) {}
-  Char operator[](qsizetype index) const { return text.at(offset + index); }
+  Line(const String& text, SizeType offset, SizeType length) : text(text), offset(offset), length(length) {}
+  Char operator[](SizeType index) const { return text.at(offset + index); }
   [[nodiscard]] Char front() const { return text.at(offset); }
   [[nodiscard]] Char back() const { return text.at(offset + length - 1); }
   [[nodiscard]] bool startsWith(const String& s) const {
-    return QStringView(text).mid(offset, length).startsWith(s);
+    return length >= s.size() && text.compare(offset, s.size(), s) == 0;
   }
-  [[nodiscard]] qsizetype size() const { return length; }
+  [[nodiscard]] SizeType size() const { return length; }
   [[nodiscard]] Line trimmed() const {
     Line line(text, offset, length);
     while (line.length > 0 && text.at(line.offset) == ' ') {
@@ -37,23 +35,22 @@ struct Line {
     }
     return line;
   }
-  [[nodiscard]] Line mid(qsizetype pos, qsizetype len = -1) const {
+  [[nodiscard]] Line mid(SizeType pos, SizeType len = -1) const {
     if (len == -1) len = length - pos;
     return {text, offset + pos, len};
   }
-  [[nodiscard]] Line right(qsizetype n) const { return {text, offset + length - n, n}; }
+  [[nodiscard]] Line right(SizeType n) const { return {text, offset + length - n, n}; }
   const String& text;
-  qsizetype offset;
-  qsizetype length;
+  SizeType offset;
+  SizeType length;
 };
 
 using LineList = std::vector<Line>;
 
-QDebug operator<<(QDebug debug, const Line& line);
+std::ostream& operator<<(std::ostream& os, const Line& line);
 Line trimLeft(Line s);
 std::vector<std::unique_ptr<Text>> mergeToText(const TokenList& tokens, int prev, int cur);
 
-extern QMap<Char, TokenType> ch2type;
 TokenList parseLine(Line text);
 
 struct ParseResult {

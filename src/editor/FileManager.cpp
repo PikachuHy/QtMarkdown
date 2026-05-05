@@ -22,7 +22,7 @@ std::pair<bool, String> FileManager::loadFile(const String& path) {
     if (path.startsWith(prefix)) {
         notePath = path.mid(prefix.size());
     }
-    QFile file(notePath);
+    QFile file(toQString(notePath));
     if (!file.exists()) {
         DEBUG << "file not exist:" << notePath;
         return {false, ""};
@@ -32,7 +32,7 @@ std::pair<bool, String> FileManager::loadFile(const String& path) {
         return {false, ""};
     }
     auto mdText = file.readAll();
-    return {true, mdText};
+    return {true, String(mdText.toStdString())};
 }
 
 bool FileManager::saveToFile(const String& path) const {
@@ -41,7 +41,7 @@ bool FileManager::saveToFile(const String& path) const {
         notePath += ".md";
     }
     DEBUG << "note path" << notePath;
-    QFile file(notePath);
+    QFile file(toQString(notePath));
     if (!file.open(QIODevice::WriteOnly)) {
         DEBUG << "file open fail:" << notePath;
         return false;
@@ -49,7 +49,7 @@ bool FileManager::saveToFile(const String& path) const {
     MarkdownSerializer serializer(m_doc.bufferProvider());
     m_doc.accept(&serializer);
     auto mdText = serializer.markdown();
-    file.write(mdText.toUtf8());
+    file.write(mdText.data(), static_cast<qint64>(mdText.size()));
     file.close();
     return true;
 }

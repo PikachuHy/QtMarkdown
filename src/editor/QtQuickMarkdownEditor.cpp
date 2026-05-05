@@ -15,17 +15,17 @@
 namespace md::editor {
 QtQuickMarkdownEditor::QtQuickMarkdownEditor(QQuickItem *parent) : QQuickPaintedItem(parent) {
   m_editor = std::make_shared<Editor>();
-  m_editor->setLinkClickedCallback([this](QString url) {
+  m_editor->setLinkClickedCallback([this](String url) {
     DEBUG << url;
-    emit linkClicked(url);
+    emit linkClicked(toQString(url));
   });
-  m_editor->setImageClickedCallback([this](QString path) {
+  m_editor->setImageClickedCallback([this](String path) {
     DEBUG << path;
-    emit imageClicked(path);
+    emit imageClicked(toQString(path));
   });
-  m_editor->setCopyCodeBtnClickedCallback([this](QString code) {
+  m_editor->setCopyCodeBtnClickedCallback([this](String code) {
     DEBUG << code;
-    emit codeCopied(code);
+    emit codeCopied(toQString(code));
   });
   m_editor->setCheckBoxClickedCallback([this]() { markContentChanged(); });
   setAcceptHoverEvents(true);
@@ -62,7 +62,7 @@ void QtQuickMarkdownEditor::paint(QPainter *painter) {
     m_editor->drawCursor(adapter, offset);
   }
 #endif
-  emit cursorCoordChanged(m_editor->cursorCoord());
+  emit cursorCoordChanged(toQString(m_editor->cursorCoord()));
   emit implicitHeightChanged();
 }
 void QtQuickMarkdownEditor::setText(const QString &text) {}
@@ -72,17 +72,23 @@ void QtQuickMarkdownEditor::setSource(const QString &source) {
   m_source = source;
   m_isNewDoc = false;
   auto tmpPath = this->tmpPath();
-  DEBUG << tmpPath;
+  DEBUG << tmpPath.toStdString();
   int w = this->width();
   if (w > 0) {
     m_editor->setWidth(this->width());
   }
-  m_editor->setResPathList(m_resPathList);
+  {
+    StringList pathList;
+    for (const auto& p : m_resPathList) {
+      pathList.push_back(String(p.toStdString()));
+    }
+    m_editor->setResPathList(pathList);
+  }
   if (QFile(tmpPath).exists()) {
-    m_editor->loadFile(tmpPath);
+    m_editor->loadFile(String(tmpPath.toStdString()));
     markContentChanged();
   } else {
-    m_editor->loadFile(url2path(source));
+    m_editor->loadFile(String(url2path(source).toStdString()));
   }
   setImplicitWidth(m_editor->width());
   setImplicitHeight(m_editor->height());
@@ -107,7 +113,7 @@ void QtQuickMarkdownEditor::keyPressEvent(QKeyEvent *event) {
   } else if ((event->modifiers() & Qt::Modifier::CTRL) && key == Qt::Key_V) {
     auto s = QGuiApplication::clipboard()->text();
     if (!s.isEmpty()) {
-      m_editor->insertText(s);
+      m_editor->insertText(String(s.toStdString()));
     } else {
       QtKeyEvent adapter(event);
       m_editor->keyPressEvent(adapter);
@@ -158,9 +164,9 @@ QVariant QtQuickMarkdownEditor::inputMethodQuery(Qt::InputMethodQuery query) con
   return QQuickItem::inputMethodQuery(query);
 }
 void QtQuickMarkdownEditor::inputMethodEvent(QInputMethodEvent *event) {
-  auto str = event->commitString();
+  auto str = String(event->commitString().toStdString());
   if (str.isEmpty()) {
-    auto preeditStr = event->preeditString();
+    auto preeditStr = String(event->preeditString().toStdString());
     m_editor->setPreedit(preeditStr);
   } else {
     m_editor->commitString(str);
@@ -174,7 +180,7 @@ void QtQuickMarkdownEditor::newDoc() {
 void QtQuickMarkdownEditor::saveToFile(const QString &path) {
   m_source = path;
   m_isNewDoc = false;
-  bool ok = m_editor->saveToFile(url2path(m_source));
+  bool ok = m_editor->saveToFile(String(url2path(m_source).toStdString()));
   if (ok) {
     DEBUG << "save success";
     auto tmpPath = this->tmpPath();
@@ -192,7 +198,7 @@ void QtQuickMarkdownEditor::saveToFile(const QString &path) {
     DEBUG << "save fail";
   }
 }
-QString QtQuickMarkdownEditor::title() { return m_editor->title(); }
+QString QtQuickMarkdownEditor::title() { return toQString(m_editor->title()); }
 void QtQuickMarkdownEditor::mouseMoveEvent(QMouseEvent *event) {
   QtMouseEvent adapter(event);
   m_editor->mouseMoveEvent(core::Point(0, 0), adapter);
@@ -207,7 +213,7 @@ void QtQuickMarkdownEditor::tmpSave() {
   if (path.startsWith(":")) {
     return;
   }
-  auto ok = m_editor->saveToFile(path);
+  auto ok = m_editor->saveToFile(String(path.toStdString()));
   if (ok) {
     DEBUG << "tmp save success";
   } else {
@@ -230,21 +236,19 @@ QString QtQuickMarkdownEditor::tmpPath() {
 }
 void QtQuickMarkdownEditor::save() { this->saveToFile(url2path(m_source)); }
 QString QtQuickMarkdownEditor::url2path(QString url) {
-  String path = url;
-  String prefix = "file://";
+  QString prefix = "file://";
   if (url.startsWith(prefix)) {
 #ifdef Q_OS_WIN
     for (char ch = 'C'; ch <= 'Z'; ch++) {
-      String diskPrefix = prefix + "/" + ch + ":";
+      QString diskPrefix = prefix + "/" + ch + ":";
       if (url.startsWith(diskPrefix)) {
-        path = url.mid(prefix.size() + 1);
-        return path;
+        return url.mid(prefix.size() + 1);
       }
     }
 #else
 #endif
-    return path.mid(prefix.size());
+    return url.mid(prefix.size());
   }
-  return path;
+  return url;
 }
 }  // namespace md::editor
