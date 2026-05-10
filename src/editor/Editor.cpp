@@ -53,7 +53,7 @@ bool Editor::saveToFile(const String &path) {
 }
 void Editor::drawSelection(core::AbstractPainter& painter,
                            const core::Point& offset) {
-  if (!m_renderer) return;
+  if (!m_renderer || !m_hasSelection) return;
   m_renderer->drawSelection(painter, offset,
                             m_selectionInstructions, *m_doc);
 }

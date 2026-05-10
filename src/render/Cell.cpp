@@ -8,6 +8,7 @@
 #include "debug.h"
 namespace md::render {
 SizeType TextCell::length() { return m_length; }
+int TextCell::ascent() const { return m_fm->ascent(m_font); }
 int TextCell::width(SizeType length, const parser::IBufferProvider& doc) const {
   ASSERT(length >= 0 && length <= m_length);
   auto s = m_text->toString(doc).mid(m_offset, m_length);

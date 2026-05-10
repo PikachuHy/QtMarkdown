@@ -29,6 +29,7 @@ class QTMARKDOWNSHARED_EXPORT Cell {
   // 返回关联的Text节点和在此cell内的偏移（非TextCell返回nullptr/0）
   [[nodiscard]] virtual parser::Text* textNode() const { return nullptr; }
   [[nodiscard]] virtual SizeType textOffset() const { return 0; }
+  [[nodiscard]] virtual int ascent() const { return 0; }
 
  protected:
   Point m_pos;
@@ -49,6 +50,7 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
   int width(SizeType length, const parser::IBufferProvider& doc) const override;
   parser::Text* textNode() const override { return m_text; }
   SizeType textOffset() const override { return m_offset; }
+  int ascent() const override;
   parser::Text* text() const { return m_text; }
 
  private:

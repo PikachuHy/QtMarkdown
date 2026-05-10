@@ -68,7 +68,7 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   LogicalLine& operator=(LogicalLine&&) noexcept = default;
   int height() const;
   int width() const;
-  std::pair<Point, int> cursorAt(SizeType offset, const parser::IBufferProvider& doc) const;
+  std::tuple<Point, int, int> cursorAt(SizeType offset, const parser::IBufferProvider& doc) const;
   bool hasTextAt(SizeType offset) const;
   // 第一个Text是当前offset所在Text结点
   // 第二个int是当前offset在结点中还有的offset

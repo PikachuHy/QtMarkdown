@@ -14,7 +14,7 @@ public:
     Size size(const Font& font, const String& text) const override {
         QFontMetrics fm(toQFont(font));
         auto s = fm.size(Qt::TextSingleLine, toQString(text));
-        return {s.width(), fm.lineSpacing()};
+        return {s.width(), s.height()};
     }
     int horizontalAdvance(const Font& font, const String& text) const override {
         QFontMetrics fm(toQFont(font));
@@ -22,7 +22,7 @@ public:
     }
     int height(const Font& font) const override {
         QFontMetrics fm(toQFont(font));
-        return fm.lineSpacing();
+        return fm.height();
     }
     int ascent(const Font& font) const override {
         QFontMetrics fm(toQFont(font));

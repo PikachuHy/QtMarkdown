@@ -20,11 +20,14 @@ class QTMARKDOWNSHARED_EXPORT Cursor {
   void setPos(core::Point pos) { m_pos = pos; }
   [[nodiscard]] int height() const { return m_h; }
   void setHeight(int h) { m_h = h; }
+  [[nodiscard]] int ascent() const { return m_ascent; }
+  void setAscent(int a) { m_ascent = a; }
 
  private:
   CursorCoord m_coord{};
   core::Point m_pos{};
   int m_h = 20;
+  int m_ascent = 0;
 };
 class QTMARKDOWNSHARED_EXPORT SelectionRange {
  public:

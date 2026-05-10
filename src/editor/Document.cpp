@@ -49,11 +49,12 @@ void Document::ensureTrailingParagraph() {
 void Document::updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos) {
   cursor.setCoord(coord);
   if (!updatePos) return;
-  auto [pos, h] = mapToScreen(coord);
+  auto [pos, h, ascent] = mapToScreen(coord);
   cursor.setPos(pos);
   cursor.setHeight(h);
+  cursor.setAscent(ascent);
 }
-std::pair<core::Point, int> Document::mapToScreen(const CursorCoord& coord) {
+std::tuple<core::Point, int, int> Document::mapToScreen(const CursorCoord& coord) {
   int y = m_setting->docMargin.top;
   for (int blockNo = 0; blockNo < coord.blockNo; ++blockNo) {
     y += m_setting->blockSpacing;
@@ -63,12 +64,12 @@ std::pair<core::Point, int> Document::mapToScreen(const CursorCoord& coord) {
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
   auto& line = block.logicalLineAt(coord.lineNo);
-  auto [pos, h] = line.cursorAt(coord.offset, *m_parserDoc);
+  auto [pos, h, ascent] = line.cursorAt(coord.offset, *m_parserDoc);
   if (h == line.height()) {
     h -= m_setting->lineSpacing;
   }
   auto resultPos = pos + core::Point(0, y);
-  return {resultPos, h};
+  return {resultPos, h, ascent};
 }
 CursorCoord Document::moveCursorToRight(CursorCoord coord) {
   const auto& block = m_blocks[coord.blockNo];

@@ -327,6 +327,7 @@ void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::
     }
   } else {
     m_editor.m_hasSelection = false;
+    m_editor.m_selectionInstructions.clear();
   }
   auto off = offset;
   off.y += m_setting.docMargin.top;
@@ -346,7 +347,7 @@ void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::
     }
     off.y += h + m_setting.blockSpacing;
   }
-  auto coord = m_doc.moveCursorToPos(event.pos());
+  auto coord = m_doc.moveCursorToPos(event.pos() + offset);
   m_doc.updateCursor(m_cursor, coord);
   if (m_editor.m_hasSelection) {
     m_doc.updateCursor(m_editor.m_selectionRange->caret, coord);
@@ -528,7 +529,7 @@ void EditorInputHandler::generateSelectionInstruction() {
   auto totalH = m_setting.docMargin.top;
   for (int i = 0; i < begin.coord().blockNo; ++i) {
     const auto &block = m_doc.blocks()[i];
-    totalH += block.height();
+    totalH += block.height() + m_setting.blockSpacing;
   }
   bool drawDone = false;
   for (auto blockNo = begin.coord().blockNo; blockNo <= end.coord().blockNo; ++blockNo) {
@@ -581,7 +582,7 @@ void EditorInputHandler::generateSelectionInstruction() {
       }
       if (drawDone) break;
     }
-    totalH += block.height();
+    totalH += block.height() + m_setting.blockSpacing;
     if (drawDone) break;
   }
 }

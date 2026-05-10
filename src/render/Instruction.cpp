@@ -13,9 +13,9 @@ void TextInstruction::run(Painter& painter, Point offset, const parser::IBufferP
   painter.setFont(m_cell->m_font);
   painter.setPen(m_cell->m_fg);
   auto s = m_cell->m_text->toString(doc).mid(m_cell->m_offset, m_cell->m_length);
-  auto baseline = m_cell->m_pos + offset;
-  baseline.y += m_cell->m_fm->ascent(m_cell->m_font);
-  painter.drawText(baseline, s);
+  auto pt = m_cell->m_pos + offset;
+  pt.y += m_cell->ascent();
+  painter.drawText(pt, s);
   painter.restore();
 }
 void StaticTextInstruction::run(Painter& painter, Point offset, const parser::IBufferProvider& /*doc*/) const {

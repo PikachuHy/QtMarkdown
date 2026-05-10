@@ -32,7 +32,7 @@ void EditorRenderer::drawCursor(core::AbstractPainter& painter, const core::Poin
     painter.save();
     painter.setPen(core::Color(255, 0, 0));
     int x = pos.x;
-    int y = pos.y;
+    int y = pos.y - cursor.ascent();
     int h = cursor.height();
     int delta = 2;
     painter.drawLine(core::Point(x - delta, y), core::Point(x + delta, y));

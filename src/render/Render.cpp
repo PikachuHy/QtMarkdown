@@ -602,8 +602,6 @@ class LayoutPass
     line.m_lines.push_back(VisualLine(Point(m_curX, m_curY), size.height));
   }
   void endVisualLine() {
-    // 当视觉行结束时，需要调整每个Cell的y
-    // 让中英文的底部是一样的
     ASSERT(!m_block.m_logicalLines.empty());
     auto &logicalLine = m_block.m_logicalLines.back();
     ASSERT(!logicalLine.m_lines.empty());
@@ -616,8 +614,6 @@ class LayoutPass
     line.m_h = maxH;
     for (auto& cell : line.m_cells) {
       auto y = cell->m_pos.y;
-      // 这里的对齐还是不好
-      // textSize算出来的大小也不完全是能过包围住文字的
       auto delta = maxH - cell->height();
       cell->m_pos.y = y + delta / 2;
     }
@@ -770,24 +766,23 @@ int VisualLine::width() const {
   return w;
 }
 int LogicalLine::height() const { return m_h; }
-std::pair<Point, int> LogicalLine::cursorAt(SizeType offset, const parser::IBufferProvider& doc) const {
+std::tuple<Point, int, int> LogicalLine::cursorAt(SizeType offset, const parser::IBufferProvider& doc) const {
   if (m_cells.empty()) {
-    return {Point(m_pos.x + m_padding, m_pos.y), m_h};
+    return {Point(m_pos.x + m_padding, m_pos.y), m_h, 0};
   }
   auto totalOffset = 0;
   for (auto cell : m_cells) {
     if (totalOffset <= offset && offset < totalOffset + cell->length()) {
-      // 计算还剩下的偏移量
       auto w = cell->width(offset - totalOffset, doc);
-      auto pos = Point(cell->m_pos.x + w, cell->m_pos.y);
-      return {pos, cell->m_size.height};
+      auto pos = Point(cell->m_pos.x + w, cell->m_pos.y + cell->ascent());
+      return {pos, cell->m_size.height, cell->ascent()};
     }
     totalOffset += cell->length();
   }
   if (offset == totalOffset) {
     auto cell = m_cells.back();
-    auto pos = Point(cell->m_pos.x + cell->width(), cell->m_pos.y);
-    return {pos, cell->m_size.height};
+    auto pos = Point(cell->m_pos.x + cell->width(), cell->m_pos.y + cell->ascent());
+    return {pos, cell->m_size.height, cell->ascent()};
   }
   DEBUG << m_cells.size() << offset << totalOffset;
   ASSERT(false && "cursor not in cell");
