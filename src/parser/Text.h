@@ -32,7 +32,6 @@ class QTMARKDOWNSHARED_EXPORT Text : public Node {
   void accept(NodeVisitor* v) override { v->visit(this); }
   std::unique_ptr<Node> clone() const override;
   SizeType contentLength(const IBufferProvider& doc) const override;
-  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override;
 
  private:
   Text() { m_type = NodeType::text; }

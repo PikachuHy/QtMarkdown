@@ -28,7 +28,21 @@ void MarkdownSerializer::visit(Header* node) {
     m_md += "\n";
 }
 
-void MarkdownSerializer::visit(Text* node) { m_md += node->toString(m_doc); }
+void MarkdownSerializer::recordTextPositions(const String& text) {
+    if (!m_recordPositions) return;
+    SizeType mdStart = m_md.length();
+    SizeType textLen = text.length();
+    m_contentToMarkdown.reserve(m_contentToMarkdown.size() + textLen);
+    for (SizeType i = 0; i < textLen; ++i) {
+        m_contentToMarkdown.push_back(mdStart + i);
+    }
+}
+
+void MarkdownSerializer::visit(Text* node) {
+    String text = node->toString(m_doc);
+    recordTextPositions(text);
+    m_md += text;
+}
 
 void MarkdownSerializer::visit(ItalicText* node) {
     m_md += "*";
@@ -61,36 +75,40 @@ void MarkdownSerializer::visit(Image* node) {
     } else {
         DEBUG << "image alt is null";
     }
-    m_md += "]";
-    m_md += "(";
+    m_md += "](";
+    m_recordPositions = false;
     if (node->src()) {
         node->src()->accept(this);
     } else {
         DEBUG << "image src is null";
     }
+    m_recordPositions = true;
     m_md += ")";
 }
 
 void MarkdownSerializer::visit(Link* node) {
     m_md += "[";
-    if (node->href()) {
-        node->href()->accept(this);
-    } else {
-        DEBUG << "link href is null";
-    }
-    m_md += "]";
-    m_md += "(";
     if (node->content()) {
         node->content()->accept(this);
     } else {
         DEBUG << "link content is null";
     }
+    m_md += "](";
+    m_recordPositions = false;
+    if (node->href()) {
+        node->href()->accept(this);
+    } else {
+        DEBUG << "link href is null";
+    }
+    m_recordPositions = true;
     m_md += ")";
 }
 
 void MarkdownSerializer::visit(CodeBlock* node) {
     m_md += "```";
+    m_recordPositions = false;
     node->name()->accept(this);
+    m_recordPositions = true;
     m_md += "\n";
     for (auto& child : node->children()) {
         child->accept(this);

@@ -13,9 +13,6 @@ class QTMARKDOWNSHARED_EXPORT Paragraph : public Container {
   Paragraph() { m_type = NodeType::paragraph; }
   void accept(NodeVisitor* v) override { v->visit(this); }
   std::unique_ptr<Node> clone() const override;
-  SizeType serializedLength(const IBufferProvider& doc) const override {
-    return Container::serializedLength(doc) + 2;  // trailing "\n\n"
-  }
 };
 }  // namespace md::parser
 

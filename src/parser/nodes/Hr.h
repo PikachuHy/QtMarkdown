@@ -13,7 +13,6 @@ class QTMARKDOWNSHARED_EXPORT Hr : public Node {
   Hr() { m_type = NodeType::hr; }
   void accept(NodeVisitor* v) override { v->visit(this); }
   std::unique_ptr<Node> clone() const override { return std::make_unique<Hr>(); }
-  SizeType serializedLength(const IBufferProvider&) const override { return 4; }  // "---\n"
 };
 }  // namespace md::parser
 

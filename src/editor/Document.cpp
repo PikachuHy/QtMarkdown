@@ -439,7 +439,6 @@ String Document::serializeBlock(SizeType blockNo) const {
 
 Document::MarkdownPosition Document::cursorToMarkdownPosition(const CursorCoord& coord) const {
   MarkdownPosition result;
-  result.text = serializeBlock(coord.blockNo);
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());
   const auto& block = m_blocks[coord.blockNo];
   ASSERT(coord.lineNo >= 0 && coord.lineNo < block.countOfLogicalLine());
@@ -450,15 +449,27 @@ Document::MarkdownPosition Document::cursorToMarkdownPosition(const CursorCoord&
   }
   contentPos += coord.offset;
 
-  SizeType mdPos = 0;
   auto* blockNode = m_parserDoc->root()->childAt(coord.blockNo);
-  bool found = blockNode->calcMarkdownOffset(*m_parserDoc, contentPos, mdPos);
-  if (!found) {
-    mdPos = result.text.length();
-    if (result.text.endsWith("\n\n")) mdPos -= 2;
-    else if (result.text.endsWith("\n")) mdPos -= 1;
+  MarkdownSerializer serializer(*m_parserDoc);
+  blockNode->accept(&serializer);
+  result.text = serializer.markdown();
+  const auto& posMap = serializer.contentToMarkdown();
+
+  if (contentPos < posMap.size()) {
+    result.pos = posMap[contentPos];
+  } else if (!posMap.empty()) {
+    result.pos = posMap.back() + 1;
+  } else {
+    result.pos = result.text.length();
+    if (result.text.endsWith("\n\n")) result.pos -= 2;
+    else if (result.text.endsWith("\n")) result.pos -= 1;
+    auto nodeType = blockNode->type();
+    if (nodeType == NodeType::code_block) {
+      if (result.pos >= 3 && result.text.mid(result.pos - 3, 3) == "```") result.pos -= 3;
+    } else if (nodeType == NodeType::latex_block) {
+      if (result.pos >= 2 && result.text.mid(result.pos - 2, 2) == "$$") result.pos -= 2;
+    }
   }
-  result.pos = mdPos;
   return result;
 }
 

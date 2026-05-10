@@ -152,8 +152,4 @@ std::unique_ptr<Node> Text::clone() const {
 SizeType Text::contentLength(const IBufferProvider& doc) const {
   return toString(doc).length();
 }
-bool Text::calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const {
-  mdPos += contentPos;
-  return true;
-}
 }  // namespace md::parser

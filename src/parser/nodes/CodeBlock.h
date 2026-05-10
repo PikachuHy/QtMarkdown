@@ -19,17 +19,6 @@ class QTMARKDOWNSHARED_EXPORT CodeBlock : public Container {
   SizeType contentLength(const IBufferProvider& doc) const override {
     return Container::contentLength(doc);
   }
-  SizeType serializedLength(const IBufferProvider& doc) const override {
-    SizeType total = 3 + m_name->serializedLength(doc) + 1;  // "```" + name + "\n"
-    for (auto& child : m_children) {
-      total += child->serializedLength(doc) + 1;  // child + "\n"
-    }
-    return total + 5;  // "```\n\n"
-  }
-  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override {
-    mdPos += 3 + m_name->serializedLength(doc) + 1;  // "```" + name + "\n"
-    return Container::calcMarkdownOffset(doc, contentPos, mdPos);
-  }
 
  private:
   std::unique_ptr<Text> m_name;

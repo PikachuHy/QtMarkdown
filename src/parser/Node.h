@@ -56,8 +56,6 @@ class QTMARKDOWNSHARED_EXPORT Node {
   [[nodiscard]] Node* parent() const { return m_parent; }
 
   virtual SizeType contentLength(const IBufferProvider& doc) const { return 0; }
-  virtual SizeType serializedLength(const IBufferProvider& doc) const { return 0; }
-  virtual bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const { return false; }
 
  protected:
   NodeType m_type;
@@ -121,26 +119,6 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
       total += child->contentLength(doc);
     }
     return total;
-  }
-  SizeType serializedLength(const IBufferProvider& doc) const override {
-    SizeType total = 0;
-    for (auto& child : m_children) {
-      total += child->serializedLength(doc);
-    }
-    return total;
-  }
-  bool calcMarkdownOffset(const IBufferProvider& doc, SizeType contentPos, SizeType& mdPos) const override {
-    SizeType accumulatedContent = 0;
-    for (auto& child : m_children) {
-      SizeType childContentLen = child->contentLength(doc);
-      if (contentPos <= accumulatedContent + childContentLen) {
-        SizeType localContentPos = contentPos - accumulatedContent;
-        return child->calcMarkdownOffset(doc, localContentPos, mdPos);
-      }
-      mdPos += child->serializedLength(doc);
-      accumulatedContent += childContentLen;
-    }
-    return true;
   }
 
  protected:

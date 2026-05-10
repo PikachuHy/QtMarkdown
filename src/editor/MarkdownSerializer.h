@@ -16,6 +16,7 @@ class QTMARKDOWNSHARED_EXPORT MarkdownSerializer : public parser::NodeVisitor {
 public:
     explicit MarkdownSerializer(const parser::IBufferProvider& doc);
     String markdown() const;
+    const std::vector<SizeType>& contentToMarkdown() const { return m_contentToMarkdown; }
 
     // Visitor overrides
     void visit(parser::Header* node) override;
@@ -43,8 +44,11 @@ public:
     void visit(parser::InlineLatex* node) override;
 
 private:
+    void recordTextPositions(const String& text);
     String m_md;
     const parser::IBufferProvider& m_doc;
+    std::vector<SizeType> m_contentToMarkdown;
+    bool m_recordPositions = true;
 };
 
 } // namespace md::editor
