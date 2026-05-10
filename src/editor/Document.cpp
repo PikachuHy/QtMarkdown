@@ -27,10 +27,8 @@ void Document::assertBlocksInSync() {
 static void assertBlockTextCellsValid(const render::Block& block) {
   for (const auto& logicalLine : block.lines()) {
     for (const auto* cell : logicalLine.cells()) {
-      auto* textCell = dynamic_cast<const render::TextCell*>(cell);
-      if (textCell) {
-        auto* textNode = textCell->text();
-        ASSERT(textNode != nullptr);
+      auto* textNode = cell->textNode();
+      if (textNode) {
         ASSERT(textNode->type() == parser::NodeType::text);
         ASSERT(textNode->parent() != nullptr);
       }

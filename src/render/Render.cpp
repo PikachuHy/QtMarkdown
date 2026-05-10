@@ -744,10 +744,8 @@ std::pair<Cell *, int> VisualLine::cellAtX(int x, const parser::IBufferProvider&
   for (const auto& cell : m_cells) {
     if (totalX <= x && x <= totalX + cell->width()) {
       // 再确定offset
-      auto textCell = dynamic_cast<TextCell *>(cell.get());
-      if (!textCell) break;
-      for (int j = 0; j < textCell->length(); ++j) {
-        auto w = textCell->width(j + 1, doc);
+      for (int j = 0; j < cell->length(); ++j) {
+        auto w = cell->width(j + 1, doc);
         if (totalX <= x && x <= totalX + w) {
           auto delta = j;
           // 按中间划分
@@ -807,7 +805,7 @@ bool LogicalLine::hasTextAt(SizeType offset) const {
   for (auto cell : m_cells) {
     if (totalOffset <= offset && offset <= totalOffset + cell->length()) {
       auto leftOffset = offset - totalOffset;
-      return dynamic_cast<TextCell *>(cell) != nullptr;
+      return cell->textNode() != nullptr;
     }
     totalOffset += cell->length();
   }
@@ -818,9 +816,9 @@ std::pair<parser::Text *, int> LogicalLine::textAt(SizeType offset) const {
   for (auto cell : m_cells) {
     if (totalOffset <= offset && offset <= totalOffset + cell->length()) {
       auto leftOffset = offset - totalOffset;
-      auto textCell = dynamic_cast<TextCell *>(cell);
-      if (!textCell) continue;
-      return {textCell->m_text, leftOffset + textCell->m_offset};
+      auto* textNode = cell->textNode();
+      if (!textNode) continue;
+      return {textNode, leftOffset + cell->textOffset()};
     }
     totalOffset += cell->length();
   }
@@ -832,9 +830,9 @@ String LogicalLine::left(SizeType length, const parser::IBufferProvider& doc) co
   if (length == 0) return String();
   String s;
   for (auto cell : m_cells) {
-    auto textCell = dynamic_cast<TextCell *>(cell);
-    if (!textCell) continue;
-    s += textCell->m_text->toString(doc);
+    auto* textNode = cell->textNode();
+    if (!textNode) continue;
+    s += textNode->toString(doc);
     if (s.size() >= length) return s.left(length);
   }
   DEBUG << this->length() << length << s;
