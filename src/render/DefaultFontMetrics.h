@@ -17,9 +17,8 @@ public:
         if (charWidth < 1) charWidth = 1;
         return static_cast<int>(text.size()) * charWidth;
     }
-    int height(const Font& font) const override {
-        return font.pixelSize;
-    }
+    int height(const Font& font) const override { return font.pixelSize; }
+    int ascent(const Font& font) const override { return font.pixelSize * 4 / 5; }
 };
 
 inline DefaultFontMetrics g_defaultFontMetrics;

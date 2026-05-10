@@ -4,6 +4,7 @@
 
 #include "Instruction.h"
 
+#include "FontMetricsProvider.h"
 #include "debug.h"
 #include "parser/Text.h"
 namespace md::render {
@@ -12,8 +13,9 @@ void TextInstruction::run(Painter& painter, Point offset, const parser::IBufferP
   painter.setFont(m_cell->m_font);
   painter.setPen(m_cell->m_fg);
   auto s = m_cell->m_text->toString(doc).mid(m_cell->m_offset, m_cell->m_length);
-  Rect rect(m_cell->m_pos + offset, m_cell->m_size);
-  painter.drawText(rect, 0, s);
+  auto baseline = m_cell->m_pos + offset;
+  baseline.y += m_cell->m_fm->ascent(m_cell->m_font);
+  painter.drawText(baseline, s);
   painter.restore();
 }
 void StaticTextInstruction::run(Painter& painter, Point offset, const parser::IBufferProvider& /*doc*/) const {

@@ -27,6 +27,9 @@ public:
     int height(const editor::core::FontDescription& font) const override {
         return font.pixelSize * 3 / 2;
     }
+    int ascent(const editor::core::FontDescription& font) const override {
+        return font.pixelSize;
+    }
 };
 
 } // namespace md::render

@@ -13,6 +13,8 @@ public:
     virtual Size size(const Font& font, const String& text) const = 0;
     virtual int horizontalAdvance(const Font& font, const String& text) const = 0;
     virtual int height(const Font& font) const = 0;
+    virtual int ascent(const Font& font) const = 0;
+    virtual int lineSpacing(const Font& font) const { return height(font); }
 };
 
 } // namespace md::render
