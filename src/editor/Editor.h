@@ -21,31 +21,8 @@ class EditorRenderer;
 class EditorInputHandler;
 class FileManager;
 enum CursorShape {
-  ArrowCursor,
-  UpArrowCursor,
-  CrossCursor,
-  WaitCursor,
-  IBeamCursor,
-  SizeVerCursor,
-  SizeHorCursor,
-  SizeBDiagCursor,
-  SizeFDiagCursor,
-  SizeAllCursor,
-  BlankCursor,
-  SplitVCursor,
-  SplitHCursor,
-  PointingHandCursor,
-  ForbiddenCursor,
-  WhatsThisCursor,
-  BusyCursor,
-  OpenHandCursor,
-  ClosedHandCursor,
-  DragCopyCursor,
-  DragMoveCursor,
-  DragLinkCursor,
-  LastCursor = DragLinkCursor,
-  BitmapCursor = 24,
-  CustomCursor = 25
+  IBeamCursor = 4,
+  PointingHandCursor = 13,
 };
 
 class QTMARKDOWNSHARED_EXPORT Editor {

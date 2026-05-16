@@ -285,12 +285,12 @@ void Document::renderBlock(SizeType blockNo) {
 void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
   ASSERT(blockNo1 >= 0 && blockNo1 < m_parserDoc->root()->children().size());
   ASSERT(blockNo2 >= 0 && blockNo2 < m_parserDoc->root()->children().size());
-  auto node1 = node2container(m_parserDoc->root()->children()[blockNo1].get());
-  auto node2 = node2container(m_parserDoc->root()->children()[blockNo2].get());
+  auto node1 = m_parserDoc->root()->children()[blockNo1]->asContainer();
+  auto node2 = m_parserDoc->root()->children()[blockNo2]->asContainer();
   ASSERT(node1);
   ASSERT(node2);
   if (!node1 || !node2) {
-    DEBUG << "node2container returned null -- skipping merge";
+    DEBUG << "asContainer returned null -- skipping merge";
     return;
   }
   // 需要对Text结点进行合并
@@ -312,42 +312,6 @@ void Document::mergeBlock(SizeType blockNo1, SizeType blockNo2) {
   m_blocks.erase(m_blocks.begin() + blockNo2);
   renderBlock(blockNo1);
   assertBlocksInSync();
-}
-parser::Container* Document::node2container(parser::Node* node) {
-  ASSERT(node != nullptr);
-  if (node->type() == NodeType::header) {
-    return static_cast<Header*>(node);
-  }
-  if (node->type() == NodeType::paragraph) {
-    return static_cast<Paragraph*>(node);
-  }
-  if (node->type() == NodeType::ol) {
-    return static_cast<OrderedList*>(node);
-  }
-  if (node->type() == NodeType::ol_item) {
-    return static_cast<OrderedListItem*>(node);
-  }
-  if (node->type() == NodeType::ul) {
-    return static_cast<UnorderedList*>(node);
-  }
-  if (node->type() == NodeType::ul_item) {
-    return static_cast<UnorderedListItem*>(node);
-  }
-  if (node->type() == NodeType::checkbox_item) {
-    return static_cast<CheckboxItem*>(node);
-  }
-  if (node->type() == NodeType::checkbox) {
-    return static_cast<CheckboxList*>(node);
-  }
-  if (node->type() == NodeType::code_block) {
-    return static_cast<CodeBlock*>(node);
-  }
-  if (node->type() == NodeType::quote_block) {
-    return static_cast<QuoteBlock*>(node);
-  }
-  DEBUG << node->type();
-  ASSERT(false && "node convert not support");
-  return nullptr;
 }
 CursorCoord Document::moveCursorToBol(CursorCoord coord) {
   ASSERT(coord.blockNo >= 0 && coord.blockNo < m_blocks.size());

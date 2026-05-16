@@ -16,6 +16,7 @@
 
 namespace md::parser {
 class IBufferProvider;
+class Container;
 
 enum class QTMARKDOWNSHARED_EXPORT NodeType {
   none,
@@ -56,6 +57,8 @@ class QTMARKDOWNSHARED_EXPORT Node {
   [[nodiscard]] Node* parent() const { return m_parent; }
 
   virtual SizeType contentLength(const IBufferProvider& doc) const { return 0; }
+  virtual Container* asContainer() { return nullptr; }
+  virtual const Container* asContainer() const { return nullptr; }
 
  protected:
   NodeType m_type;
@@ -92,6 +95,8 @@ class QTMARKDOWNSHARED_EXPORT Container : public Node {
   const std::unique_ptr<Node>& operator[](SizeType index) const;
   auto empty() const { return m_children.empty(); }
   [[nodiscard]] auto size() const { return m_children.size(); }
+  Container* asContainer() override { return this; }
+  const Container* asContainer() const override { return this; }
   // Subclasses MUST override accept() to call v->visit(this).
   // Example: class Header : public Container {
   //   void accept(NodeVisitor* v) override { v->visit(this); }

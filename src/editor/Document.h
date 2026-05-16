@@ -58,7 +58,6 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
 
   void upgradeToHeader(Cursor& cursor, int level);
 
-  parser::Container* node2container(parser::Node* node);
   void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
   std::tuple<core::Point, int, int> mapToScreen(const CursorCoord& coord);
   bool isBol(const CursorCoord& coord) const;
