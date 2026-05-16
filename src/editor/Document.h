@@ -12,6 +12,7 @@
 #include "render/Render.h"
 #include "core/Types.h"
 #include "core/IImageProvider.h"
+#include "CursorNavigator.h"
 
 namespace md::editor {
 class Command;
@@ -31,15 +32,15 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
     m_parserDoc->addBuffer().append(text);
     return offset;
   }
-  CursorCoord moveCursorToRight(CursorCoord coord);
-  CursorCoord moveCursorToLeft(CursorCoord coord);
-  CursorCoord moveCursorToBol(CursorCoord coord);
-  std::pair<CursorCoord, int> moveCursorToEol(CursorCoord coord);
-  CursorCoord moveCursorToUp(CursorCoord coord, core::Point pos);
-  CursorCoord moveCursorToDown(CursorCoord coord, core::Point pos);
-  CursorCoord moveCursorToPos(core::Point pos);
-  CursorCoord moveCursorToBeginOfDocument();
-  CursorCoord moveCursorToEndOfDocument();
+  CursorCoord moveCursorToRight(CursorCoord coord) { return m_navigator.moveCursorToRight(coord); }
+  CursorCoord moveCursorToLeft(CursorCoord coord) { return m_navigator.moveCursorToLeft(coord); }
+  CursorCoord moveCursorToBol(CursorCoord coord) { return m_navigator.moveCursorToBol(coord); }
+  std::pair<CursorCoord, int> moveCursorToEol(CursorCoord coord) { return m_navigator.moveCursorToEol(coord); }
+  CursorCoord moveCursorToUp(CursorCoord coord, core::Point pos) { return m_navigator.moveCursorToUp(coord, pos); }
+  CursorCoord moveCursorToDown(CursorCoord coord, core::Point pos) { return m_navigator.moveCursorToDown(coord, pos); }
+  CursorCoord moveCursorToPos(core::Point pos) { return m_navigator.moveCursorToPos(pos); }
+  CursorCoord moveCursorToBeginOfDocument() { return m_navigator.moveCursorToBeginOfDocument(); }
+  CursorCoord moveCursorToEndOfDocument() { return m_navigator.moveCursorToEndOfDocument(); }
   void insertText(Cursor& cursor, const String& text);
   void removeText(Cursor& cursor);
   void insertReturn(Cursor& cursor);
@@ -58,9 +59,9 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
 
   void upgradeToHeader(Cursor& cursor, int level);
 
-  void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true);
-  std::tuple<core::Point, int, int> mapToScreen(const CursorCoord& coord);
-  bool isBol(const CursorCoord& coord) const;
+  void updateCursor(Cursor& cursor, const CursorCoord& coord, bool updatePos = true) { m_navigator.updateCursor(cursor, coord, updatePos); }
+  std::tuple<core::Point, int, int> mapToScreen(const CursorCoord& coord) { return m_navigator.mapToScreen(coord); }
+  bool isBol(const CursorCoord& coord) const { return m_navigator.isBol(coord); }
   void ensureTrailingParagraph();
 
   const render::RenderSetting& setting() const { return *m_setting; }
@@ -83,6 +84,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Doc
   sptr<render::RenderSetting> m_setting;
   sptr<CommandStack> m_commandStack;
   core::IImageProvider* m_imageProvider = nullptr;
+  CursorNavigator m_navigator{m_blocks, *m_parserDoc, *m_parserDoc->root(), *m_setting};
 };
 }  // namespace md::editor
 

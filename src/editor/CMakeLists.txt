@@ -17,6 +17,7 @@ target_sources(QtMarkdownEditorCore PRIVATE
         MarkdownSerializer.cpp MarkdownSerializer.h
         FileManager.cpp FileManager.h
         Document.cpp Document.h
+        CursorNavigator.cpp CursorNavigator.h
         Command.cpp Command.h
         CursorCoord.cpp CursorCoord.h
         Cursor.cpp Cursor.h)
