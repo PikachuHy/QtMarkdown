@@ -321,7 +321,7 @@ void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::
 #endif
   if (m_editor.isHoldShift()) {
     if (!m_editor.m_hasSelection) {
-      m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+      m_editor.m_selectionRange = std::make_unique<SelectionRange>();
       m_editor.m_selectionRange->anchor = m_cursor;
       m_editor.m_hasSelection = true;
     }
@@ -358,7 +358,7 @@ void EditorInputHandler::mousePressEvent(const core::Point& offset, const core::
 void EditorInputHandler::mouseMoveEvent(const core::Point& offset, const core::MouseEvent &event) {
   if (!m_editor.m_mousePressing) return;
   if (!m_editor.m_hasSelection) {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     m_editor.m_selectionRange->anchor = m_cursor;
     m_editor.m_hasSelection = true;
   }
@@ -378,7 +378,7 @@ void EditorInputHandler::selectLeft() {
   if (m_editor.m_hasSelection) {
     coord = m_editor.m_selectionRange->caret.coord();
   } else {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     coord = m_cursor.coord();
     m_editor.m_selectionRange->anchor = m_cursor;
     m_editor.m_hasSelection = true;
@@ -393,7 +393,7 @@ void EditorInputHandler::selectRight() {
   if (m_editor.m_hasSelection) {
     coord = m_editor.m_selectionRange->caret.coord();
   } else {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     coord = m_cursor.coord();
     m_editor.m_selectionRange->anchor = m_cursor;
     m_editor.m_hasSelection = true;
@@ -410,7 +410,7 @@ void EditorInputHandler::selectUp() {
     coord = m_editor.m_selectionRange->caret.coord();
     pos = m_editor.m_selectionRange->caret.pos();
   } else {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     coord = m_cursor.coord();
     pos = m_cursor.pos();
     m_editor.m_selectionRange->anchor = m_cursor;
@@ -428,7 +428,7 @@ void EditorInputHandler::selectDown() {
     coord = m_editor.m_selectionRange->caret.coord();
     pos = m_editor.m_selectionRange->caret.pos();
   } else {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     coord = m_cursor.coord();
     pos = m_cursor.pos();
     m_editor.m_selectionRange->anchor = m_cursor;
@@ -451,7 +451,7 @@ void EditorInputHandler::selectBol() {
   if (m_editor.m_hasSelection) {
     coord = m_editor.m_selectionRange->caret.coord();
   } else {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     coord = m_cursor.coord();
     m_editor.m_selectionRange->anchor = m_cursor;
     m_editor.m_hasSelection = true;
@@ -466,7 +466,7 @@ void EditorInputHandler::selectEol() {
   if (m_editor.m_hasSelection) {
     coord = m_editor.m_selectionRange->caret.coord();
   } else {
-    m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+    m_editor.m_selectionRange = std::make_unique<SelectionRange>();
     coord = m_cursor.coord();
     m_editor.m_selectionRange->anchor = m_cursor;
     m_editor.m_hasSelection = true;
@@ -480,7 +480,7 @@ void EditorInputHandler::selectEol() {
 void EditorInputHandler::selectAll() {
   CursorCoord coord;
   m_editor.m_hasSelection = true;
-  m_editor.m_selectionRange = std::make_shared<SelectionRange>();
+  m_editor.m_selectionRange = std::make_unique<SelectionRange>();
   coord = m_doc.moveCursorToBeginOfDocument();
   m_doc.updateCursor(m_editor.m_selectionRange->anchor, coord);
   coord = m_doc.moveCursorToEndOfDocument();

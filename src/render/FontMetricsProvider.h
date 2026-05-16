@@ -7,7 +7,7 @@
 
 namespace md::render {
 
-class QTMARKDOWNSHARED_EXPORT IFontMetricsProvider {
+class QTMARKDOWNRENDER_EXPORT IFontMetricsProvider {
 public:
     virtual ~IFontMetricsProvider() = default;
     virtual Size size(const Font& font, const String& text) const = 0;

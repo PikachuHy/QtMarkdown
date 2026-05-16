@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT ItalicBoldText : public Node {
+class QTMARKDOWNPARSER_EXPORT ItalicBoldText : public Node {
  public:
   explicit ItalicBoldText(std::unique_ptr<Text> text);
   ~ItalicBoldText();

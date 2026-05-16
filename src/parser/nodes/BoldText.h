@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT BoldText : public Node {
+class QTMARKDOWNPARSER_EXPORT BoldText : public Node {
  public:
   explicit BoldText(std::unique_ptr<Text> text);
   ~BoldText();

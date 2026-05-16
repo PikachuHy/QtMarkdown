@@ -25,9 +25,9 @@ enum CursorShape {
   PointingHandCursor = 13,
 };
 
-class QTMARKDOWNSHARED_EXPORT Editor {
+class QTMARKDOWNEDITORCORE_EXPORT Editor {
  public:
-  Editor();
+  explicit Editor(core::IImageProvider* imageProvider = nullptr);
   ~Editor();
   void loadText(const String& text);
   std::pair<bool, String> loadFile(const String& path);
@@ -51,7 +51,7 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void commitString(const String& str);
   void reset();
   [[nodiscard]] String cursorCoord() const;
-  [[nodiscard]] sptr<Document> document() const { return m_doc; }
+  [[nodiscard]] Document* document() const { return m_doc.get(); }
   void setLinkClickedCallback(std::function<void(String)> cb) { m_linkClickedCallback = std::move(cb); }
   void setImageClickedCallback(std::function<void(String)> cb) { m_imageClickedCallback = std::move(cb); }
   void setCopyCodeBtnClickedCallback(std::function<void(String)> cb) { m_copyCodeBtnClickedCallback = std::move(cb); }
@@ -75,9 +75,10 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   void triggerCheckBoxClicked();
 
  private:
-  sptr<Document> m_doc;
-  sptr<Cursor> m_cursor;
-  sptr<core::IImageProvider> m_imageProvider;
+  std::unique_ptr<Document> m_doc;
+  std::unique_ptr<Cursor> m_cursor;
+  std::unique_ptr<core::IImageProvider> m_ownedImageProvider;
+  core::IImageProvider* m_imageProvider = nullptr;
   sptr<render::RenderSetting> m_renderSetting;
   std::unique_ptr<EditorRenderer> m_renderer;
   std::unique_ptr<EditorInputHandler> m_inputHandler;
@@ -86,7 +87,7 @@ class QTMARKDOWNSHARED_EXPORT Editor {
   bool m_holdShift = false;
   bool m_mousePressing = false;
   bool m_hasSelection = false;
-  sptr<SelectionRange> m_selectionRange;
+  std::unique_ptr<SelectionRange> m_selectionRange;
   std::function<void(String)> m_linkClickedCallback;
   std::function<void(String)> m_imageClickedCallback;
   std::function<void(String)> m_copyCodeBtnClickedCallback;

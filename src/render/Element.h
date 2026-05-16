@@ -10,7 +10,7 @@ namespace md::parser {
 class Node;
 }
 namespace md::render {
-class QTMARKDOWNSHARED_EXPORT Element {
+class QTMARKDOWNRENDER_EXPORT Element {
  public:
   md::parser::Node* node;
   Point pos;

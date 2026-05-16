@@ -8,7 +8,7 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Paragraph : public Container {
+class QTMARKDOWNPARSER_EXPORT Paragraph : public Container {
  public:
   Paragraph() { m_type = NodeType::paragraph; }
   void accept(NodeVisitor* v) override { v->visit(this); }

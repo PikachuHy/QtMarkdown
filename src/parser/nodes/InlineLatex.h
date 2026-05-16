@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT InlineLatex : public Node {
+class QTMARKDOWNPARSER_EXPORT InlineLatex : public Node {
  public:
   explicit InlineLatex(std::unique_ptr<Text> code);
   ~InlineLatex();

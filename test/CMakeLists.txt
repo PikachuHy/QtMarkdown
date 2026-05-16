@@ -6,15 +6,12 @@ target_link_libraries(test_parser PRIVATE QtMarkdownParser doctest::doctest)
 # fatal error C1189: #error:  The C++ Standard Library forbids macroizing the keyword "private".
 # Enable warning C4005 to find the forbidden define.
 add_test(NAME test_parser COMMAND test_parser)
-find_package(Qt6 COMPONENTS Test REQUIRED)
-
 add_executable(test_editor test_editor.cpp)
 target_link_libraries(test_editor PRIVATE QtMarkdownEditorCore
 doctest::doctest
         )
+target_include_directories(test_editor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 add_test(NAME test_editor COMMAND test_editor)
-set_target_properties(test_editor PROPERTIES AUTORCC ON)
-set_target_properties(test_editor PROPERTIES AUTOMOC ON)
 
 add_executable(test_render test_render.cpp)
 target_link_libraries(test_render PRIVATE QtMarkdownRender

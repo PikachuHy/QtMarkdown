@@ -8,7 +8,7 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Table : public Node {
+class QTMARKDOWNPARSER_EXPORT Table : public Node {
  public:
   Table() { m_type = NodeType::table; }
   void appendRow(const std::vector<String>& row) { m_content.push_back(row); }

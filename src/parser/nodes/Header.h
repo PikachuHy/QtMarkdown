@@ -8,7 +8,7 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Header : public Container {
+class QTMARKDOWNPARSER_EXPORT Header : public Container {
  public:
   explicit Header(int level);
   [[nodiscard]] int level() const { return m_level; }

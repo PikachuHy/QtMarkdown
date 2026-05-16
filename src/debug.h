@@ -6,12 +6,14 @@
 #define QTMARKDOWN_DEBUG_H
 #include <cstdlib>
 #include <iostream>
-// clang-format off
-// 只有文件名
-//#define DEBUG std::cout << "[debug]" << __FUNCTION__ << " " << __FILE_NAME__ << ":" << __LINE__
-// 文件绝对路径
+
+// Debug logging — off by default. Define QTMARKDOWN_ENABLE_DEBUG to enable.
+#ifdef QTMARKDOWN_ENABLE_DEBUG
 #define DEBUG std::cout << "[debug] " << __FUNCTION__ \
     << " " << __FILE__ << ":" << __LINE__ << " "
+#else
+#define DEBUG if (true) {} else std::cout
+#endif
 
 class Backtrace {
 public:

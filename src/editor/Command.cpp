@@ -142,14 +142,21 @@ void RemoveTextCommand::execute(Cursor& cursor) {
       String prevMD = m_doc->serializeBlock(m_coord.blockNo - 1);
       String curMD = m_doc->serializeBlock(m_coord.blockNo);
 
-      // Strip trailing "\n\n" from previous block
+      // Strip trailing "\n\n" from previous block, then join
       if (prevMD.endsWith("\n\n")) prevMD = prevMD.left(prevMD.length() - 2);
       else if (prevMD.endsWith("\n")) prevMD = prevMD.left(prevMD.length() - 1);
 
-      String joinedMD = prevMD + curMD;
+      // Add separator if previous block content doesn't end with a newline
+      // and current block starts with block-level syntax
+      bool needSep = !prevMD.isEmpty() && !curMD.isEmpty() &&
+          (curMD.startsWith("#") || curMD.startsWith("-") || curMD.startsWith("```") ||
+           curMD.startsWith(">") || curMD.startsWith("$$"));
+      String joinedMD = prevMD + (needSep ? "\n" : "") + curMD;
 
-      // Save snapshots of both blocks
-      m_snapshot = m_doc->root()->childAt(m_coord.blockNo - 1)->clone();
+      // Save snapshots of both blocks for undo
+      m_originalBlockCount = m_doc->countOfBlock();
+      m_snapshots.push_back({m_coord.blockNo - 1, m_doc->root()->childAt(m_coord.blockNo - 1)->clone()});
+      m_snapshots.push_back({m_coord.blockNo, m_doc->root()->childAt(m_coord.blockNo)->clone()});
 
       // Compute cursor position: end of previous block's content
       SizeType prevContentLen = 0;
@@ -173,7 +180,8 @@ void RemoveTextCommand::execute(Cursor& cursor) {
     // At start of document — check for header/list degrade
     auto* blockNode = m_doc->root()->childAt(m_coord.blockNo);
     if (blockNode->type() == NodeType::header) {
-      m_snapshot = blockNode->clone();
+      m_originalBlockCount = m_doc->countOfBlock();
+      m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
       auto* headerNode = static_cast<Header*>(blockNode);
       String md = m_doc->serializeBlock(m_coord.blockNo);
       SizeType prefixLen = headerNode->level() + 1;
@@ -188,7 +196,8 @@ void RemoveTextCommand::execute(Cursor& cursor) {
       return;
     }
     if (isListType(blockNode->type())) {
-      m_snapshot = blockNode->clone();
+      m_originalBlockCount = m_doc->countOfBlock();
+      m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
       auto* container = static_cast<Container*>(blockNode);
       auto para = degradeListToParagraph(container);
       m_doc->replaceBlock(m_coord.blockNo, std::move(para));
@@ -204,7 +213,8 @@ void RemoveTextCommand::execute(Cursor& cursor) {
   }
 
   // Case 2: normal delete within block
-  m_snapshot = m_doc->root()->childAt(m_coord.blockNo)->clone();
+  m_originalBlockCount = m_doc->countOfBlock();
+  m_snapshots.push_back({m_coord.blockNo, m_doc->root()->childAt(m_coord.blockNo)->clone()});
 
   auto [markdown, mdPos] = m_doc->cursorToMarkdownPosition(m_coord);
 
@@ -232,7 +242,19 @@ void RemoveTextCommand::execute(Cursor& cursor) {
 }
 
 void RemoveTextCommand::undo(Cursor& cursor) {
-  m_doc->replaceBlock(m_coord.blockNo, m_snapshot->clone());
+  // Restore snapshots: replace existing blocks, insert removed ones
+  for (size_t i = 0; i < m_snapshots.size(); ++i) {
+    auto blockNo = m_snapshots[i].first;
+    if (blockNo < m_doc->countOfBlock()) {
+      m_doc->replaceBlock(blockNo, m_snapshots[i].second->clone());
+    } else {
+      m_doc->insertBlock(blockNo, m_snapshots[i].second->clone());
+    }
+  }
+  // Remove any extra blocks beyond original count
+  while (m_doc->countOfBlock() > m_originalBlockCount) {
+    m_doc->removeBlock(m_doc->countOfBlock() - 1);
+  }
   m_doc->ensureTrailingParagraph();
   m_doc->updateCursor(cursor, m_coord);
 }
@@ -240,104 +262,24 @@ void RemoveTextCommand::undo(Cursor& cursor) {
 // ---- InsertReturnCommand ----
 
 void InsertReturnCommand::execute(Cursor& cursor) {
+  m_originalBlockCount = m_doc->countOfBlock();
   const auto& block = m_doc->blocks()[m_coord.blockNo];
+  SizeType contentPos = block.countOfLogicalLine() > 0
+      ? computeContentPos(block, m_coord.lineNo, m_coord.offset)
+      : 0;
 
-  SizeType contentPos = 0;
-  if (block.countOfLogicalLine() > 0) {
-    contentPos = computeContentPos(block, m_coord.lineNo, m_coord.offset);
-  }
-
-  // List-specific: Enter handling depends on context
   auto* blockNode = m_doc->root()->childAt(m_coord.blockNo);
+
   if (isListType(blockNode->type())) {
-    auto* listNode = static_cast<Container*>(blockNode);
-    // Check if current line is empty
-    bool lineEmpty = false;
-    if (block.countOfLogicalLine() > 0) {
-      lineEmpty = block.logicalLineAt(m_coord.lineNo).length() == 0;
-    }
-    // Empty line: split the list
-    if (block.countOfLogicalLine() == 0 || lineEmpty) {
-      m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
-      SizeType splitLineNo = m_coord.lineNo;
-      std::unique_ptr<Container> newList;
-      if (blockNode->type() == NodeType::ul) newList = std::make_unique<UnorderedList>();
-      else if (blockNode->type() == NodeType::ol) newList = std::make_unique<OrderedList>();
-      else newList = std::make_unique<CheckboxList>();
-      SizeType origSize = listNode->size();
-      for (SizeType i = origSize; i > splitLineNo; --i) {
-        newList->insertChild(0, std::move((*listNode)[i - 1]));
-      }
-      while (listNode->size() > splitLineNo) {
-        listNode->removeChildAt(listNode->size() - 1);
-      }
-      m_doc->renderBlock(m_coord.blockNo);
-      if (!newList->empty()) {
-        m_doc->insertBlock(m_coord.blockNo + 1, std::move(newList));
-      } else {
-        m_doc->insertBlock(m_coord.blockNo + 1, std::make_unique<Paragraph>());
-      }
-      m_finishedCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
-      m_doc->updateCursor(cursor, m_finishedCoord);
-      m_doc->ensureTrailingParagraph();
-      return;
-    }
-    // Non-empty line: split the list item, creating a new item within the same list
-    m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
-    SizeType itemIdx = m_coord.lineNo;
-    auto* item = static_cast<Container*>(listNode->childAt(itemIdx));
-    auto& line = block.logicalLineAt(m_coord.lineNo);
-    auto [textNode, textOffset] = line.textAt(m_coord.offset);
-    auto [leftText, rightText] = textNode->split(textOffset);
-    std::unique_ptr<ListItemNode> newItem;
-    if (blockNode->type() == NodeType::ul) newItem = std::make_unique<UnorderedListItem>();
-    else if (blockNode->type() == NodeType::ol) newItem = std::make_unique<OrderedListItem>();
-    else if (blockNode->type() == NodeType::checkbox) {
-      auto cb = std::make_unique<CheckboxItem>();
-      cb->setChecked(static_cast<CheckboxItem*>(item)->isChecked());
-      newItem = std::move(cb);
-    }
-    SizeType childIdx = item->indexOf(textNode);
-    // Move children after textNode to newItem
-    for (SizeType i = childIdx + 1; i < item->size(); ) {
-      newItem->appendChild(std::move((*item)[i]));
-    }
-    // Remove moved children from item
-    while (item->size() > childIdx + 1) {
-      item->removeChildAt(item->size() - 1);
-    }
-    if (rightText && !rightText->empty()) {
-      newItem->appendChild(std::move(rightText));
-    }
-    listNode->insertChild(itemIdx + 1, std::move(newItem));
-    m_doc->renderBlock(m_coord.blockNo);
-    CursorCoord newCoord{m_coord.blockNo, itemIdx + 1, 0};
-    m_finishedCoord = newCoord;
-    m_doc->updateCursor(cursor, newCoord);
-    m_doc->ensureTrailingParagraph();
+    handleListEnter(cursor, static_cast<Container*>(blockNode), block, contentPos);
     return;
   }
 
-  // Check for code-block prefix: if line starts with "```", handle specially
-  // (re-parse would misinterpret ```\n... as a complete code block)
   if (block.countOfLogicalLine() > 0 && contentPos >= 3) {
     auto& line = block.logicalLineAt(m_coord.lineNo);
     String linePrefix = line.left(m_coord.offset, m_doc->bufferProvider());
     if (linePrefix.startsWith("```")) {
-      m_snapshots.push_back({m_coord.blockNo, m_doc->root()->childAt(m_coord.blockNo)->clone()});
-      auto [textNode, textOffset] = line.textAt(m_coord.offset);
-      auto [leftText, rightText] = textNode->split(textOffset);
-      leftText->remove(0, 3);
-      auto cb = std::make_unique<CodeBlock>(std::move(leftText));
-      auto newP = std::make_unique<Paragraph>();
-      if (rightText && !rightText->empty()) {
-        newP->appendChild(std::move(rightText));
-      }
-      m_doc->replaceBlock(m_coord.blockNo, std::move(cb));
-      m_doc->insertBlock(m_coord.blockNo + 1, std::move(newP));
-      m_finishedCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
-      m_doc->updateCursor(cursor, m_finishedCoord);
-      m_doc->ensureTrailingParagraph();
+      handleCodeBlockEnter(cursor, block, contentPos);
       return;
     }
   }
@@ -346,71 +288,121 @@ void InsertReturnCommand::execute(Cursor& cursor) {
   bool isEndOfContent = true;
   if (block.countOfLogicalLine() > 0) {
     SizeType totalContent = 0;
-    for (SizeType i = 0; i < block.countOfLogicalLine(); ++i) {
+    for (SizeType i = 0; i < block.countOfLogicalLine(); ++i)
       totalContent += block.logicalLineAt(i).length();
-    }
     isEndOfContent = (contentPos >= totalContent);
   }
-
   if (block.countOfLogicalLine() == 0 || isEndOfContent) {
-    m_snapshots.push_back({m_coord.blockNo, m_doc->root()->childAt(m_coord.blockNo)->clone()});
+    m_snapshots.push_back({m_coord.blockNo, blockNode->clone()});
     m_doc->insertBlock(m_coord.blockNo + 1, std::make_unique<Paragraph>());
-    CursorCoord newCoord{m_coord.blockNo + 1, 0, 0};
-    m_finishedCoord = newCoord;
-    m_doc->updateCursor(cursor, newCoord);
+    m_finishedCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
+    m_doc->updateCursor(cursor, m_finishedCoord);
     m_doc->ensureTrailingParagraph();
     return;
   }
 
-  // Save snapshot of current block
+  handleContentSplit(cursor, block, contentPos);
+}
+
+void InsertReturnCommand::handleListEnter(Cursor& cursor, Container* listNode, const Block& block, SizeType contentPos) {
+  bool lineEmpty = block.countOfLogicalLine() > 0
+      && block.logicalLineAt(m_coord.lineNo).length() == 0;
+
+  if (block.countOfLogicalLine() == 0 || lineEmpty) {
+    // Empty line: split the list at this item
+    m_snapshots.push_back({m_coord.blockNo, listNode->clone()});
+    SizeType splitLineNo = m_coord.lineNo;
+    std::unique_ptr<Container> newList;
+    if (listNode->type() == NodeType::ul) newList = std::make_unique<UnorderedList>();
+    else if (listNode->type() == NodeType::ol) newList = std::make_unique<OrderedList>();
+    else newList = std::make_unique<CheckboxList>();
+    SizeType origSize = listNode->size();
+    for (SizeType i = origSize; i > splitLineNo; --i)
+      newList->insertChild(0, std::move((*listNode)[i - 1]));
+    while (listNode->size() > splitLineNo)
+      listNode->removeChildAt(listNode->size() - 1);
+    m_doc->renderBlock(m_coord.blockNo);
+    if (!newList->empty())
+      m_doc->insertBlock(m_coord.blockNo + 1, std::move(newList));
+    else
+      m_doc->insertBlock(m_coord.blockNo + 1, std::make_unique<Paragraph>());
+    m_finishedCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
+  } else {
+    // Non-empty line: split the list item, creating a new item within the same list
+    m_snapshots.push_back({m_coord.blockNo, listNode->clone()});
+    SizeType itemIdx = m_coord.lineNo;
+    auto* item = static_cast<Container*>(listNode->childAt(itemIdx));
+    auto& line = block.logicalLineAt(m_coord.lineNo);
+    auto [textNode, textOffset] = line.textAt(m_coord.offset);
+    auto [leftText, rightText] = textNode->split(textOffset);
+    std::unique_ptr<ListItemNode> newItem;
+    if (listNode->type() == NodeType::ul) newItem = std::make_unique<UnorderedListItem>();
+    else if (listNode->type() == NodeType::ol) newItem = std::make_unique<OrderedListItem>();
+    else if (listNode->type() == NodeType::checkbox) {
+      auto cb = std::make_unique<CheckboxItem>();
+      cb->setChecked(static_cast<CheckboxItem*>(item)->isChecked());
+      newItem = std::move(cb);
+    }
+    SizeType childIdx = item->indexOf(textNode);
+    while (item->size() > childIdx + 1) {
+      newItem->appendChild(std::move((*item)[childIdx + 1]));
+      item->removeChildAt(childIdx + 1);
+    }
+    if (rightText && !rightText->empty())
+      newItem->appendChild(std::move(rightText));
+    listNode->insertChild(itemIdx + 1, std::move(newItem));
+    m_doc->renderBlock(m_coord.blockNo);
+    m_finishedCoord = CursorCoord{m_coord.blockNo, itemIdx + 1, 0};
+  }
+  m_doc->updateCursor(cursor, m_finishedCoord);
+  m_doc->ensureTrailingParagraph();
+}
+
+void InsertReturnCommand::handleCodeBlockEnter(Cursor& cursor, const Block& block, SizeType contentPos) {
   m_snapshots.push_back({m_coord.blockNo, m_doc->root()->childAt(m_coord.blockNo)->clone()});
+  auto& line = block.logicalLineAt(m_coord.lineNo);
+  auto [textNode, textOffset] = line.textAt(m_coord.offset);
+  auto [leftText, rightText] = textNode->split(textOffset);
+  leftText->remove(0, 3);
+  auto cb = std::make_unique<CodeBlock>(std::move(leftText));
+  auto newP = std::make_unique<Paragraph>();
+  if (rightText && !rightText->empty())
+    newP->appendChild(std::move(rightText));
+  m_doc->replaceBlock(m_coord.blockNo, std::move(cb));
+  m_doc->insertBlock(m_coord.blockNo + 1, std::move(newP));
+  m_finishedCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
+  m_doc->updateCursor(cursor, m_finishedCoord);
+  m_doc->ensureTrailingParagraph();
+}
 
+void InsertReturnCommand::handleContentSplit(Cursor& cursor, const Block& block, SizeType contentPos) {
+  m_snapshots.push_back({m_coord.blockNo, m_doc->root()->childAt(m_coord.blockNo)->clone()});
   auto [markdown, mdPos] = m_doc->cursorToMarkdownPosition(m_coord);
-
-  // Insert newline at cursor position
   String editedMD = markdown.left(mdPos) + "\n" + markdown.mid(mdPos);
-
   SizeType addOffset = m_doc->appendToAddBuffer(editedMD);
-
-  // Reparse — may produce 1+ blocks
   m_doc->replaceBlocksFromText(m_coord.blockNo, m_coord.blockNo + 1,
                                 editedMD, addOffset, editedMD.length());
 
-  // Find cursor in the new blocks: it should be at the start of the new block
-  // After splitting, cursor goes to the start of whatever is after the \n
-  // This is blockNo + 1 (if a new block was created) or a new line within the same block
-  SizeType newContentPos = contentPos;  // Content position within original block
-  CursorCoord newCoord;
-  SizeType totalContent = 0;
-  for (SizeType i = 0; i < m_coord.lineNo; ++i) {
-    totalContent += block.logicalLineAt(i).length();
-  }
-  SizeType lineStartContent = totalContent;
-  // Cursor is at lineStartContent + m_coord.offset within the content
-  // After inserting \n, content before \n stays in one block, after goes to next
-  // So try current block first
-  newCoord = m_doc->findCursorFromContentPosition(m_coord.blockNo, contentPos);
-  // If cursor landed at end of block, it might have moved to next block
+  CursorCoord newCoord = m_doc->findCursorFromContentPosition(m_coord.blockNo, contentPos);
   if (newCoord.blockNo == m_coord.blockNo) {
     const auto& newBlock = m_doc->blocks()[m_coord.blockNo];
     if (newCoord.offset >= newBlock.logicalLineAt(newCoord.lineNo).length()) {
-      // Try next block
-      if (m_coord.blockNo + 1 < m_doc->blocks().size()) {
+      if (m_coord.blockNo + 1 < m_doc->blocks().size())
         newCoord = CursorCoord{m_coord.blockNo + 1, 0, 0};
-      }
     }
   } else {
-    // Cursor moved to different block
-    // The \n might have created a new block. Cursor should be at start of the block after the split
     newCoord = CursorCoord{newCoord.blockNo, 0, 0};
   }
-
   m_finishedCoord = newCoord;
   m_doc->updateCursor(cursor, newCoord);
   m_doc->ensureTrailingParagraph();
 }
 
 void InsertReturnCommand::undo(Cursor& cursor) {
+  // Remove any blocks that were added by execute
+  while (m_doc->countOfBlock() > m_originalBlockCount) {
+    m_doc->removeBlock(m_doc->countOfBlock() - 1);
+  }
   // Restore snapshot of original block
   for (auto& [blockNo, snapshot] : m_snapshots) {
     m_doc->replaceBlock(blockNo, snapshot->clone());

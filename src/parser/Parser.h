@@ -9,10 +9,10 @@
 #include "mddef.h"
 namespace md::parser {
 class Container;
-class QTMARKDOWNSHARED_EXPORT Parser {
+class QTMARKDOWNPARSER_EXPORT Parser {
  public:
-  static sptr<Container> parse(const String& text);
-  static sptr<Container> parse(const String& text, PieceTableItem::BufferType bufferType, SizeType baseOffset = 0);
+  static std::unique_ptr<Container> parse(const String& text);
+  static std::unique_ptr<Container> parse(const String& text, PieceTableItem::BufferType bufferType, SizeType baseOffset = 0);
 };
 }  // namespace md::parser
 

@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT CodeBlock : public Container {
+class QTMARKDOWNPARSER_EXPORT CodeBlock : public Container {
  public:
   explicit CodeBlock(std::unique_ptr<Text> name);
   ~CodeBlock();

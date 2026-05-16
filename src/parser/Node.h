@@ -18,7 +18,7 @@ namespace md::parser {
 class IBufferProvider;
 class Container;
 
-enum class QTMARKDOWNSHARED_EXPORT NodeType {
+enum class QTMARKDOWNPARSER_EXPORT NodeType {
   none,
   header,
   paragraph,
@@ -44,9 +44,9 @@ enum class QTMARKDOWNSHARED_EXPORT NodeType {
   table,
   lf  // 换行
 };
-QTMARKDOWNSHARED_EXPORT std::ostream& operator<<(std::ostream& os, const NodeType& type);
+QTMARKDOWNPARSER_EXPORT std::ostream& operator<<(std::ostream& os, const NodeType& type);
 
-class QTMARKDOWNSHARED_EXPORT Node {
+class QTMARKDOWNPARSER_EXPORT Node {
  public:
   explicit Node(NodeType type = NodeType::none, Node* parent = nullptr) : m_type(type), m_parent(parent) {}
   virtual ~Node() {}
@@ -69,7 +69,7 @@ using NodePtrList = std::vector<std::unique_ptr<Node>>;
 
 class Text;
 
-class QTMARKDOWNSHARED_EXPORT Container : public Node {
+class QTMARKDOWNPARSER_EXPORT Container : public Node {
  public:
   Container() = default;
   NodePtrList& children() { return m_children; }

@@ -9,7 +9,7 @@
 #include "ListNode.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT CheckboxItem : public ListItemNode {
+class QTMARKDOWNPARSER_EXPORT CheckboxItem : public ListItemNode {
  public:
   CheckboxItem() : m_checked(false) { m_type = NodeType::checkbox_item; }
   [[nodiscard]] bool isChecked() const { return m_checked; }
@@ -21,7 +21,7 @@ class QTMARKDOWNSHARED_EXPORT CheckboxItem : public ListItemNode {
   bool m_checked;
 };
 
-class QTMARKDOWNSHARED_EXPORT CheckboxList : public ListNode {
+class QTMARKDOWNPARSER_EXPORT CheckboxList : public ListNode {
  public:
   CheckboxList() { m_type = NodeType::checkbox; }
   void accept(NodeVisitor* v) override { v->visit(this); }

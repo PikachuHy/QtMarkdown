@@ -7,7 +7,7 @@
 #include "QtMarkdown_global.h"
 #include "render/mddef.h"
 namespace md::editor {
-class QTMARKDOWNSHARED_EXPORT CursorCoord {
+class QTMARKDOWNEDITORCORE_EXPORT CursorCoord {
  public:
   // Block 下标
   SizeType blockNo = 0;
@@ -22,7 +22,7 @@ class QTMARKDOWNSHARED_EXPORT CursorCoord {
   bool operator==(const CursorCoord& rhs) const;
   bool operator!=(const CursorCoord& rhs) const;
 };
-QTMARKDOWNSHARED_EXPORT std::ostream& operator<<(std::ostream& os, const CursorCoord& c);
+QTMARKDOWNEDITORCORE_EXPORT std::ostream& operator<<(std::ostream& os, const CursorCoord& c);
 }  // namespace md::editor
 
 #endif  // QTMARKDOWN_CURSORCOORD_H

@@ -19,7 +19,7 @@ class Command;
 class CommandStack;
 class Cursor;
 struct CursorCoord;
-class QTMARKDOWNSHARED_EXPORT Document : public std::enable_shared_from_this<Document> {
+class QTMARKDOWNEDITORCORE_EXPORT Document {
  public:
   explicit Document(const String& str, sptr<render::RenderSetting> setting,
                     core::IImageProvider* imageProvider = nullptr);

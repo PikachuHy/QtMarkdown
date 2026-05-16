@@ -2,7 +2,7 @@ if (BUILD_STATIC)
     add_library(QtMarkdownEditorCore STATIC)
 else()
     add_library(QtMarkdownEditorCore SHARED)
-    target_compile_definitions(QtMarkdownEditorCore PRIVATE -DQtMarkdown_LIBRARY)
+    target_compile_definitions(QtMarkdownEditorCore PRIVATE -DQtMarkdownEditorCore_LIBRARY)
 endif ()
 target_include_directories(
         QtMarkdownEditorCore PUBLIC

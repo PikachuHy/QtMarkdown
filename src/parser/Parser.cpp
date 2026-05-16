@@ -16,7 +16,9 @@ using namespace std::string_view_literals;
 
 namespace md::parser {
 
-thread_local ParseContext g_parseContext;
+namespace detail {
+thread_local ParseContext tls_parseContext;
+}  // namespace detail
 
 std::ostream& operator<<(std::ostream& os, const Line& line) {
   os << line.text.mid(line.offset, line.length);
@@ -163,9 +165,8 @@ class ParserPrivate {
       m_lines.emplace_back(m_text, offset, length);
     }
   }
-  sptr<Container> parse() {
-    g_parseContext.bufferType = m_bufferType;
-    g_parseContext.baseOffset = m_baseOffset;
+  std::unique_ptr<Container> parse() {
+    ParseContextGuard ctxGuard(m_bufferType, m_baseOffset);
     static std::vector<BlockParserFn> parsers = {
         parseHeader,
         parseCodeBlock,
@@ -177,7 +178,7 @@ class ParserPrivate {
         parseLatexBlock,
         parseParagraph,
     };
-    auto nodes = std::make_shared<Container>();
+    auto nodes = std::make_unique<Container>();
     splitTextToLines();
     int i = 0;
     while (i < m_lines.size()) {
@@ -217,11 +218,11 @@ class ParserPrivate {
   PieceTableItem::BufferType m_bufferType;
   SizeType m_baseOffset;
 };
-sptr<Container> Parser::parse(const String& text) {
+std::unique_ptr<Container> Parser::parse(const String& text) {
   ParserPrivate parser(text);
   return parser.parse();
 }
-sptr<Container> Parser::parse(const String& text, PieceTableItem::BufferType bufferType, SizeType baseOffset) {
+std::unique_ptr<Container> Parser::parse(const String& text, PieceTableItem::BufferType bufferType, SizeType baseOffset) {
   ParserPrivate parser(text, bufferType, baseOffset);
   return parser.parse();
 }

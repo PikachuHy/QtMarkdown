@@ -8,7 +8,7 @@
 #include "IBufferProvider.h"
 #include "mddef.h"
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT PieceTableItem {
+class QTMARKDOWNPARSER_EXPORT PieceTableItem {
  public:
   enum BufferType { original, add };
   BufferType bufferType;

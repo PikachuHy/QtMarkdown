@@ -115,7 +115,15 @@ void MarkdownSerializer::visit(CodeBlock* node) {
         child->accept(this);
         m_md += "\n";
     }
-    markContentEnd();
+    // Ensure the closing "```" is always on its own line after a "\n",
+    // so the content-to-markdown sentinel maps to a position where
+    // inserted text produces valid fenced code block markdown.
+    if (node->children().empty()) {
+        markContentEnd();
+        m_md += "\n";
+    } else {
+        markContentEnd();
+    }
     m_md += "```";
     m_md += "\n";
     m_md += "\n";

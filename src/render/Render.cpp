@@ -138,7 +138,6 @@ class LayoutPass
   void visit(Text *node) override {
     ASSERT(node != nullptr);
     auto str = node->toString(m_doc);
-    // 将字符串按中文，英文，emoji切分
     auto stringList = StringUtil::split(str);
     for (auto s : stringList) {
       drawRenderString(node, str, s);
@@ -531,13 +530,7 @@ class LayoutPass
 
   void drawText(Text *node, const String &str, RenderString &s, SizeType offset, SizeType length) {
     save();
-    if (s.type == RenderString::English) {
-      if (m_rewriteFont) {
-        auto font = curFont();
-        font.family = m_setting->enTextFont.c_str();
-        setFont(font);
-      }
-    } else if (s.type == RenderString::Chinese) {
+    if (s.type == RenderString::Chinese) {
       auto font = curFont();
       font.family = m_setting->zhTextFont.c_str();
       setFont(font);
@@ -779,13 +772,15 @@ std::tuple<Point, int, int> LogicalLine::cursorAt(SizeType offset, const parser:
     }
     totalOffset += cell->length();
   }
-  if (offset == totalOffset) {
+  if (offset >= totalOffset) {
     auto cell = m_cells.back();
     auto pos = Point(cell->m_pos.x + cell->width(), cell->m_pos.y + cell->ascent());
     return {pos, cell->m_size.height, cell->ascent()};
   }
   DEBUG << m_cells.size() << offset << totalOffset;
   ASSERT(false && "cursor not in cell");
+  auto cell = m_cells.back();
+  return {Point(cell->m_pos.x, cell->m_pos.y + cell->ascent()), cell->m_size.height, cell->ascent()};
 }
 SizeType LogicalLine::length() const {
   SizeType length = 0;
@@ -819,6 +814,7 @@ std::pair<parser::Text *, int> LogicalLine::textAt(SizeType offset) const {
   }
   DEBUG << m_cells.size() << offset << totalOffset;
   ASSERT(false && "text not in cell");
+  return {nullptr, 0};
 }
 String LogicalLine::left(SizeType length, const parser::IBufferProvider& doc) const {
   ASSERT(length >= 0 && length <= this->length());
@@ -832,6 +828,7 @@ String LogicalLine::left(SizeType length, const parser::IBufferProvider& doc) co
   }
   DEBUG << this->length() << length << s;
   ASSERT(false && "length");
+  return s;
 }
 bool LogicalLine::canMoveDown(SizeType offset, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
@@ -848,6 +845,7 @@ bool LogicalLine::canMoveDown(SizeType offset, const parser::IBufferProvider& do
   }
   DEBUG << this->length() << offset;
   ASSERT(false && "no cell in line");
+  return false;
 }
 bool LogicalLine::canMoveUp(SizeType offset, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());
@@ -865,6 +863,7 @@ bool LogicalLine::canMoveUp(SizeType offset, const parser::IBufferProvider& doc)
   }
   DEBUG << this->length() << offset;
   ASSERT(false && "no cell in line");
+  return m_lines.size() > 1;
 }
 SizeType LogicalLine::moveDown(SizeType offset, int x, const parser::IBufferProvider& doc) const {
   ASSERT(offset >= 0 && offset <= this->length());

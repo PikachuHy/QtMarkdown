@@ -9,14 +9,14 @@
 #include "ListNode.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT OrderedList : public ListNode {
+class QTMARKDOWNPARSER_EXPORT OrderedList : public ListNode {
  public:
   OrderedList() { m_type = NodeType::ol; }
   void accept(NodeVisitor* v) override { v->visit(this); }
   std::unique_ptr<Node> clone() const override;
 };
 
-class QTMARKDOWNSHARED_EXPORT OrderedListItem : public ListItemNode {
+class QTMARKDOWNPARSER_EXPORT OrderedListItem : public ListItemNode {
  public:
   OrderedListItem() { m_type = NodeType::ol_item; }
   void accept(NodeVisitor* v) override { v->visit(this); }

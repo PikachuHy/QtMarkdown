@@ -9,7 +9,7 @@
 
 #include "mddef.h"
 namespace md::render {
-class QTMARKDOWNSHARED_EXPORT RenderString {
+class QTMARKDOWNRENDER_EXPORT RenderString {
  public:
   enum Type { Chinese, English, Emoji };
   RenderString(RenderString::Type type, SizeType offset, SizeType length)
@@ -18,7 +18,7 @@ class QTMARKDOWNSHARED_EXPORT RenderString {
   SizeType offset;
   SizeType length;
 };
-class QTMARKDOWNSHARED_EXPORT StringUtil {
+class QTMARKDOWNRENDER_EXPORT StringUtil {
  public:
   static std::vector<RenderString> split(const String& text);
 };

@@ -18,7 +18,7 @@ target_sources(QtMarkdownRender PRIVATE
         StringUtil.cpp StringUtil.h
         FontMetricsProvider.h
         DefaultFontMetrics.h)
-target_compile_definitions(QtMarkdownRender PRIVATE -DQtMarkdown_LIBRARY)
+target_compile_definitions(QtMarkdownRender PRIVATE -DQtMarkdownRender_LIBRARY)
 target_link_libraries(QtMarkdownRender PUBLIC QtMarkdownParser microtex)
 install(
         TARGETS QtMarkdownRender

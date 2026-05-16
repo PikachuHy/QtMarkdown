@@ -18,9 +18,14 @@
 #include "render/Render.h"
 using namespace md::parser;
 namespace md::editor {
-Editor::Editor() {
-  m_cursor = std::make_shared<Cursor>();
-  m_imageProvider = std::make_shared<QtImageProvider>();
+Editor::Editor(core::IImageProvider* imageProvider) {
+  m_cursor = std::make_unique<Cursor>();
+  if (imageProvider) {
+    m_imageProvider = imageProvider;
+  } else {
+    m_ownedImageProvider = std::make_unique<QtImageProvider>();
+    m_imageProvider = m_ownedImageProvider.get();
+  }
   m_renderSetting = std::make_shared<render::RenderSetting>();
 #ifdef __ANDROID__
   m_renderSetting->docMargin.left = 0;
@@ -32,8 +37,8 @@ Editor::Editor() {
 }
 Editor::~Editor() = default;
 void Editor::loadText(const String &text) {
-  m_doc = std::make_shared<Document>(text, m_renderSetting, m_imageProvider.get());
-  m_cursor = std::make_shared<Cursor>();
+  m_doc = std::make_unique<Document>(text, m_renderSetting, m_imageProvider);
+  m_cursor = std::make_unique<Cursor>();
   m_renderer = std::make_unique<EditorRenderer>(*m_doc, *m_renderSetting);
   m_inputHandler = std::make_unique<EditorInputHandler>(*this, *m_doc, *m_cursor, *m_renderSetting);
   m_doc->updateCursor(*m_cursor, m_cursor->coord());
@@ -130,8 +135,8 @@ void Editor::insertText(String str) {
   m_doc->insertText(*m_cursor, strs.back());
 }
 void Editor::reset() {
-  m_cursor = std::make_shared<Cursor>();
-  m_doc = std::make_shared<Document>("", m_renderSetting, m_imageProvider.get());
+  m_cursor = std::make_unique<Cursor>();
+  m_doc = std::make_unique<Document>("", m_renderSetting, m_imageProvider);
   m_renderer = std::make_unique<EditorRenderer>(*m_doc, *m_renderSetting);
   m_inputHandler = std::make_unique<EditorInputHandler>(*this, *m_doc, *m_cursor, *m_renderSetting);
 }

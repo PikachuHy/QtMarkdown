@@ -70,6 +70,9 @@ const std::unique_ptr<Node>& Container::operator[](SizeType index) const {
 }
 void Container::removeChildAt(SizeType index) {
   ASSERT(index >= 0 && index < m_children.size());
+  if (auto& child = m_children[index]) {
+    child->setParent(nullptr);
+  }
   m_children.erase(m_children.begin() + index);
 }
 SizeType Container::indexOf(Node* child) const {
@@ -80,6 +83,7 @@ SizeType Container::indexOf(Node* child) const {
   }
   DEBUG << child->type() << child;
   ASSERT(false && "no child");
+  return -1;
 }
 void Container::removeChild(Node* node) {
   auto it = std::find_if(m_children.begin(), m_children.end(),
@@ -87,7 +91,9 @@ void Container::removeChild(Node* node) {
   if (it == m_children.end()) {
     DEBUG << node->type();
     ASSERT(false && "no child");
+    return;
   }
+  node->setParent(nullptr);
   m_children.erase(it);
 }
 ItalicText::ItalicText(std::unique_ptr<Text> text) : m_text(std::move(text)) {

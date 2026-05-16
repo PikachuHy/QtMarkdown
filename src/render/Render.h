@@ -22,11 +22,9 @@ struct RenderSetting {
   int paragraphIntent = 2;
 #ifdef __ANDROID__
   String zhTextFont = "Noto Sans CJK SC";
-//  String zhTextFont = "MI Lan Pro VF";
 #else
-  String zhTextFont = "苹方-简";
+  String zhTextFont = "PingFang SC";
 #endif
-  String enTextFont = "Times New Roman";
   StringList resPathList;
   std::array<int, 6> headerFontSize = {36, 28, 24, 20, 16, 14};
   editor::core::Margins docMargin{100, 20, 20, 20};
@@ -37,7 +35,7 @@ struct RenderSetting {
   [[nodiscard]] int contentMaxWidth() const { return maxWidth - docMargin.left - docMargin.right; }
 };
 class LogicalLine;
-class QTMARKDOWNSHARED_EXPORT VisualLine {
+class QTMARKDOWNRENDER_EXPORT VisualLine {
  public:
   VisualLine(Point pos, int h) : m_pos(pos), m_h(h) {}
   VisualLine(const VisualLine&) = delete;
@@ -57,7 +55,7 @@ class QTMARKDOWNSHARED_EXPORT VisualLine {
   friend class LayoutPass;
   friend class LogicalLine;
 };
-class QTMARKDOWNSHARED_EXPORT LogicalLine {
+class QTMARKDOWNRENDER_EXPORT LogicalLine {
   using VisualLineList = std::vector<VisualLine>;
 
  public:
@@ -103,7 +101,7 @@ class QTMARKDOWNSHARED_EXPORT LogicalLine {
   int m_padding = 0;
   friend class LayoutPass;
 };
-class QTMARKDOWNSHARED_EXPORT Block {
+class QTMARKDOWNRENDER_EXPORT Block {
  public:
   using LogicalLineList = std::vector<LogicalLine>;
   Block() = default;
@@ -143,7 +141,7 @@ class QTMARKDOWNSHARED_EXPORT Block {
   friend class LayoutPass;
 };
 
-class QTMARKDOWNSHARED_EXPORT Render {
+class QTMARKDOWNRENDER_EXPORT Render {
  public:
   static Block render(parser::Node* node, sptr<RenderSetting> setting, const parser::IBufferProvider& doc,
                       IFontMetricsProvider* fontMetrics = nullptr,

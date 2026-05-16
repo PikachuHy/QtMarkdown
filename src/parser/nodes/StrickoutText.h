@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT StrickoutText : public Node {
+class QTMARKDOWNPARSER_EXPORT StrickoutText : public Node {
  public:
   explicit StrickoutText(std::unique_ptr<Text> text);
   ~StrickoutText();

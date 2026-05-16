@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Image : public Node {
+class QTMARKDOWNPARSER_EXPORT Image : public Node {
  public:
   Image(std::unique_ptr<Text> alt, std::unique_ptr<Text> src);
   ~Image();

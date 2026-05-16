@@ -5,57 +5,57 @@
 #ifndef QTMARKDOWNPARSER_QTMARKDOWN_GLOBAL_H
 #define QTMARKDOWNPARSER_QTMARKDOWN_GLOBAL_H
 
-// Platform-independent export macros
-#if defined(_WIN32) || defined(_WIN64)
-#  if defined(BUILD_STATIC)
-#    define QTMARKDOWNSHARED_EXPORT
-#  elif defined(QtMarkdown_LIBRARY)
-#    define QTMARKDOWNSHARED_EXPORT __declspec(dllexport)
-#  else
-#    define QTMARKDOWNSHARED_EXPORT __declspec(dllimport)
-#  endif
-#elif defined(__GNUC__) || defined(__clang__)
-#  if defined(BUILD_STATIC)
-#    define QTMARKDOWNSHARED_EXPORT
-#  elif defined(QtMarkdown_LIBRARY)
-#    define QTMARKDOWNSHARED_EXPORT __attribute__((visibility("default")))
-#  else
-#    define QTMARKDOWNSHARED_EXPORT
-#  endif
-#else
-#  define QTMARKDOWNSHARED_EXPORT
-#endif
+// Platform-independent export macros for each library.
+// On Windows, each DLL needs its own dllexport/dllimport pair.
+// On Linux/macOS, visibility("default") is harmless when shared.
 
 #if defined(_WIN32) || defined(_WIN64)
-#  if defined(QtWidgetMarkdownEditor_LIBRARY)
-#    define QTWIDGETMARKDOWNEDITOR_EXPORT __declspec(dllexport)
-#  else
-#    define QTWIDGETMARKDOWNEDITOR_EXPORT __declspec(dllimport)
-#  endif
+#  define QTMARKDOWN_EXPORT_DECL(lib) \
+    __declspec(dllexport)
+#  define QTMARKDOWN_IMPORT_DECL(lib) \
+    __declspec(dllimport)
 #elif defined(__GNUC__) || defined(__clang__)
-#  if defined(QtWidgetMarkdownEditor_LIBRARY)
-#    define QTWIDGETMARKDOWNEDITOR_EXPORT __attribute__((visibility("default")))
-#  else
-#    define QTWIDGETMARKDOWNEDITOR_EXPORT
-#  endif
+#  define QTMARKDOWN_EXPORT_DECL(lib) \
+    __attribute__((visibility("default")))
+#  define QTMARKDOWN_IMPORT_DECL(lib)
 #else
+#  define QTMARKDOWN_EXPORT_DECL(lib)
+#  define QTMARKDOWN_IMPORT_DECL(lib)
+#endif
+
+#ifdef BUILD_STATIC
+#  define QTMARKDOWNPARSER_EXPORT
+#  define QTMARKDOWNRENDER_EXPORT
+#  define QTMARKDOWNEDITORCORE_EXPORT
 #  define QTWIDGETMARKDOWNEDITOR_EXPORT
+#  define QTQUICKMARKDOWNEDITOR_EXPORT
+#else
+#  ifdef QtMarkdownParser_LIBRARY
+#    define QTMARKDOWNPARSER_EXPORT QTMARKDOWN_EXPORT_DECL(QtMarkdownParser)
+#  else
+#    define QTMARKDOWNPARSER_EXPORT QTMARKDOWN_IMPORT_DECL(QtMarkdownParser)
+#  endif
+#  ifdef QtMarkdownRender_LIBRARY
+#    define QTMARKDOWNRENDER_EXPORT QTMARKDOWN_EXPORT_DECL(QtMarkdownRender)
+#  else
+#    define QTMARKDOWNRENDER_EXPORT QTMARKDOWN_IMPORT_DECL(QtMarkdownRender)
+#  endif
+#  ifdef QtMarkdownEditorCore_LIBRARY
+#    define QTMARKDOWNEDITORCORE_EXPORT QTMARKDOWN_EXPORT_DECL(QtMarkdownEditorCore)
+#  else
+#    define QTMARKDOWNEDITORCORE_EXPORT QTMARKDOWN_IMPORT_DECL(QtMarkdownEditorCore)
+#  endif
+#  ifdef QtWidgetMarkdownEditor_LIBRARY
+#    define QTWIDGETMARKDOWNEDITOR_EXPORT QTMARKDOWN_EXPORT_DECL(QtWidgetMarkdownEditor)
+#  else
+#    define QTWIDGETMARKDOWNEDITOR_EXPORT QTMARKDOWN_IMPORT_DECL(QtWidgetMarkdownEditor)
+#  endif
+#  ifdef QtQuickMarkdownEditor_LIBRARY
+#    define QTQUICKMARKDOWNEDITOR_EXPORT QTMARKDOWN_EXPORT_DECL(QtQuickMarkdownEditor)
+#  else
+#    define QTQUICKMARKDOWNEDITOR_EXPORT QTMARKDOWN_IMPORT_DECL(QtQuickMarkdownEditor)
+#  endif
 #endif
 
-#if defined(_WIN32) || defined(_WIN64)
-#  if defined(QtQuickMarkdownEditor_LIBRARY)
-#    define QTQUICKMARKDOWNEDITOR_EXPORT __declspec(dllexport)
-#  else
-#    define QTQUICKMARKDOWNEDITOR_EXPORT __declspec(dllimport)
-#  endif
-#elif defined(__GNUC__) || defined(__clang__)
-#  if defined(QtQuickMarkdownEditor_LIBRARY)
-#    define QTQUICKMARKDOWNEDITOR_EXPORT __attribute__((visibility("default")))
-#  else
-#    define QTQUICKMARKDOWNEDITOR_EXPORT
-#  endif
-#else
-#  define QTQUICKMARKDOWNEDITOR_EXPORT
-#endif
 
 #endif  // QTMARKDOWNPARSER_QTMARKDOWN_GLOBAL_H

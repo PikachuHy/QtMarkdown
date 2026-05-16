@@ -25,7 +25,7 @@ enum class TokenType {
   backquote,  // `
   dollar
 };
-class QTMARKDOWNSHARED_EXPORT Token {
+class QTMARKDOWNPARSER_EXPORT Token {
  public:
   explicit Token(SizeType offset, SizeType length, TokenType type = TokenType::none)
       : m_offset(offset), m_length(length), m_type(type) {}

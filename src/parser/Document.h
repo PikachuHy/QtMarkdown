@@ -35,7 +35,7 @@
 #include "nodes/LatexBlock.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Document : public IBufferProvider {
+class QTMARKDOWNPARSER_EXPORT Document : public IBufferProvider {
  public:
   explicit Document(const String& str);
   String toHtml();
@@ -48,7 +48,7 @@ class QTMARKDOWNSHARED_EXPORT Document : public IBufferProvider {
  protected:
   String m_originalBuffer;
   String m_addBuffer;
-  sptr<Container> m_root;
+  std::unique_ptr<Container> m_root;
   friend class Parser;
   friend class Text;
 };

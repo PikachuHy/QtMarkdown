@@ -6,7 +6,7 @@
 
 namespace md::parser {
 
-class QTMARKDOWNSHARED_EXPORT IBufferProvider {
+class QTMARKDOWNPARSER_EXPORT IBufferProvider {
 public:
     virtual ~IBufferProvider() = default;
     virtual const String& originalBuffer() const = 0;

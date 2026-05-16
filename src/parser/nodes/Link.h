@@ -9,7 +9,7 @@
 #include "../Text.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Link : public Node {
+class QTMARKDOWNPARSER_EXPORT Link : public Node {
  public:
   Link(std::unique_ptr<Text> content, std::unique_ptr<Text> href);
   ~Link();

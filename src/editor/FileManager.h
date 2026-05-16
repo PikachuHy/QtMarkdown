@@ -11,7 +11,7 @@
 namespace md::editor {
 class Document;
 
-class QTMARKDOWNSHARED_EXPORT FileManager {
+class QTMARKDOWNEDITORCORE_EXPORT FileManager {
 public:
     explicit FileManager(const Document& doc);
 

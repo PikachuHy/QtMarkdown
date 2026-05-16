@@ -8,13 +8,14 @@
 #include "ParseContext.h"
 #include "PieceTable.h"
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT Text : public Node {
+class QTMARKDOWNPARSER_EXPORT Text : public Node {
   using PieceTableItemList = std::vector<PieceTableItem>;
  public:
   Text(SizeType offset, SizeType length) {
     m_type = NodeType::text;
-    m_items.emplace_back(PieceTableItem{g_parseContext.bufferType,
-                                        g_parseContext.baseOffset + offset,
+    auto& ctx = ParseContextGuard::current();
+    m_items.emplace_back(PieceTableItem{ctx.bufferType,
+                                        ctx.baseOffset + offset,
                                         length});
   }
   Text(PieceTableItem::BufferType type, SizeType offset, SizeType length) {

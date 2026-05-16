@@ -12,7 +12,7 @@
 
 namespace md::editor {
 
-class QTMARKDOWNSHARED_EXPORT MarkdownSerializer : public parser::NodeVisitor {
+class QTMARKDOWNEDITORCORE_EXPORT MarkdownSerializer : public parser::NodeVisitor {
 public:
     explicit MarkdownSerializer(const parser::IBufferProvider& doc);
     String markdown() const;

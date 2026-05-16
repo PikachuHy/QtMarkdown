@@ -9,7 +9,7 @@
 #include "../Node.h"
 
 namespace md::parser {
-class QTMARKDOWNSHARED_EXPORT LatexBlock : public Container {
+class QTMARKDOWNPARSER_EXPORT LatexBlock : public Container {
  public:
   LatexBlock() { m_type = NodeType::latex_block; }
   [[nodiscard]] String toString(const IBufferProvider& doc) const;

@@ -9,7 +9,7 @@
 #include "CursorCoord.h"
 #include "core/Types.h"
 namespace md::editor {
-class QTMARKDOWNSHARED_EXPORT Cursor {
+class QTMARKDOWNEDITORCORE_EXPORT Cursor {
  public:
   [[nodiscard]] CursorCoord coord() const { return m_coord; };
   void setCoord(CursorCoord coord);
@@ -29,7 +29,7 @@ class QTMARKDOWNSHARED_EXPORT Cursor {
   int m_h = 20;
   int m_ascent = 0;
 };
-class QTMARKDOWNSHARED_EXPORT SelectionRange {
+class QTMARKDOWNEDITORCORE_EXPORT SelectionRange {
  public:
   Cursor caret;
   Cursor anchor;

@@ -14,7 +14,7 @@
 namespace md::render {
 class IFontMetricsProvider;
 
-class QTMARKDOWNSHARED_EXPORT Cell {
+class QTMARKDOWNRENDER_EXPORT Cell {
  public:
   Cell(Point pos, Size size) : m_pos(pos), m_size(size) {}
   virtual ~Cell() = default;
@@ -39,7 +39,7 @@ class QTMARKDOWNSHARED_EXPORT Cell {
   friend class VisualLine;
 };
 class TextInstruction;
-class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
+class QTMARKDOWNRENDER_EXPORT TextCell : public Cell {
  public:
   TextCell(parser::Text* text, SizeType offset, SizeType length, Point pos, Size size, const Color& fg,
            const Font& font, IFontMetricsProvider* fm)
@@ -64,7 +64,7 @@ class QTMARKDOWNSHARED_EXPORT TextCell : public Cell {
   friend class LogicalLine;
 };
 class LatexInstruction;
-class QTMARKDOWNSHARED_EXPORT InlineLatexCell : public Cell {
+class QTMARKDOWNRENDER_EXPORT InlineLatexCell : public Cell {
  public:
   InlineLatexCell(Point pos, Size size) : Cell(pos, size) {}
   SizeType length() override { return 1; }

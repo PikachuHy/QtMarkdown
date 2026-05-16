@@ -12,7 +12,7 @@
 #include "Document.h"
 #include "render/mddef.h"
 namespace md::editor {
-class QTMARKDOWNSHARED_EXPORT Command {
+class QTMARKDOWNEDITORCORE_EXPORT Command {
  public:
   enum Type { insert_text, remove_text, insert_return, upgrade_to_header, remove_text_range };
   Command(Document* doc) : m_doc(doc) {}
@@ -25,7 +25,7 @@ class QTMARKDOWNSHARED_EXPORT Command {
  protected:
   Document* m_doc;
 };
-class QTMARKDOWNSHARED_EXPORT InsertTextCommand : public Command {
+class QTMARKDOWNEDITORCORE_EXPORT InsertTextCommand : public Command {
  public:
   InsertTextCommand(Document* doc, CursorCoord coord, String text);
   [[nodiscard]] Type type() const override { return insert_text; }
@@ -40,7 +40,7 @@ class QTMARKDOWNSHARED_EXPORT InsertTextCommand : public Command {
   std::unique_ptr<parser::Node> m_snapshot;
   SizeType m_contentPos = 0;
 };
-class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
+class QTMARKDOWNEDITORCORE_EXPORT RemoveTextCommand : public Command {
  public:
   RemoveTextCommand(Document* doc, CursorCoord coord) : Command(doc), m_coord(coord) {}
   [[nodiscard]] Type type() const override { return remove_text; }
@@ -53,10 +53,11 @@ class QTMARKDOWNSHARED_EXPORT RemoveTextCommand : public Command {
   CursorCoord m_coord;
   CursorCoord m_finishedCoord;
   bool m_hasAction = false;
-  std::unique_ptr<parser::Node> m_snapshot;
+  int m_originalBlockCount = 0;
+  std::vector<std::pair<SizeType, std::unique_ptr<parser::Node>>> m_snapshots;
   SizeType m_contentPos = 0;
 };
-class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
+class QTMARKDOWNEDITORCORE_EXPORT InsertReturnCommand : public Command {
  public:
   InsertReturnCommand(Document* doc, CursorCoord coord) : Command(doc), m_coord(coord) {}
   [[nodiscard]] Type type() const override { return insert_return; }
@@ -65,11 +66,15 @@ class QTMARKDOWNSHARED_EXPORT InsertReturnCommand : public Command {
   void undo(Cursor& cursor) override;
 
  private:
+  void handleListEnter(Cursor& cursor, parser::Container* listNode, const render::Block& block, SizeType contentPos);
+  void handleCodeBlockEnter(Cursor& cursor, const render::Block& block, SizeType contentPos);
+  void handleContentSplit(Cursor& cursor, const render::Block& block, SizeType contentPos);
   CursorCoord m_coord;
   CursorCoord m_finishedCoord;
+  int m_originalBlockCount = 0;
   std::vector<std::pair<SizeType, std::unique_ptr<parser::Node>>> m_snapshots;
 };
-class QTMARKDOWNSHARED_EXPORT UpgradeToHeaderCommand : public Command {
+class QTMARKDOWNEDITORCORE_EXPORT UpgradeToHeaderCommand : public Command {
  public:
   UpgradeToHeaderCommand(Document* doc, CursorCoord coord, int level);
   [[nodiscard]] Type type() const override { return upgrade_to_header; }
@@ -84,7 +89,7 @@ class QTMARKDOWNSHARED_EXPORT UpgradeToHeaderCommand : public Command {
   int m_level;
   std::unique_ptr<parser::Node> m_snapshot;
 };
-class QTMARKDOWNSHARED_EXPORT RemoveTextRangeCommand : public Command {
+class QTMARKDOWNEDITORCORE_EXPORT RemoveTextRangeCommand : public Command {
  public:
   RemoveTextRangeCommand(Document* doc, CursorCoord begin, CursorCoord end);
   [[nodiscard]] Type type() const override { return remove_text_range; }
@@ -99,7 +104,7 @@ class QTMARKDOWNSHARED_EXPORT RemoveTextRangeCommand : public Command {
   std::vector<std::pair<SizeType, std::unique_ptr<parser::Node>>> m_snapshots;
   CursorCoord m_finishedCoord;
 };
-class QTMARKDOWNSHARED_EXPORT CommandStack {
+class QTMARKDOWNEDITORCORE_EXPORT CommandStack {
  public:
   static constexpr size_t kMaxCommands = 500;
   void push(std::unique_ptr<Command> command);
