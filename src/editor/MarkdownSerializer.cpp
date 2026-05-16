@@ -24,6 +24,7 @@ void MarkdownSerializer::visit(Header* node) {
     for (auto& it : node->children()) {
         it->accept(this);
     }
+    markContentEnd();
     m_md += "\n";
     m_md += "\n";
 }
@@ -114,6 +115,7 @@ void MarkdownSerializer::visit(CodeBlock* node) {
         child->accept(this);
         m_md += "\n";
     }
+    markContentEnd();
     m_md += "```";
     m_md += "\n";
     m_md += "\n";
@@ -132,14 +134,16 @@ void MarkdownSerializer::visit(Paragraph* node) {
     for (auto& it : node->children()) {
         it->accept(this);
     }
+    markContentEnd();
     m_md += "\n";
     m_md += "\n";
 }
 
 void MarkdownSerializer::visit(CheckboxList* node) {
-    for (auto& child : node->children()) {
+    for (SizeType i = 0; i < node->size(); ++i) {
+        auto* child = node->childAt(i);
         ASSERT(child->type() == NodeType::checkbox_item);
-        auto item = static_cast<CheckboxItem*>(child.get());
+        auto* item = static_cast<CheckboxItem*>(child);
         m_md += "- [";
         if (item->isChecked()) {
             m_md += "x";
@@ -148,8 +152,12 @@ void MarkdownSerializer::visit(CheckboxList* node) {
         }
         m_md += "] ";
         item->accept(this);
-        m_md += "\n";
+        if (i + 1 < node->size()) {
+            m_md += "\n";
+        }
     }
+    markContentEnd();
+    m_md += "\n";
 }
 
 void MarkdownSerializer::visit(CheckboxItem* node) {
@@ -159,21 +167,27 @@ void MarkdownSerializer::visit(CheckboxItem* node) {
 }
 
 void MarkdownSerializer::visit(UnorderedList* node) {
-    for (auto& it : node->children()) {
+    for (SizeType i = 0; i < node->size(); ++i) {
         m_md += "- ";
-        it->accept(this);
-        m_md += "\n";
+        node->childAt(i)->accept(this);
+        if (i + 1 < node->size()) {
+            m_md += "\n";
+        }
     }
+    markContentEnd();
+    m_md += "\n";
 }
 
 void MarkdownSerializer::visit(OrderedList* node) {
-    int i = 1;
-    for (auto& it : node->children()) {
-        m_md += std::to_string(i) + ". ";
-        it->accept(this);
-        m_md += "\n";
-        i++;
+    for (SizeType i = 0; i < node->size(); ++i) {
+        m_md += std::to_string(i + 1) + ". ";
+        node->childAt(i)->accept(this);
+        if (i + 1 < node->size()) {
+            m_md += "\n";
+        }
     }
+    markContentEnd();
+    m_md += "\n";
 }
 
 void MarkdownSerializer::visit(OrderedListItem* node) {
@@ -198,6 +212,7 @@ void MarkdownSerializer::visit(QuoteBlock* node) {
         it->accept(this);
         m_md += "\n";
     }
+    markContentEnd();
     m_md += "\n";
 }
 
@@ -228,6 +243,7 @@ void MarkdownSerializer::visit(LatexBlock* node) {
     for (auto& it : node->children()) {
         it->accept(this);
     }
+    markContentEnd();
     m_md += "$$\n";
     m_md += "\n";
 }

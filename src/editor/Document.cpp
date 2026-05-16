@@ -191,20 +191,11 @@ Document::MarkdownPosition Document::cursorToMarkdownPosition(const CursorCoord&
   result.text = serializer.markdown();
   const auto& posMap = serializer.contentToMarkdown();
 
-  if (contentPos < posMap.size()) {
+  SizeType contentLen = blockNode->contentLength(*m_parserDoc);
+  if (contentPos < contentLen && contentPos < posMap.size()) {
     result.pos = posMap[contentPos];
-  } else if (!posMap.empty()) {
-    result.pos = posMap.back() + 1;
   } else {
-    result.pos = result.text.length();
-    if (result.text.endsWith("\n\n")) result.pos -= 2;
-    else if (result.text.endsWith("\n")) result.pos -= 1;
-    auto nodeType = blockNode->type();
-    if (nodeType == NodeType::code_block) {
-      if (result.pos >= 3 && result.text.mid(result.pos - 3, 3) == "```") result.pos -= 3;
-    } else if (nodeType == NodeType::latex_block) {
-      if (result.pos >= 2 && result.text.mid(result.pos - 2, 2) == "$$") result.pos -= 2;
-    }
+    result.pos = serializer.contentEndMarkdownPos();
   }
   return result;
 }

@@ -17,6 +17,8 @@ public:
     explicit MarkdownSerializer(const parser::IBufferProvider& doc);
     String markdown() const;
     const std::vector<SizeType>& contentToMarkdown() const { return m_contentToMarkdown; }
+    SizeType contentEndMarkdownPos() const { return m_contentEndMdPos; }
+    void markContentEnd() { m_contentEndMdPos = m_md.length(); }
 
     // Visitor overrides
     void visit(parser::Header* node) override;
@@ -48,6 +50,7 @@ private:
     String m_md;
     const parser::IBufferProvider& m_doc;
     std::vector<SizeType> m_contentToMarkdown;
+    SizeType m_contentEndMdPos = 0;
     bool m_recordPositions = true;
 };
 
